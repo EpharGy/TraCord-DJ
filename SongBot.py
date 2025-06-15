@@ -10,12 +10,15 @@ import xml.etree.ElementTree as ET
 import asyncio
 from datetime import datetime, timedelta
 import json
+from pathlib import Path
+import re
 
 ##############################
 # Load environment variables from .env file
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
-TRAKTOR_PATH = os.getenv('TRAKTOR_COLLECTION')
+TRAKTOR_LOCATION = os.getenv('TRAKTOR_LOCATION')
+TRAKTOR_COLLECTION_FILENAME = os.getenv('TRAKTOR_COLLECTION_FILENAME')
 APPLICATION_ID = os.getenv('APPLICATION_ID')
 CHANNEL_IDS = os.getenv('CHANNEL_IDS')
 ALLOWED_USER_IDS = os.getenv('ALLOWED_USER_IDS')
@@ -48,12 +51,54 @@ else:
 
 ##############################
 # Check if all environment variables are loaded
-required_env_vars = [TOKEN, TRAKTOR_PATH, APPLICATION_ID, CHANNEL_IDS, ALLOWED_USER_IDS, NOWPLAYING_CONFIG_JSON_PATH, SONG_REQUESTS_FILE]
+required_env_vars = [TOKEN, TRAKTOR_LOCATION, TRAKTOR_COLLECTION_FILENAME, APPLICATION_ID, CHANNEL_IDS, ALLOWED_USER_IDS, NOWPLAYING_CONFIG_JSON_PATH, SONG_REQUESTS_FILE]
 if any(var is None for var in required_env_vars):
     raise ValueError("One or more required environment variables are missing.")
 
+
 ##############################
 # Definitions
+def get_latest_traktor_folder(root_path: str) -> str:
+    """
+    Find the latest Traktor version folder in the given root path.
+    Returns the full path to the latest version folder.
+    """
+    try:
+        # Get all directories that start with "Traktor "
+        traktor_dirs = [d for d in Path(root_path).iterdir() 
+                       if d.is_dir() and d.name.startswith("Traktor ")]
+        
+        if not traktor_dirs:
+            raise ValueError(f"No Traktor folders found in {root_path}")
+            
+        # Extract version numbers and pair them with paths
+        version_paths = []
+        for path in traktor_dirs:
+            # Extract version number from folder name (e.g., "Traktor 4.2.0" -> "4.2.0")
+            version = path.name.replace("Traktor ", "").strip("\\")
+            # Split version into numeric components
+            version_nums = [int(x) for x in version.split(".")]
+            version_paths.append((version_nums, path))
+            
+        # Sort by version numbers (newest first)
+        version_paths.sort(key=lambda x: x[0], reverse=True)
+        
+        # Return the path of the newest version
+        return str(version_paths[0][1])
+        
+    except Exception as e:
+        raise ValueError(f"Error finding latest Traktor folder: {e}")
+
+# Get the full path to the latest Traktor collection file
+try:
+    latest_traktor_folder = get_latest_traktor_folder(TRAKTOR_LOCATION)
+    TRAKTOR_PATH = os.path.join(latest_traktor_folder, TRAKTOR_COLLECTION_FILENAME)
+    if not os.path.exists(TRAKTOR_PATH):
+        raise ValueError(f"Collection file not found: {TRAKTOR_PATH}")
+except Exception as e:
+    print(f"Error setting up Traktor path: {e}")
+    raise
+
 def check_permissions(user_id, allowed_user_ids):
     return user_id in allowed_user_ids
 
