@@ -28,6 +28,11 @@ MAX_SONGS = 20
 NEW_SONGS_DAYS = 7
 DEBUG = False
 TIMEOUT = 45.0
+EXCLUDED_ITEMS = {
+    'FILE': ['.stem.'],
+    'DIR': [':ContentImport/', ':Samples/']
+}
+
 
 ##############################
 # Split Applicable Variables if multiple
@@ -58,7 +63,19 @@ def count_songs_in_collection(copied_file_path):
     try:
         tree = ET.parse(copied_file_path)
         root = tree.getroot()
-        return len([entry for entry in root.findall(".//COLLECTION/ENTRY") if ".stem." not in entry.find(".//LOCATION").get("FILE")])
+        count = 0
+        for entry in root.findall(".//COLLECTION/ENTRY"):
+            location = entry.find(".//LOCATION")
+            if location is None:
+                continue
+            file_path = location.get("FILE", "")
+            dir_path = location.get("DIR", "")
+            # Skip if it's an excluded item
+            if (any(pattern in file_path for pattern in EXCLUDED_ITEMS['FILE']) or
+                any(pattern in dir_path for pattern in EXCLUDED_ITEMS['DIR'])):
+                continue
+            count += 1
+        return count
     except ET.ParseError as e:
         print(f"Error parsing XML file: {e}")
         return 0
@@ -144,7 +161,10 @@ def get_new_songs(copied_file_path, days):
     total_new_songs = 0
     for entry in root.findall(".//COLLECTION/ENTRY"):
         location = entry.find(".//LOCATION")
-        if location is None or ".stem." in location.get("FILE", ""):
+        file_path = location.get("FILE", "")
+        dir_path = location.get("DIR", "")
+        if (any(pattern in file_path for pattern in EXCLUDED_ITEMS['FILE']) or
+            any(pattern in dir_path for pattern in EXCLUDED_ITEMS['DIR'])):
             continue
         info = entry.find(".//INFO")
         if info is None:
@@ -321,7 +341,10 @@ def parse_traktor_collection(copied_file_path, search_query):
     
     for entry in root.findall(".//COLLECTION/ENTRY"):
         location = entry.find(".//LOCATION")
-        if ".stem." in location.get("FILE", ""):
+        file_path = location.get("FILE", "")
+        dir_path = location.get("DIR", "")
+        if (any(pattern in file_path for pattern in EXCLUDED_ITEMS['FILE']) or
+            any(pattern in dir_path for pattern in EXCLUDED_ITEMS['DIR'])):
             continue
         
         artist = entry.get("ARTIST")
@@ -532,6 +555,35 @@ async def srbreqdel(interaction: discord.Interaction, request_number: str):
     except Exception as e:
         print(f"Error deleting song request: {e}")
         await interaction.response.send_message(f"Error deleting song request: {e}", ephemeral=True)
+
+##############################
+# Going Live - Send a live notification message with the Tunes role mention
+@bot.tree.command(name="srblive", description="Sends a live notification message to Tunes")
+@app_commands.describe(message="The message to send with the notification")
+async def srblive(interaction: discord.Interaction, message: str):
+    # Check if user has permission
+    if not check_permissions(interaction.user.id, ALLOWED_USER_IDS):
+        await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
+        return
+    
+    try:
+        # Get the Tunes role from the guild
+        tunes_role = discord.utils.get(interaction.guild.roles, name="Tunes")
+        
+        if not tunes_role:
+            await interaction.response.send_message("Error: Tunes role not found in this server.", ephemeral=True)
+            return
+        
+        # Create the notification message with the role mention
+        notification = f"{tunes_role.mention} - Going Live: {message}"
+        
+        # Send the message
+        await interaction.response.send_message(notification, allowed_mentions=discord.AllowedMentions(roles=True))
+        print(f"{interaction.user} sent live notification: {message}")
+        
+    except Exception as e:
+        print(f"Error sending live notification: {e}")
+        await interaction.response.send_message("Error sending notification message. (/srblive)", ephemeral=True)
 
 ##############################
 # Bot Startup Feedback
