@@ -19,56 +19,6 @@ class AdminCog(commands.Cog, name="Admin"):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
     
-    @app_commands.command(name="srbnpclear", description="Backup and clear track history in NowPlaying config.json")
-    async def srbnpclear(self, interaction: discord.Interaction):
-        """Backup and clear NowPlaying track history (admin only)"""
-        if not Settings.NOWPLAYING_CONFIG_JSON_PATH:
-            await interaction.response.send_message(
-                "Config file path not set in environment variable NOWPLAYING_CONFIG_JSON_PATH.", 
-                ephemeral=True
-            )
-            return
-
-        if not check_permissions(interaction.user.id, Settings.ALLOWED_USER_IDS):
-            await interaction.response.send_message(
-                "You do not have permission to use this command.", 
-                ephemeral=True
-            )
-            return
-
-        try:
-            # Backup config.json
-            backup_path = Settings.NOWPLAYING_CONFIG_JSON_PATH + ".bak"
-            shutil.copyfile(Settings.NOWPLAYING_CONFIG_JSON_PATH, backup_path)
-
-            # Load config.json
-            with open(Settings.NOWPLAYING_CONFIG_JSON_PATH, "r", encoding="utf-8") as file:
-                config = json.load(file)
-
-            # Clear specific fields in currentTrack
-            fields_to_clear = ["title", "artist", "comment", "label", "album", "artwork"]
-            if "currentTrack" in config:
-                for field in fields_to_clear:
-                    if field in config["currentTrack"]:
-                        config["currentTrack"][field] = ""
-
-            # Clear track list
-            if "trackList" in config:
-                config["trackList"] = []
-
-            # Save updated config.json
-            with open(Settings.NOWPLAYING_CONFIG_JSON_PATH, "w", encoding="utf-8") as file:
-                json.dump(config, file, indent=4)
-
-            await interaction.response.send_message(
-                f"NowPlaying config cleared successfully. Backup saved as {backup_path}"
-            )
-            print(f"{interaction.user} cleared NowPlaying config")
-
-        except Exception as e:
-            print(f"Error clearing NowPlaying config: {e}")
-            await interaction.response.send_message(f"Error clearing NowPlaying config: {e}", ephemeral=True)
-    
     @app_commands.command(name="srblive", description="Sends a live notification message with optional role mentions")
     @app_commands.describe(message="The message to send with the notification")
     async def srblive(self, interaction: discord.Interaction, message: str):
