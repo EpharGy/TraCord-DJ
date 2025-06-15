@@ -20,10 +20,11 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 TRAKTOR_LOCATION = os.getenv('TRAKTOR_LOCATION')
 TRAKTOR_COLLECTION_FILENAME = os.getenv('TRAKTOR_COLLECTION_FILENAME')
 APPLICATION_ID = os.getenv('APPLICATION_ID')
-CHANNEL_IDS = os.getenv('CHANNEL_IDS')
-ALLOWED_USER_IDS = os.getenv('ALLOWED_USER_IDS')
+CHANNEL_IDS_ENV = os.getenv('CHANNEL_IDS')
+ALLOWED_USER_IDS_ENV = os.getenv('ALLOWED_USER_IDS')
 NOWPLAYING_CONFIG_JSON_PATH = os.getenv('NOWPLAYING_CONFIG_JSON_PATH')
-SONG_REQUESTS_FILE = os.path.join(os.getcwd(), os.getenv('SONG_REQUESTS_FILE'))
+SONG_REQUESTS_FILE = os.path.join(os.getcwd(), os.getenv('SONG_REQUESTS_FILE') or 'song_requests.json')
+DISCORD_LIVE_NOTIFICATION_ROLES = os.getenv('DISCORD_LIVE_NOTIFICATION_ROLES')
 
 ##############################
 # Define the variables for the number of returned songs and new songs days
@@ -39,19 +40,15 @@ EXCLUDED_ITEMS = {
 
 ##############################
 # Split Applicable Variables if multiple
-if CHANNEL_IDS:
-    CHANNEL_IDS = [int(id) for id in CHANNEL_IDS.split(',')]
-else:
-    CHANNEL_IDS = []
+CHANNEL_IDS: list[int] = [int(id) for id in CHANNEL_IDS_ENV.split(',')] if CHANNEL_IDS_ENV else []
+ALLOWED_USER_IDS: list[int] = [int(id) for id in ALLOWED_USER_IDS_ENV.split(',')] if ALLOWED_USER_IDS_ENV else []
 
-if ALLOWED_USER_IDS:
-    ALLOWED_USER_IDS = [int(id) for id in ALLOWED_USER_IDS.split(',')]
-else:
-    ALLOWED_USER_IDS = []
+# Split Live Notification Roles if multiple (optional)
+DISCORD_LIVE_NOTIFICATION_ROLES = [role.strip() for role in DISCORD_LIVE_NOTIFICATION_ROLES.split(',')] if DISCORD_LIVE_NOTIFICATION_ROLES else []
 
 ##############################
 # Check if all environment variables are loaded
-required_env_vars = [TOKEN, TRAKTOR_LOCATION, TRAKTOR_COLLECTION_FILENAME, APPLICATION_ID, CHANNEL_IDS, ALLOWED_USER_IDS, NOWPLAYING_CONFIG_JSON_PATH, SONG_REQUESTS_FILE]
+required_env_vars = [TOKEN, TRAKTOR_LOCATION, TRAKTOR_COLLECTION_FILENAME, APPLICATION_ID, NOWPLAYING_CONFIG_JSON_PATH, SONG_REQUESTS_FILE]
 if any(var is None for var in required_env_vars):
     raise ValueError("One or more required environment variables are missing.")
 
@@ -91,6 +88,8 @@ def get_latest_traktor_folder(root_path: str) -> str:
 
 # Get the full path to the latest Traktor collection file
 try:
+    if not TRAKTOR_LOCATION or not TRAKTOR_COLLECTION_FILENAME:
+        raise ValueError("TRAKTOR_LOCATION and TRAKTOR_COLLECTION_FILENAME must be set")
     latest_traktor_folder = get_latest_traktor_folder(TRAKTOR_LOCATION)
     TRAKTOR_PATH = os.path.join(latest_traktor_folder, TRAKTOR_COLLECTION_FILENAME)
     if not os.path.exists(TRAKTOR_PATH):
@@ -165,7 +164,7 @@ async def srbtraktorrefresh(interaction: discord.Interaction):
 @bot.tree.command(name="srbnew", description=f"Display newly added songs from the last {NEW_SONGS_DAYS}")
 @app_commands.describe(days=f"Number of days to look back for new songs (default is {NEW_SONGS_DAYS} days)")
 async def srbnew(interaction: discord.Interaction, days: int = NEW_SONGS_DAYS):
-    if interaction.channel.id not in CHANNEL_IDS:
+    if not interaction.channel or not CHANNEL_IDS or interaction.channel.id not in CHANNEL_IDS:
         await interaction.response.send_message("This command can only be used in the designated channels.", ephemeral=True)
         return
     
@@ -206,6 +205,8 @@ def get_new_songs(copied_file_path, days):
     total_new_songs = 0
     for entry in root.findall(".//COLLECTION/ENTRY"):
         location = entry.find(".//LOCATION")
+        if location is None:
+            continue
         file_path = location.get("FILE", "")
         dir_path = location.get("DIR", "")
         if (any(pattern in file_path for pattern in EXCLUDED_ITEMS['FILE']) or
@@ -292,7 +293,7 @@ async def srbnpclear(interaction: discord.Interaction):
 @bot.tree.command(name="song", description="Search for a song in the Traktor collection and optionally select one by replying.")
 @app_commands.describe(search="search query")
 async def song(interaction: discord.Interaction, search: str):
-    if interaction.channel.id not in CHANNEL_IDS:
+    if not interaction.channel or not CHANNEL_IDS or interaction.channel.id not in CHANNEL_IDS:
         await interaction.response.send_message("This command can only be used in the designated channels.", ephemeral=True)
         return
 
@@ -386,6 +387,8 @@ def parse_traktor_collection(copied_file_path, search_query):
     
     for entry in root.findall(".//COLLECTION/ENTRY"):
         location = entry.find(".//LOCATION")
+        if location is None:
+            continue
         file_path = location.get("FILE", "")
         dir_path = location.get("DIR", "")
         if (any(pattern in file_path for pattern in EXCLUDED_ITEMS['FILE']) or
@@ -513,27 +516,32 @@ async def srbreqdel(interaction: discord.Interaction, request_number: str):
 
             # Update RequestNumbers
             for i, req in enumerate(song_requests):
-                req["RequestNumber"] = i + 1
-
-            # Save the updated list back to the JSON file
+                req["RequestNumber"] = i + 1            # Save the updated list back to the JSON file
             with open(SONG_REQUESTS_FILE, "w", encoding="utf-8") as file:
                 json.dump(song_requests, file, indent=4)
+
+            # Format the updated song list
+            if song_requests:
+                formatted_requests = [
+                    f"{entry['RequestNumber']} | {entry['Date']} | {entry['User']} | {entry['Song']}" for entry in song_requests
+                ]
+                updated_list = "\n".join(formatted_requests)
+            else:
+                updated_list = "No song requests remaining."
 
             await interaction.response.send_message(f"All your song requests have been deleted.\nUpdated Song Request List:")
             print(f"{interaction.user} deleted all their song requests.")
             await interaction.followup.send(f"{updated_list}")
-            return
-
-        # Check if the input is numeric (for individual song deletion)
+            return# Check if the input is numeric (for individual song deletion)
         if request_number.isdigit():
-            request_number = int(request_number)
+            request_num = int(request_number)
 
             # Validate the request_number
-            if request_number < 1 or request_number > len(song_requests):
+            if request_num < 1 or request_num > len(song_requests):
                 await interaction.response.send_message("RequestNumber not found.")
                 return
 
-            request_to_delete = song_requests[request_number - 1]
+            request_to_delete = song_requests[request_num - 1]
 
             # Check if the user has permission to delete the specific request
             if interaction.user.id not in ALLOWED_USER_IDS and str(interaction.user) != request_to_delete["User"]:
@@ -541,8 +549,8 @@ async def srbreqdel(interaction: discord.Interaction, request_number: str):
                 return
 
             # Remove the request and update RequestNumbers
-            song_requests.pop(request_number - 1)
-            for i in range(request_number - 1, len(song_requests)):
+            song_requests.pop(request_num - 1)
+            for i in range(request_num - 1, len(song_requests)):
                 song_requests[i]["RequestNumber"] -= 1
 
             # Save the updated list back to the JSON file
@@ -586,11 +594,18 @@ async def srbreqdel(interaction: discord.Interaction, request_number: str):
 
             # Update RequestNumbers
             for i, req in enumerate(song_requests):
-                req["RequestNumber"] = i + 1
-
-            # Save the updated list back to the JSON file
+                req["RequestNumber"] = i + 1            # Save the updated list back to the JSON file
             with open(SONG_REQUESTS_FILE, "w", encoding="utf-8") as file:
                 json.dump(song_requests, file, indent=4)
+
+            # Format the updated song list
+            if song_requests:
+                formatted_requests = [
+                    f"{entry['RequestNumber']} | {entry['Date']} | {entry['User']} | {entry['Song']}" for entry in song_requests
+                ]
+                updated_list = "\n".join(formatted_requests)
+            else:
+                updated_list = "No song requests remaining."
 
             await interaction.response.send_message(f"All song requests from user '{target_user}' have been deleted.\nUpdated Song Request List:")
             print(f"{interaction.user} deleted all song requests from user '{target_user}'.")
@@ -602,8 +617,8 @@ async def srbreqdel(interaction: discord.Interaction, request_number: str):
         await interaction.response.send_message(f"Error deleting song request: {e}", ephemeral=True)
 
 ##############################
-# Going Live - Send a live notification message with the Tunes role mention
-@bot.tree.command(name="srblive", description="Sends a live notification message to Tunes")
+# Going Live - Send a live notification message with optional role mentions
+@bot.tree.command(name="srblive", description="Sends a live notification message with optional role mentions")
 @app_commands.describe(message="The message to send with the notification")
 async def srblive(interaction: discord.Interaction, message: str):
     # Check if user has permission
@@ -612,20 +627,45 @@ async def srblive(interaction: discord.Interaction, message: str):
         return
     
     try:
-        # Get the Tunes role from the guild
-        tunes_role = discord.utils.get(interaction.guild.roles, name="Tunes")
+        # Check if live notification roles are configured
+        if not DISCORD_LIVE_NOTIFICATION_ROLES:
+            # No roles configured, send message without mentions
+            notification = f"Going Live: {message}"
+            await interaction.response.send_message(notification)
+            print(f"{interaction.user} sent live notification (no roles configured): {message}")
+            return
+          # Get all configured roles from the guild
+        role_mentions = []
+        missing_roles = []
         
-        if not tunes_role:
-            await interaction.response.send_message("Error: Tunes role not found in this server.", ephemeral=True)
+        if not interaction.guild:
+            await interaction.response.send_message("❌ This command can only be used in a server.", ephemeral=True)
             return
         
-        # Create the notification message with the role mention
-        notification = f"{tunes_role.mention} - Going Live: {message}"
+        for role_name in DISCORD_LIVE_NOTIFICATION_ROLES:
+            role = discord.utils.get(interaction.guild.roles, name=role_name)
+            if role:
+                role_mentions.append(role.mention)
+            else:
+                missing_roles.append(role_name)
         
-        # Send the message
-        await interaction.response.send_message(notification, allowed_mentions=discord.AllowedMentions(roles=True))
-        print(f"{interaction.user} sent live notification: {message}")
-        
+        # Create the notification message
+        if role_mentions:
+            # Include role mentions if found
+            roles_text = " ".join(role_mentions)
+            notification = f"{roles_text} - Going Live: {message}"
+            await interaction.response.send_message(notification, allowed_mentions=discord.AllowedMentions(roles=True))
+            print(f"{interaction.user} sent live notification to roles {DISCORD_LIVE_NOTIFICATION_ROLES}: {message}")
+            
+            # Log missing roles if any (but don't warn the user)
+            if missing_roles:
+                print(f"Note: Some configured roles not found: {', '.join(missing_roles)}")
+        else:
+            # No roles found, send without mentions
+            notification = f"Going Live: {message}"
+            await interaction.response.send_message(notification)
+            print(f"{interaction.user} sent live notification (configured roles not found): {message}")
+            
     except Exception as e:
         print(f"Error sending live notification: {e}")
         await interaction.response.send_message("Error sending notification message. (/srblive)", ephemeral=True)
@@ -636,7 +676,7 @@ async def srblive(interaction: discord.Interaction, message: str):
 async def on_ready():
     print('------')
     print(f'Loaded {os.path.basename(__file__)}')
-    print(f'Logged in as {bot.user} (ID: {bot.user.id})')
+    print(f'Logged in as {bot.user} (ID: {bot.user.id if bot.user else "Unknown"})')
     print('------')
     await bot.tree.sync()
 
@@ -658,6 +698,10 @@ async def on_ready():
 ##############################
 # Bot Start
 async def main():
+    if not TOKEN:
+        print("ERROR: DISCORD_TOKEN not found in environment variables!")
+        return
+    
     print("Starting bot...")
     async with bot:
         await bot.start(TOKEN)

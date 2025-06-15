@@ -1,13 +1,18 @@
 # DJ Discord Bot
 
-A Discord bot for managing music requests and interacting with Traktor DJ software collections.
+A comprehensive Discord bot for managing music requests, interacting with Traktor DJ software collections, and enhancing DJ workflow automation.
 
 ## Features
 
-- **Song Search**: Search for songs in your Traktor collection
-- **Collection Refresh**: Update the Traktor collection file
-- **Permission System**: Restrict commands to specific users and channels
-- **Environment Configuration**: Secure token and configuration management
+- **Dynamic Song Search**: Search for songs with intelligent prioritization and interactive selection
+- **Song Request Management**: Full CRUD operations for song requests with user permissions
+- **Collection Management**: Automatic Traktor version detection and collection refresh
+- **New Song Tracking**: Display recently imported songs with configurable date ranges
+- **NowPlaying Integration**: Clear track history and manage NowPlaying configurations
+- **Live Streaming Notifications**: Broadcast live notifications with role mentions
+- **Permission System**: Granular access control for different user roles
+- **Smart Filtering**: Configurable exclusion of stem files and content imports
+- **Interactive Interface**: Timeout-based user interactions with numbered selections
 
 ## Setup
 
@@ -36,6 +41,7 @@ A Discord bot for managing music requests and interacting with Traktor DJ softwa
    APPLICATION_ID=your_application_id
    CHANNEL_IDS=channel_id_1,channel_id_2
    ALLOWED_USER_IDS=user_id_1,user_id_2
+   DISCORD_LIVE_NOTIFICATION_ROLES=Tunes,DJ Friends,Music Lovers
    TRAKTOR_LOCATION=path_to_traktor_folder
    TRAKTOR_COLLECTION_FILENAME=collection.nml
    NOWPLAYING_CONFIG_JSON_PATH=path_to_nowplaying_config
@@ -49,8 +55,31 @@ A Discord bot for managing music requests and interacting with Traktor DJ softwa
 
 ## Commands
 
-- `/srbcol` - Refresh the Traktor collection file (restricted to allowed users)
-- `/song <search>` - Search for a song in the Traktor collection (restricted to designated channels)
+### Music Discovery
+- `/song <search>` - Search for songs with interactive selection (restricted to designated channels)
+- `/srbnew [days]` - Display newly added songs from the last N days (default: 7)
+
+### Collection Management  
+- `/srbtraktorrefresh` - Refresh the Traktor collection file (admin only)
+
+### Request Management
+- `/srbreqlist` - Display all pending song requests
+- `/srbreqdel <number|'all'|'self'|username>` - Delete song requests with flexible options
+
+### Utility Commands
+- `/srbnpclear` - Backup and clear NowPlaying track history (admin only)
+- `/srblive <message>` - Send live streaming notifications with role mentions (admin only)
+
+## Version History
+
+📍 **V0.1**: Basic search functionality  
+🛡️ **V0.6**: Production-ready with robust error handling  
+🎵 **V0.9**: Interactive request system with full reorganization  
+📢 **V0.11**: Community features with live notifications  
+🔄 **V0.12**: Dynamic version management and future-proofing  
+✨ **V0.13**: Code quality improvements - eliminated all lint/type errors, enhanced null safety
+
+*Full version history available in git commits with detailed changelogs*
 
 ## Configuration
 
@@ -62,6 +91,7 @@ A Discord bot for managing music requests and interacting with Traktor DJ softwa
 | `APPLICATION_ID` | Your Discord application ID |
 | `CHANNEL_IDS` | Comma-separated list of channel IDs where the bot can be used |
 | `ALLOWED_USER_IDS` | Comma-separated list of user IDs allowed to use admin commands |
+| `DISCORD_LIVE_NOTIFICATION_ROLES` | Comma-separated list of role names to mention for live notifications (optional) |
 | `TRAKTOR_LOCATION` | Path to your Traktor installation folder |
 | `TRAKTOR_COLLECTION_FILENAME` | Name of the Traktor collection file |
 | `NOWPLAYING_CONFIG_JSON_PATH` | Path to the now playing configuration file |
