@@ -23,8 +23,8 @@ def build_gui_executable():
     """Build the GUI version using PyInstaller"""
     print(f"Building GUI executable for version {__version__}...")
     
-    # Create executable name with version
-    exe_name = f"DJ-Discord-Bot-GUI-v{__version__}"
+    # Static executable name for easier distribution
+    exe_name = "DJ-Discord-Bot-GUI"
       # PyInstaller command for GUI version
     cmd = [
         "pyinstaller",
