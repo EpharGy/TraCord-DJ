@@ -16,8 +16,9 @@ APPLICATION_ID = os.getenv('APPLICATION_ID')
 CHANNEL_IDS = os.getenv('CHANNEL_IDS')
 ALLOWED_USER_IDS = os.getenv('ALLOWED_USER_IDS')
 
-# Define the variable for the number of returned songs
+# Define the variables for the number of returned songs and new songs days
 MAX_SONGS = 20
+NEW_SONGS_DAYS = 7
 
 # Split Channels and Users if multiple
 if CHANNEL_IDS:
@@ -49,7 +50,7 @@ def count_songs_in_collection(copied_file_path):
     try:
         tree = ET.parse(copied_file_path)
         root = tree.getroot()
-        return len(root.findall(".//ENTRY"))
+        return len(root.findall(".//COLLECTION/ENTRY"))
     except ET.ParseError as e:
         print(f"Error parsing XML file: {e}")
         return 0
@@ -68,10 +69,18 @@ async def srbcol(interaction: discord.Interaction):
         # Count the number of songs in the collection
         song_count = count_songs_in_collection(copied_file_path)
         
+        # Count the number of new songs
+        new_songs, total_new_songs = get_new_songs(copied_file_path, NEW_SONGS_DAYS)
+        
         print(f"{interaction.user} triggered Collection update. Total number of songs: {song_count}")
-        await interaction.response.send_message(f"Traktor collection file copied successfully. Total number of songs: {song_count}")
+        print(f"{total_new_songs} songs classed as new (added in the last {NEW_SONGS_DAYS} days)")
+        await interaction.response.send_message(
+            f"Traktor collection file copied successfully.\n"
+            f"Total number of songs in the collection: {song_count}.\n"
+            f"Total number of songs added in the last {NEW_SONGS_DAYS} days: {total_new_songs}"
+        )
     except Exception as e:
-        print(f"{interaction.user} triggered Collection update, but there was an error copying file")
+        print(f"{interaction.user} triggered a Collection update, but there was an error copying file")
         await interaction.response.send_message(f"Error copying file: {e}", ephemeral=True)
 
 @bot.tree.command(name="song", description="Search for a song in the Traktor collection")
@@ -103,7 +112,7 @@ def parse_traktor_collection(copied_file_path, search_query):
     results = []
     search_keywords = search_query.lower().split()
 
-    for entry in root.findall(".//ENTRY"):
+    for entry in root.findall(".//COLLECTION/ENTRY"):
         artist = entry.get("ARTIST")
         title = entry.get("TITLE")
         album_element = entry.find(".//ALBUM")
@@ -135,14 +144,14 @@ def parse_traktor_collection(copied_file_path, search_query):
     return sorted_results, len(results)
 
 @bot.tree.command(name="srbnew", description="Display newly added songs from the Traktor collection")
-@app_commands.describe(days="Number of days to look back for new songs (default is 7 days)")
-async def srbnew(interaction: discord.Interaction, days: int = 7):
+@app_commands.describe(days=f"Number of days to look back for new songs (default is {NEW_SONGS_DAYS} days)")
+async def srbnew(interaction: discord.Interaction, days: int = NEW_SONGS_DAYS):
     if interaction.channel.id not in CHANNEL_IDS:
         await interaction.response.send_message("This command can only be used in the designated channels.", ephemeral=True)
         return
 
-    if days > 7:
-        days = 7
+    if days > NEW_SONGS_DAYS:
+        days = NEW_SONGS_DAYS
 
     copied_file_path = os.path.join(os.getcwd(), "collection.nml")
     results, total_new_songs = get_new_songs(copied_file_path, days)
@@ -167,7 +176,7 @@ def get_new_songs(copied_file_path, days):
     cutoff_date = datetime.now() - timedelta(days=days)
     total_new_songs = 0
 
-    for entry in root.findall(".//ENTRY"):
+    for entry in root.findall(".//COLLECTION/ENTRY"):
         info = entry.find(".//INFO")
         import_date_str = info.get("IMPORT_DATE")
         import_date = datetime.strptime(import_date_str, "%Y/%m/%d")
@@ -205,8 +214,11 @@ async def on_ready():
         
         # Count the number of songs in the collection and print it
         total_songs = count_songs_in_collection(copied_file_path)
+        _, total_new_songs = get_new_songs(copied_file_path, NEW_SONGS_DAYS)
+        print(f"Max song returned: {MAX_SONGS}")
+        print(f"Default Days for New Songs: {NEW_SONGS_DAYS}")
         print(f"Total number of songs in the collection: {total_songs}")
-        print(f"Max song return variable: {MAX_SONGS}")
+        print(f"Total number of songs added in the last {NEW_SONGS_DAYS} days: {total_new_songs}")
     except Exception as e:
         print(f"Error copying file: {e}")
 
