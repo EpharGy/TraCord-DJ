@@ -5,8 +5,8 @@ This file contains the current version and complete changelog.
 For the latest version information, check this file or the GUI application.
 """
 
-__version__ = "1.0.1"
-__version_info__ = (1, 0, 1)
+__version__ = "1.0.2"
+__version_info__ = (1, 0, 2)
 
 # =============================================================================
 # VERSIONING SCHEME
@@ -19,6 +19,20 @@ __version_info__ = (1, 0, 1)
 # =============================================================================
 # COMPLETE CHANGELOG (Newest First)
 # =============================================================================
+
+# -----------------------------------------------------------------------------
+# Version 1.0.2 - PATCH RELEASE (2025-06-15)
+# -----------------------------------------------------------------------------
+# Documentation streamlining and build improvements
+# 
+# IMPROVEMENTS:
+# - Streamlined README.md by 50%+ - removed lengthy version sections
+# - Centralized all version/changelog information in version.py
+# - Moved Commands section after Quick Start for better user flow
+# - Switched to static executable naming (DJ-Discord-Bot-GUI.exe) for simplicity
+# - Updated build.py and RELEASE.md to use static naming
+# - Simplified setup instructions and distribution notes
+# - README now focuses on essentials with clear version.py reference
 
 # -----------------------------------------------------------------------------
 # Version 1.0.1 - PATCH RELEASE (2025-06-15)
@@ -85,29 +99,11 @@ __version_info__ = (1, 0, 1)
 # - Improved collection file handling
 
 # -----------------------------------------------------------------------------
-# Version 0.11 - Live streaming notifications (2025-06-15)  
+# Earlier Versions (0.1 - 0.11)
 # -----------------------------------------------------------------------------
-# - Enhanced filtering system for better search results
-# - Added live streaming notifications with role mentions
-# - Community features for enhanced user interaction
-
-# -----------------------------------------------------------------------------
-# Version 0.10 - Complete song request management (2025-06-15)
-# -----------------------------------------------------------------------------
-# - Full CRUD operations for song requests
-# - Enhanced command naming consistency
-# - Improved user permission handling
-
-# -----------------------------------------------------------------------------
-# Version 0.9 - Interactive song request system (2025-06-15)
-# -----------------------------------------------------------------------------
-# - Major code reorganization for better maintainability
-# - Interactive song selection with timeout handling
-# - Enhanced user experience for song requests
-
-# -----------------------------------------------------------------------------
-# Earlier Versions (0.1 - 0.8)
-# -----------------------------------------------------------------------------
+# - 0.11: Live streaming notifications with role mentions and community features
+# - 0.10: Complete song request management with full CRUD operations
+# - 0.9: Interactive song request system - Major code reorganization, timeout handling
 # - 0.8: NowPlaying integration and history management
 # - 0.7: Enhanced search algorithm and code organization  
 # - 0.6: Major robustness improvements and debugging capabilities
