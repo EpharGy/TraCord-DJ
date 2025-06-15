@@ -107,37 +107,58 @@ def parse_traktor_collection(copied_file_path, search_query):
         root = tree.getroot()
     except ET.ParseError as e:
         return [f"Error parsing XML file: {e}"]
+    
     results = []
     search_keywords = search_query.lower().split()
+    
     for entry in root.findall(".//COLLECTION/ENTRY"):
         location = entry.find(".//LOCATION")
-        if ".stem." in location.get("FILE"):
+        if ".stem." in location.get("FILE", ""):
             continue
+        
         artist = entry.get("ARTIST")
         title = entry.get("TITLE")
         album_element = entry.find(".//ALBUM")
         album_title = album_element.get("TITLE") if album_element is not None else None
+        
         priority_score = 0
         sort_key = ""
+        
+        # Match on Title
         if title and all(keyword in title.lower() for keyword in search_keywords):
             priority_score = 1
             sort_key = title.lower()
-        elif artist and artist is not None and all(keyword in artist.lower() for keyword in search_keywords):
+        
+        # Match on Artist
+        elif artist and all(keyword in artist.lower() for keyword in search_keywords):
             priority_score = 2
-            sort_key = artist.lower()
+            sort_key = (artist.lower(), title.lower() if title else "")
+        
+        # Match on Album
         elif album_title and all(keyword in album_title.lower() for keyword in search_keywords):
             priority_score = 3
-            sort_key = album_title.lower()
+            sort_key = (album_title.lower(), artist.lower() if artist else "", title.lower() if title else "")
+        
+        # Add result if there's a valid match
         if priority_score > 0:
-            artist = artist.replace('*', '\\*') if artist else artist
-            title = title.replace('*', '\\*') if title else title
-            album_title = album_title.replace('*', '\\*') if album_title else album_title
+            # Escape special characters for Discord formatting
+            artist = artist.replace('*', '\\*') if artist else "Unknown Artist"
+            title = title.replace('*', '\\*') if title else "Unknown Title"
+            album_title = album_title.replace('*', '\\*') if album_title else None
+            
             result_str = f"{artist} - {title} [{album_title}]" if album_title else f"{artist} - {title}"
             results.append((priority_score, sort_key, result_str))
+    
+    # Sort by priority score, then sort key
     results.sort(key=lambda x: (x[0], x[1]))
-    sorted_results = [f"{i + 1} | {result[2].replace('_', '')}" for i, result in enumerate(results[:MAX_SONGS])]
+    
+    # Prepare results for output
+    sorted_results = [
+        f"{i + 1} | {result[2].replace('_', '')}" for i, result in enumerate(results[:MAX_SONGS])
+    ]
     if len(results) > MAX_SONGS:
         sorted_results.append(f"**{MAX_SONGS} of {len(results)} matches found for {search_query}, please refine your search if needed.**")
+    
     return sorted_results, len(results)
 
 
