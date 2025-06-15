@@ -27,6 +27,7 @@ SONG_REQUESTS_FILE = os.path.join(os.getcwd(), os.getenv('SONG_REQUESTS_FILE'))
 MAX_SONGS = 20
 NEW_SONGS_DAYS = 7
 DEBUG = False
+TIMEOUT = 45.0
 
 ##############################
 # Split Applicable Variables if multiple
@@ -68,9 +69,9 @@ intents = discord.Intents.default()
 bot = commands.Bot(command_prefix='!', intents=intents, application_id=APPLICATION_ID)
 
 ##############################
-# Command - srbcol - Refresh the Traktor collection file
-@bot.tree.command(name="srbcol", description="Refresh the Traktor collection file")
-async def srbcol(interaction: discord.Interaction):
+# Command - srbtraktorrefresh - Refresh the Traktor collection file
+@bot.tree.command(name="srbtraktorrefresh", description="Refresh the Traktor collection file")
+async def srbtraktorrefresh(interaction: discord.Interaction):
     if not check_permissions(interaction.user.id, ALLOWED_USER_IDS):
         await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
         return
@@ -172,7 +173,8 @@ def get_new_songs(copied_file_path, days):
             total_new_songs += 1
     if DEBUG:
         print(f"Total new songs added: {total_new_songs}")
-    results.sort(reverse=True, key=lambda x: (x[0], x[1] if x[1] is not None else '', x[2] if x[2] is not None else ''))
+    # Sort results by date (descending), then by artist (ascending), then by title (ascending)
+    results.sort(key=lambda x: (-x[0].timestamp(), x[1] if x[1] is not None else '', x[2] if x[2] is not None else ''))
     sorted_results = [result[3] for result in results[:MAX_SONGS]]
     if total_new_songs > MAX_SONGS:
         sorted_results.append(f"**Displaying latest {MAX_SONGS} songs of {total_new_songs} recently imported songs.**")
@@ -181,9 +183,9 @@ def get_new_songs(copied_file_path, days):
     return sorted_results, total_new_songs
 
 ##############################
-# Command - srbclear - Backup and clear track history in NowPlaying config.json
-@bot.tree.command(name="srbclear", description="Backup and clear track history in NowPlaying config.json")
-async def srbclear(interaction: discord.Interaction):
+# Command - srbnpclear - Backup and clear track history in NowPlaying config.json
+@bot.tree.command(name="srbnpclear", description="Backup and clear track history in NowPlaying config.json")
+async def srbnpclear(interaction: discord.Interaction):
     if not NOWPLAYING_CONFIG_JSON_PATH:
         await interaction.response.send_message("Config file path not set in environment variable NOWPLAYING_CONFIG_JSON_PATH.", ephemeral=True)
         return
@@ -237,21 +239,27 @@ async def song(interaction: discord.Interaction, search: str):
         print(f"{interaction.user}'s search '{search}' matched 0 songs")
         return
 
-    # Send the numbered list of search results
-    instruction_message = "\n\nTo request a song, REPLY with the # of the song, e.g., 6."
-    results_message = "Search Results:\n" + "\n".join(results) + instruction_message
+    # Limit the results to MAX_SONGS for display
+    displayed_results = results[:MAX_SONGS]
+    instruction_message = "\n\nTo request a song, immediately REPLY with the # of the song, e.g. 6."
+    results_message = "Search Results:\n" + "\n".join(displayed_results) + instruction_message
+
+    # Add a note if there are more matches than MAX_SONGS
+    if len(results) > MAX_SONGS:
+        results_message += f"\n\n**{MAX_SONGS} of {total_matches} matches displayed. Refine your search if needed.**"
+
     await interaction.response.send_message(results_message)
     print(f"{interaction.user}'s search '{search}' matched {total_matches} songs")
 
-    # Store results in a dictionary for selection
-    result_dict = {str(i + 1): result.split(" | ", 1)[1] for i, result in enumerate(results)}
+    # Store only the displayed results in the result_dict
+    result_dict = {str(i + 1): result.split(" | ", 1)[1] for i, result in enumerate(displayed_results)}
 
     def check(m):
         return m.author == interaction.user and m.channel == interaction.channel and m.content in result_dict.keys()
 
     try:
-        # Wait for user input with a 30-second timeout
-        msg = await bot.wait_for("message", timeout=30.0, check=check)
+        # Wait for user input with a timeout
+        msg = await bot.wait_for("message", timeout=TIMEOUT, check=check)
         selected_song = result_dict[msg.content]
 
         # Save the selected song request to a JSON file
@@ -270,10 +278,14 @@ async def song(interaction: discord.Interaction, search: str):
                 # Determine the next request number
                 next_request_num = len(song_requests) + 1
 
+                # Get the current system date and time
+                current_time = datetime.now().strftime("%Y-%m-%d")
+
                 # Construct request object
                 new_request = {
                     "RequestNumber": next_request_num,
-                    "Username": str(interaction.user),
+                    "Date": current_time,
+                    "User": str(interaction.user),
                     "Song": selected_song
                 }
 
@@ -285,13 +297,15 @@ async def song(interaction: discord.Interaction, search: str):
                     json.dump(song_requests, file, indent=4)
 
                 print(f"{interaction.user} selected and saved the song: {selected_song}")
+                await interaction.followup.send(f"Added the song to the Song Request List: {selected_song}")
             except Exception as e:
                 print(f"Error saving song request: {e}")
     except asyncio.TimeoutError:
+        # await interaction.followup.send("No song selected.")
         print(f"{interaction.user} did not respond in time for song selection.")
     except KeyError:
+        await interaction.followup.send("Invalid input for song selection.")
         print(f"{interaction.user} entered invalid input for song selection.")
-
 
 def parse_traktor_collection(copied_file_path, search_query):
     if not os.path.exists(copied_file_path):
@@ -318,12 +332,12 @@ def parse_traktor_collection(copied_file_path, search_query):
         priority_score = 0
         sort_key = ""
         
-        if title and all(keyword in title.lower() for keyword in search_keywords):
+        if artist and all(keyword in artist.lower() for keyword in search_keywords):
             priority_score = 1
-            sort_key = title.lower()
-        elif artist and all(keyword in artist.lower() for keyword in search_keywords):
-            priority_score = 2
             sort_key = (artist.lower(), title.lower() if title else "")
+        elif title and all(keyword in title.lower() for keyword in search_keywords):
+            priority_score = 2
+            sort_key = title.lower()
         elif album_title and all(keyword in album_title.lower() for keyword in search_keywords):
             priority_score = 3
             sort_key = (album_title.lower(), artist.lower() if artist else "", title.lower() if title else "")
@@ -347,6 +361,177 @@ def parse_traktor_collection(copied_file_path, search_query):
                 
         )
     return sorted_results, len(results)
+
+##############################
+# Command - srbreqs - Display all songs in the song request list
+@bot.tree.command(name="srbreqlist", description="Display all songs currently in the song request list")
+async def srbreqlist(interaction: discord.Interaction):
+    if not SONG_REQUESTS_FILE or not os.path.exists(SONG_REQUESTS_FILE):
+        await interaction.response.send_message("Song requests file not found or not set.", ephemeral=True)
+        return
+
+    try:
+        # Load the song request list from the JSON file
+        with open(SONG_REQUESTS_FILE, "r", encoding="utf-8") as file:
+            try:
+                song_requests = json.load(file)
+            except json.JSONDecodeError:
+                song_requests = []  # Fallback if the file has invalid JSON
+
+        # Format the output
+        if song_requests:
+            formatted_requests = [
+                f"{entry['RequestNumber']} | {entry['Date']} | {entry['User']} | {entry['Song']}" for entry in song_requests
+            ]
+            response = "\n".join(formatted_requests)
+            
+            # Ensure the message length doesn't exceed Discord's limit
+            if len(response) > 2000:
+                response = response[:1958] + "..." + "\nDisplaying oldest requested songs only"
+            await interaction.response.send_message(response)
+        else:
+            await interaction.response.send_message("No song requests found.")
+
+        print(f"{interaction.user} viewed the song request list.")
+    except Exception as e:
+        print(f"Error loading song request list: {e}")
+        await interaction.response.send_message(f"Error loading song request list: {e}", ephemeral=True)
+
+##############################
+# Command - srbreqdel - Delete a song request by RequestNumber or delete all requests
+@bot.tree.command(name="srbreqdel", description="Delete a song request by RequestNumber, 'all', 'self', or a specific user")
+@app_commands.describe(request_number="RequestNumber to delete, 'all', 'self', or a specific user")
+async def srbreqdel(interaction: discord.Interaction, request_number: str):
+    if not SONG_REQUESTS_FILE or not os.path.exists(SONG_REQUESTS_FILE):
+        await interaction.response.send_message("Song requests file not found or not set.", ephemeral=True)
+        return
+
+    try:
+        # Load the song request list from the JSON file
+        with open(SONG_REQUESTS_FILE, "r", encoding="utf-8") as file:
+            try:
+                song_requests = json.load(file)
+            except json.JSONDecodeError:
+                song_requests = []  # Fallback if the file has invalid JSON
+
+        if not song_requests:
+            await interaction.response.send_message("Song Request List is empty.")
+            return
+
+        if request_number.lower() == "all":
+            # Check if the user has permission to delete all
+            if interaction.user.id not in ALLOWED_USER_IDS:
+                await interaction.response.send_message("You do not have permission to delete all song requests.", ephemeral=True)
+                return
+
+            # Clear all requests
+            song_requests = []
+            with open(SONG_REQUESTS_FILE, "w", encoding="utf-8") as file:
+                json.dump(song_requests, file, indent=4)
+
+            await interaction.response.send_message("All song requests have been deleted.")
+            print(f"{interaction.user} deleted all song requests.")
+            return
+
+        if request_number.lower() == "self":
+            # Remove all requests where the requesting user is the "User" of the JSON entry
+            user_requests = [req for req in song_requests if req["User"] == str(interaction.user)]
+            if not user_requests:
+                await interaction.response.send_message("You have no song requests to delete.")
+                return
+
+            # Filter out the user's requests
+            song_requests = [req for req in song_requests if req["User"] != str(interaction.user)]
+
+            # Update RequestNumbers
+            for i, req in enumerate(song_requests):
+                req["RequestNumber"] = i + 1
+
+            # Save the updated list back to the JSON file
+            with open(SONG_REQUESTS_FILE, "w", encoding="utf-8") as file:
+                json.dump(song_requests, file, indent=4)
+
+            await interaction.response.send_message(f"All your song requests have been deleted.\nUpdated Song Request List:")
+            print(f"{interaction.user} deleted all their song requests.")
+            await interaction.followup.send(f"{updated_list}")
+            return
+
+        # Check if the input is numeric (for individual song deletion)
+        if request_number.isdigit():
+            request_number = int(request_number)
+
+            # Validate the request_number
+            if request_number < 1 or request_number > len(song_requests):
+                await interaction.response.send_message("RequestNumber not found.")
+                return
+
+            request_to_delete = song_requests[request_number - 1]
+
+            # Check if the user has permission to delete the specific request
+            if interaction.user.id not in ALLOWED_USER_IDS and str(interaction.user) != request_to_delete["User"]:
+                await interaction.response.send_message("You do not have permission to delete this song request.", ephemeral=True)
+                return
+
+            # Remove the request and update RequestNumbers
+            song_requests.pop(request_number - 1)
+            for i in range(request_number - 1, len(song_requests)):
+                song_requests[i]["RequestNumber"] -= 1
+
+            # Save the updated list back to the JSON file
+            with open(SONG_REQUESTS_FILE, "w", encoding="utf-8") as file:
+                json.dump(song_requests, file, indent=4)
+
+            # Format the deleted song details
+            deleted_song_details = f"#{request_number} | {request_to_delete['Date']} | {request_to_delete['User']} | {request_to_delete['Song']} has been deleted."
+
+            # Format the updated song list
+            if song_requests:
+                formatted_requests = [
+                    f"{entry['RequestNumber']} | {entry['Date']} | {entry['User']} | {entry['Song']}" for entry in song_requests
+                ]
+                updated_list = "\n".join(formatted_requests)
+            else:
+                updated_list = "No song requests remaining."
+
+            # Send the response
+            await interaction.response.send_message(f"Deleting Song Request\n({deleted_song_details})\nUpdated Song Request List:")
+            print(f"{interaction.user} deleted song request #{request_number}.")
+            await interaction.followup.send(f"{updated_list}")
+            return
+
+        # Handle specific user deletion
+        target_user = request_number
+        if target_user:
+            # Check if the requesting user has permission to delete another user's requests
+            if interaction.user.id not in ALLOWED_USER_IDS and str(interaction.user) != target_user:
+                await interaction.response.send_message("You do not have permission to delete all requests from this user.", ephemeral=True)
+                return
+
+            # Find all requests by the target user
+            user_requests = [req for req in song_requests if req["User"] == target_user]
+            if not user_requests:
+                await interaction.response.send_message(f"No song requests found for user '{target_user}'.")
+                return
+
+            # Filter out the target user's requests
+            song_requests = [req for req in song_requests if req["User"] != target_user]
+
+            # Update RequestNumbers
+            for i, req in enumerate(song_requests):
+                req["RequestNumber"] = i + 1
+
+            # Save the updated list back to the JSON file
+            with open(SONG_REQUESTS_FILE, "w", encoding="utf-8") as file:
+                json.dump(song_requests, file, indent=4)
+
+            await interaction.response.send_message(f"All song requests from user '{target_user}' have been deleted.\nUpdated Song Request List:")
+            print(f"{interaction.user} deleted all song requests from user '{target_user}'.")
+            await interaction.followup.send(f"{updated_list}")
+            return
+
+    except Exception as e:
+        print(f"Error deleting song request: {e}")
+        await interaction.response.send_message(f"Error deleting song request: {e}", ephemeral=True)
 
 ##############################
 # Bot Startup Feedback
