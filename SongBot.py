@@ -6,6 +6,7 @@ from discord import app_commands
 from dotenv import load_dotenv
 import xml.etree.ElementTree as ET
 import asyncio
+from datetime import datetime, timedelta
 
 # Load environment variables from .env file
 load_dotenv()
@@ -15,6 +16,10 @@ APPLICATION_ID = os.getenv('APPLICATION_ID')
 CHANNEL_IDS = os.getenv('CHANNEL_IDS')
 ALLOWED_USER_IDS = os.getenv('ALLOWED_USER_IDS')
 
+# Define the variable for the number of returned songs
+MAX_SONGS = 20
+
+# Split Channels and Users if multiple
 if CHANNEL_IDS:
     CHANNEL_IDS = [int(id) for id in CHANNEL_IDS.split(',')]
 else:
@@ -37,6 +42,18 @@ bot = commands.Bot(command_prefix='!', intents=intents, application_id=APPLICATI
 def check_permissions(user_id, allowed_user_ids):
     return user_id in allowed_user_ids
 
+def count_songs_in_collection(copied_file_path):
+    if not os.path.exists(copied_file_path):
+        return 0
+
+    try:
+        tree = ET.parse(copied_file_path)
+        root = tree.getroot()
+        return len(root.findall(".//ENTRY"))
+    except ET.ParseError as e:
+        print(f"Error parsing XML file: {e}")
+        return 0
+
 @bot.tree.command(name="srbcol", description="Refresh the Traktor collection file")
 async def srbcol(interaction: discord.Interaction):
     if not check_permissions(interaction.user.id, ALLOWED_USER_IDS):
@@ -47,8 +64,12 @@ async def srbcol(interaction: discord.Interaction):
         # Copy the Traktor collection file to the current directory with the correct filename
         copied_file_path = os.path.join(os.getcwd(), "collection.nml")
         shutil.copyfile(TRAKTOR_PATH, copied_file_path)
-        print(f"{interaction.user} triggered Collection update")
-        await interaction.response.send_message("Traktor collection file copied successfully.")
+        
+        # Count the number of songs in the collection
+        song_count = count_songs_in_collection(copied_file_path)
+        
+        print(f"{interaction.user} triggered Collection update. Total number of songs: {song_count}")
+        await interaction.response.send_message(f"Traktor collection file copied successfully. Total number of songs: {song_count}")
     except Exception as e:
         print(f"{interaction.user} triggered Collection update, but there was an error copying file")
         await interaction.response.send_message(f"Error copying file: {e}", ephemeral=True)
@@ -106,12 +127,68 @@ def parse_traktor_collection(copied_file_path, search_query):
             results.append((priority_score, sort_key, result_str))
 
     results.sort(key=lambda x: (x[0], x[1]))
-    sorted_results = [f"{i + 1} | {result[2].replace('_', '')}" for i, result in enumerate(results[:15])]
+    sorted_results = [f"{i + 1} | {result[2].replace('_', '')}" for i, result in enumerate(results[:MAX_SONGS])]
 
-    if len(results) > 15:
-        sorted_results.append(f"**15 of {len(results)} matches found for {search_query}, please refine your search if needed.**")
+    if len(results) > MAX_SONGS:
+        sorted_results.append(f"**{MAX_SONGS} of {len(results)} matches found for {search_query}, please refine your search if needed.**")
 
     return sorted_results, len(results)
+
+@bot.tree.command(name="srbnew", description="Display newly added songs from the Traktor collection")
+@app_commands.describe(days="Number of days to look back for new songs (default is 7 days)")
+async def srbnew(interaction: discord.Interaction, days: int = 7):
+    if interaction.channel.id not in CHANNEL_IDS:
+        await interaction.response.send_message("This command can only be used in the designated channels.", ephemeral=True)
+        return
+
+    if days > 7:
+        days = 7
+
+    copied_file_path = os.path.join(os.getcwd(), "collection.nml")
+    results, total_new_songs = get_new_songs(copied_file_path, days)
+    if results:
+        await interaction.response.send_message("\n".join(results))
+        print(f"{interaction.user} requested new songs from the last {days} days, found {total_new_songs} songs")
+    else:
+        await interaction.response.send_message("No new songs found.")
+        print(f"{interaction.user} requested new songs from the last {days} days, found 0 songs")
+
+def get_new_songs(copied_file_path, days):
+    if not os.path.exists(copied_file_path):
+        return [f"File not found: {copied_file_path}"], 0
+
+    try:
+        tree = ET.parse(copied_file_path)
+        root = tree.getroot()
+    except ET.ParseError as e:
+        return [f"Error parsing XML file: {e}"], 0
+
+    results = []
+    cutoff_date = datetime.now() - timedelta(days=days)
+    total_new_songs = 0
+
+    for entry in root.findall(".//ENTRY"):
+        info = entry.find(".//INFO")
+        import_date_str = info.get("IMPORT_DATE")
+        import_date = datetime.strptime(import_date_str, "%Y/%m/%d")
+
+        if import_date >= cutoff_date:
+            artist = entry.get("ARTIST")
+            title = entry.get("TITLE")
+            album_element = entry.find(".//ALBUM")
+            album_title = album_element.get("TITLE") if album_element is not None else None
+
+            result_str = f"{import_date_str} | {artist} - {title} *[{album_title}]*" if album_title else f"{import_date_str} | {artist} - {title}"
+            results.append(result_str)
+            total_new_songs += 1
+
+    results.sort(reverse=True)
+    sorted_results = results[:MAX_SONGS]
+
+    if total_new_songs > MAX_SONGS:
+        sorted_results.append(f"**Displaying latest {MAX_SONGS} songs of {total_new_songs} recently imported songs.**")
+
+    return sorted_results, total_new_songs
 
 @bot.event
 async def on_ready():
@@ -125,6 +202,11 @@ async def on_ready():
         copied_file_path = os.path.join(os.getcwd(), "collection.nml")
         shutil.copyfile(TRAKTOR_PATH, copied_file_path)
         print("Traktor collection file copied successfully.")
+        
+        # Count the number of songs in the collection and print it
+        total_songs = count_songs_in_collection(copied_file_path)
+        print(f"Total number of songs in the collection: {total_songs}")
+        print(f"Max song return variable: {MAX_SONGS}")
     except Exception as e:
         print(f"Error copying file: {e}")
 
