@@ -38,8 +38,6 @@ A comprehensive Discord bot for managing music requests, interacting with Trakto
 ### Utility Commands
 - `/srblive <message>` - Send live streaming notifications with role mentions (admin only)
 
-> **Note**: Admin commands `/srbtraktorrefresh` and `/srbnpclear` have been removed from Discord and are now available as GUI buttons for better workflow integration.
-
 ### 🛠️ For Developers
 
 1. **Clone** the repository and install dependencies:

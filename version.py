@@ -5,8 +5,8 @@ This file contains the current version and complete changelog.
 For the latest version information, check this file or the GUI application.
 """
 
-__version__ = "1.1.1"
-__version_info__ = (1, 1, 1)
+__version__ = "1.1.2"
+__version_info__ = (1, 1, 2)
 
 # =============================================================================
 # VERSIONING SCHEME
@@ -17,8 +17,28 @@ __version_info__ = (1, 1, 1)
 # - C (Patch): Bug fixes, maintenance updates, minor improvements
 
 # =============================================================================
-# COMPLETE CHANGELOG (Newest First)
+# COMPLETE CHANGELOG (Newest First) - Only the most recent 5 versions detailed
 # =============================================================================
+
+# -----------------------------------------------------------------------------
+# Version 1.1.2 - PATCH RELEASE (2025-06-16)
+# -----------------------------------------------------------------------------
+# GUI cleanup and layout optimization
+#
+# BUG FIXES:
+# - Removed test button from GUI interface after testing completion
+# - Fixed button panel layout to prevent any visual cutoff issues
+# - Cleaned up unused button references and methods
+#
+# IMPROVEMENTS:
+# - Optimized GUI layout for better visual appearance
+# - Streamlined control panel with only essential buttons
+# - Maintained consistent button sizing and spacing
+# - Improved code organization by removing test artifacts
+#
+# TECHNICAL DETAILS:
+# - Updated button_texts array to reflect actual buttons
+# - Improved code organization and layout optimization
 
 # -----------------------------------------------------------------------------
 # Version 1.1.1 - PATCH RELEASE (2025-06-16)
@@ -27,7 +47,6 @@ __version_info__ = (1, 1, 1)
 #
 # BUG FIXES:
 # - Fixed Discord 2000-character message limit causing search timeouts
-# - Resolved "hasu" search timeout issue (was message length, not search performance)
 # - Fixed incorrect result count displays in truncation messages
 # - Corrected message formatting (truncation info now on separate line)
 #
@@ -56,7 +75,7 @@ __version_info__ = (1, 1, 1)
 # 
 # PERFORMANCE IMPROVEMENTS:
 # - Converted XML collection parsing to optimized JSON format for 10x+ faster searches
-# - Fixed Discord interaction timeout errors for searches like "hasu" and "hasunosora"
+# - Fixed Discord interaction timeout errors for large search results
 # - Implemented new workflow: XML → JSON conversion → fast JSON-based searches
 # - Added collection.json to .gitignore (auto-generated file)
 # - All search and collection functions now use lightning-fast JSON parsing
@@ -111,22 +130,10 @@ __version_info__ = (1, 1, 1)
 # - Simplified setup instructions and distribution notes
 # - README now focuses on essentials with clear version.py reference
 
-# -----------------------------------------------------------------------------
-# Version 1.0.1 - PATCH RELEASE (2025-06-15)
-# -----------------------------------------------------------------------------
-# Bug fixes and command cleanup
-# 
-# FIXES:
-# - Fixed Discord command count display (now shows 5 commands instead of 7)
-# - Fully removed Discord admin commands: /srbtraktorrefresh, /srbnpclear
-# - Admin functions now available exclusively through GUI buttons
-# - Added search_counter.txt to .gitignore (auto-created file)
-# - Recovered all missing project files for complete build system
-# - Updated documentation with changelog ordering (newest first)
-
 # =============================================================================
-# Earlier Versions (0.1 - 1.0.0)
+# Earlier Versions (0.1 - 1.0.1)
 # =============================================================================
+# - 1.0.1: Bug fixes and command cleanup - Fixed Discord command count, cleaned up commands, GUI-only admin functions
 # - 1.0.0: Complete rewrite - Modular GUI application with cogs system and distribution
 # - 0.13: Code quality improvements with enhanced null safety and type annotations
 # - 0.12: Dynamic Traktor version detection with enhanced path management

@@ -228,29 +228,29 @@ class BotGUI:
         )
         title_label.grid(row=0, column=0, columnspan=2, pady=(0, 15))        # Left panel - Controls
         controls_frame = ttk.Frame(main_frame)
-        controls_frame.grid(row=1, column=0, sticky="new", padx=(0, 15))
-        
-        # Define button texts for dynamic sizing
+        controls_frame.grid(row=1, column=0, sticky="new", padx=(0, 15))        # Define button texts for dynamic sizing
         button_texts = [
             "🛑 Stop & Close",
             "🗑️ Clear Log", 
             "🔄 Refresh Collection & Stats",
-            "🧹 Clear NP Track Info"        ]
+            "🧹 Clear NP Track Info"
+        ]
           # Calculate optimal button width
         optimal_width = self.calculate_optimal_button_width(button_texts)
         # Configure the controls frame to not shrink and set proper width
         controls_frame.grid_propagate(False)
         frame_width = max(optimal_width * 6.5, 170)  # Slightly more room for text
         controls_frame.configure(width=int(frame_width), height=500)
-        
-        # Control buttons (Start Bot removed - now auto-starts)
+          # Control buttons (Start Bot removed - now auto-starts)
         self.stop_button = ttk.Button(
             controls_frame,
             text=button_texts[0],
-            command=self.stop_and_close,
             width=optimal_width,
             state='disabled'
         )
+        # Bind separate events for press and release
+        self.stop_button.bind('<Button-1>', self.on_stop_button_press)
+        self.stop_button.bind('<ButtonRelease-1>', self.on_stop_button_release)
         self.stop_button.grid(row=0, column=0, pady=8, sticky="ew")
         
         # Status section
@@ -291,8 +291,7 @@ class BotGUI:
             width=optimal_width
         )
         clear_button.grid(row=5, column=0, pady=(15, 8), sticky="ew")
-        
-        # Refresh collection button with better styling
+          # Refresh collection button with better styling
         refresh_button = ttk.Button(
             controls_frame,
             text=button_texts[2],
@@ -300,8 +299,7 @@ class BotGUI:
             width=optimal_width
         )
         refresh_button.grid(row=6, column=0, pady=8, sticky="ew")
-        
-        # Clear NP track info button
+          # Clear NP track info button
         clear_history_button = ttk.Button(
             controls_frame,
             text=button_texts[3],
@@ -610,12 +608,25 @@ class BotGUI:
         # Give the bot thread a moment to clean up (simplified output)
         if self.bot_thread and self.bot_thread.is_alive():
             self.bot_thread.join(timeout=2.0)  # Reduced timeout
-        
-        # Always show final success message
+          # Always show final success message
         print("✅ Bot shutdown complete")
+
+    def on_stop_button_press(self, event):
+        """Show stopping message when stop button is pressed down"""
+        self.add_log("Stop button pressed - preparing to close...", "warning")
     
+    def on_stop_button_release(self, event):
+        """Execute stop and close when button is released"""
+        if self.is_running:
+            self.add_log("Stopping bot and closing application...", "warning")
+            self.stop_bot()
+            # Reduced wait time since we now wait for proper shutdown in stop_bot
+            self.root.after(500, self.root.destroy)
+        else:
+            self.root.destroy()
+
     def stop_and_close(self):
-        """Stop the bot and close the application"""
+        """Stop the bot and close the application - Legacy method"""
         if self.is_running:
             self.add_log("Stopping bot and closing application...", "warning")
             self.stop_bot()            # Reduced wait time since we now wait for proper shutdown in stop_bot
@@ -767,9 +778,7 @@ class BotGUI:
 
                 # Clear track list
                 if "trackList" in config:
-                    config["trackList"] = []
-
-                # Save updated config.json
+                    config["trackList"] = []                # Save updated config.json
                 with open(Settings.NOWPLAYING_CONFIG_JSON_PATH, "w", encoding="utf-8") as file:
                     json.dump(config, file, indent=4)
 
@@ -777,10 +786,12 @@ class BotGUI:
                 
             except Exception as e:
                 error_msg = f"Error clearing track history: {e}"
-                print(f"❌ {error_msg}")
-        
-        # Run in background thread to avoid blocking UI
+                print(f"❌ {error_msg}")        # Run in background thread to avoid blocking UI
         threading.Thread(target=_clear_history, daemon=True).start()
+
+    def show_test_message(self):
+        """Legacy method - no longer used but kept for compatibility"""
+        pass
 
     def load_search_count(self):
         """Load the search count from file"""
