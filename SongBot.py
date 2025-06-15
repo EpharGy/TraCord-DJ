@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import xml.etree.ElementTree as ET
 import asyncio
 from datetime import datetime, timedelta
+import json
 
 # Load environment variables from .env file
 load_dotenv()
@@ -15,6 +16,7 @@ TRAKTOR_PATH = os.getenv('TRAKTOR_COLLECTION')
 APPLICATION_ID = os.getenv('APPLICATION_ID')
 CHANNEL_IDS = os.getenv('CHANNEL_IDS')
 ALLOWED_USER_IDS = os.getenv('ALLOWED_USER_IDS')
+NOWPLAYING_CONFIG_JSON_PATH = os.getenv('NOWPLAYING_CONFIG_JSON_PATH')
 
 # Define the variables for the number of returned songs and new songs days
 MAX_SONGS = 20
@@ -161,8 +163,6 @@ def parse_traktor_collection(copied_file_path, search_query):
     
     return sorted_results, len(results)
 
-
-
 @bot.tree.command(name="srbnew", description=f"Display newly added songs from the last {NEW_SONGS_DAYS}")
 @app_commands.describe(days=f"Number of days to look back for new songs (default is {NEW_SONGS_DAYS} days)")
 async def srbnew(interaction: discord.Interaction, days: int = NEW_SONGS_DAYS):
@@ -244,9 +244,45 @@ def get_new_songs(copied_file_path, days):
         print(f"Sorted results: {sorted_results}")
     return sorted_results, total_new_songs
 
+# ----------------------------------------------------------------
+# New Command: srbclear
+# This command creates a backup of config.json and clears certain fields
+# in "currentTrack" and each track in "playlistHistory".
+@bot.tree.command(name="srbclear", description="Backup and clear track history in NowPlaying config.json")
+async def srbclear(interaction: discord.Interaction):
+    if not NOWPLAYING_CONFIG_JSON_PATH:
+        await interaction.response.send_message("Config file path not set in environment variable NOWPLAYING_CONFIG_JSON_PATH.", ephemeral=True)
+        return
 
+    if not check_permissions(interaction.user.id, ALLOWED_USER_IDS):
+        await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
+        return
 
-
+    try:
+        # Backup config.json
+        backup_path = NOWPLAYING_CONFIG_JSON_PATH + ".bak"
+        shutil.copyfile(NOWPLAYING_CONFIG_JSON_PATH, backup_path)
+        # await interaction.response.send_message("File copied (backup created).", ephemeral=True)
+        # Load config.json
+        with open(NOWPLAYING_CONFIG_JSON_PATH, "r", encoding="utf-8") as file:
+            config = json.load(file)
+        # Clear specific fields in currentTrack
+        for field in ["title", "artist", "comment", "label", "album", "artwork"]:
+            config["currentTrack"][field] = ""
+        # Clear specific fields in playlistHistory
+        for track in config["playlistHistory"]:
+            for field in ["title", "artist", "comment", "label", "album", "artwork"]:
+                track[field] = ""
+        # Save modified config.json
+        with open(NOWPLAYING_CONFIG_JSON_PATH, "w", encoding="utf-8") as file:
+            json.dump(config, file, indent=4)
+        await interaction.response.send_message("NowPlaying Track history cleared.")
+        print(f"{interaction.user} cleared NowPlaying History")
+    except Exception as e:
+        await interaction.response.send_message(f"Error clearing NowPlaying History: {e}")
+        print(f"Error clearing NowPlaying History")
+        
+# ----------------------------------------------------------------
 @bot.event
 async def on_ready():
     print('------')

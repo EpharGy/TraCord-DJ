@@ -79,6 +79,3 @@ collection.nml
 # Temporary files
 *.tmp
 *.temp
-
-# Local scripts
-quick-commit.ps1
