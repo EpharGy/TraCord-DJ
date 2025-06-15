@@ -19,6 +19,7 @@ ALLOWED_USER_IDS = os.getenv('ALLOWED_USER_IDS')
 # Define the variables for the number of returned songs and new songs days
 MAX_SONGS = 20
 NEW_SONGS_DAYS = 7
+DEBUG = False
 
 # Split Channels and Users if multiple
 if CHANNEL_IDS:
@@ -46,11 +47,10 @@ def check_permissions(user_id, allowed_user_ids):
 def count_songs_in_collection(copied_file_path):
     if not os.path.exists(copied_file_path):
         return 0
-
     try:
         tree = ET.parse(copied_file_path)
         root = tree.getroot()
-        return len(root.findall(".//COLLECTION/ENTRY"))
+        return len([entry for entry in root.findall(".//COLLECTION/ENTRY") if ".stem." not in entry.find(".//LOCATION").get("FILE")])
     except ET.ParseError as e:
         print(f"Error parsing XML file: {e}")
         return 0
@@ -110,6 +110,9 @@ def parse_traktor_collection(copied_file_path, search_query):
     results = []
     search_keywords = search_query.lower().split()
     for entry in root.findall(".//COLLECTION/ENTRY"):
+        location = entry.find(".//LOCATION")
+        if ".stem." in location.get("FILE"):
+            continue
         artist = entry.get("ARTIST")
         title = entry.get("TITLE")
         album_element = entry.find(".//ALBUM")
@@ -126,7 +129,6 @@ def parse_traktor_collection(copied_file_path, search_query):
             priority_score = 3
             sort_key = album_title.lower()
         if priority_score > 0:
-            # Escape asterisks to prevent Markdown formatting issues
             artist = artist.replace('*', '\\*') if artist else artist
             title = title.replace('*', '\\*') if title else title
             album_title = album_title.replace('*', '\\*') if album_title else album_title
@@ -140,59 +142,85 @@ def parse_traktor_collection(copied_file_path, search_query):
 
 
 
-
 @bot.tree.command(name="srbnew", description=f"Display newly added songs from the last {NEW_SONGS_DAYS}")
 @app_commands.describe(days=f"Number of days to look back for new songs (default is {NEW_SONGS_DAYS} days)")
 async def srbnew(interaction: discord.Interaction, days: int = NEW_SONGS_DAYS):
     if interaction.channel.id not in CHANNEL_IDS:
         await interaction.response.send_message("This command can only be used in the designated channels.", ephemeral=True)
         return
-
-    if days > NEW_SONGS_DAYS:
-        await interaction.response.send_message(f"Note: You have entered {days} days, but the list may be limited by the amount of songs ({MAX_SONGS}).")
-    else:
-        await interaction.response.send_message(f"Displaying songs from the last {days} days.")
-
+    
+    await interaction.response.send_message(f"Displaying songs from the last {days} days.")
+    
     copied_file_path = os.path.join(os.getcwd(), "collection.nml")
     results, total_new_songs = get_new_songs(copied_file_path, days)
+    
+    if DEBUG:
+        print(f"Total new songs found: {total_new_songs}")
+        print(f"Results: {results}")
+    
     if results:
-        await interaction.response.send_message("\n".join(results))
+        response = "\n".join(results)
+        # Ensure message length is within Discord's limit
+        if len(response) > 2000:
+            response = response[:1997] + "..."
+        await interaction.followup.send(response)
         print(f"{interaction.user} requested new songs from the last {days} days, found {total_new_songs} songs")
     else:
-        await interaction.response.send_message("No new songs found.")
+        await interaction.followup.send("No new songs found.")
         print(f"{interaction.user} requested new songs from the last {days} days, found 0 songs")
 
 def get_new_songs(copied_file_path, days):
     if not os.path.exists(copied_file_path):
+        if DEBUG:
+            print(f"File not found: {copied_file_path}")
         return [f"File not found: {copied_file_path}"], 0
     try:
         tree = ET.parse(copied_file_path)
         root = tree.getroot()
     except ET.ParseError as e:
+        if DEBUG:
+            print(f"Error parsing XML file: {e}")
         return [f"Error parsing XML file: {e}"], 0
     results = []
     cutoff_date = datetime.now() - timedelta(days=days)
     total_new_songs = 0
     for entry in root.findall(".//COLLECTION/ENTRY"):
+        location = entry.find(".//LOCATION")
+        if location is None or ".stem." in location.get("FILE", ""):
+            continue
         info = entry.find(".//INFO")
+        if info is None:
+            continue
         import_date_str = info.get("IMPORT_DATE")
-        import_date = datetime.strptime(import_date_str, "%Y/%m/%d")
+        if import_date_str is None:
+            continue
+        try:
+            import_date = datetime.strptime(import_date_str, "%Y/%m/%d")
+        except ValueError as ve:
+            if DEBUG:
+                print(f"Error parsing date {import_date_str}: {ve}")
+            continue
         if import_date >= cutoff_date:
-            artist = entry.get("ARTIST")
-            title = entry.get("TITLE")
+            artist = entry.get("ARTIST") or "Unknown Artist"
+            title = entry.get("TITLE") or "Unknown Title"
             album_element = entry.find(".//ALBUM")
             album_title = album_element.get("TITLE") if album_element is not None else None
-            # Escape asterisks to prevent Markdown formatting issues
             artist = artist.replace('*', '\\*') if artist else artist
             title = title.replace('*', '\\*') if title else title
             album_title = album_title.replace('*', '\\*') if album_title else album_title
             result_str = f"{import_date_str} | {artist} - {title} [{album_title}]" if album_title else f"{import_date_str} | {artist} - {title}"
+            if DEBUG:
+                print(f"Adding song: {result_str}")
             results.append((import_date, artist, title, result_str))
             total_new_songs += 1
-    results.sort(reverse=True, key=lambda x: (x[0], x[1], x[2]))
+    if DEBUG:
+        print(f"Total new songs added: {total_new_songs}")
+    results.sort(reverse=True, key=lambda x: (x[0], x[1] if x[1] is not None else '', x[2] if x[2] is not None else ''))
     sorted_results = [result[3] for result in results[:MAX_SONGS]]
     if total_new_songs > MAX_SONGS:
         sorted_results.append(f"**Displaying latest {MAX_SONGS} songs of {total_new_songs} recently imported songs.**")
+    if DEBUG:
+        print(f"Sorted results: {sorted_results}")
     return sorted_results, total_new_songs
 
 
