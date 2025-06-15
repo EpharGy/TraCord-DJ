@@ -1,6 +1,6 @@
 @echo off
-echo DJ Discord Bot - Build GUI Executable for Distribution
-echo =====================================================
+echo Traktor DJ NowPlaying Discord Bot - Build GUI Executable for Distribution
+echo =========================================================================
 echo.
 
 REM Check if Python is available
@@ -17,7 +17,7 @@ python build.py
 
 echo.
 echo Build process completed!
-echo Check the 'dist' folder for DJ-Discord-Bot-GUI.exe
+echo Check the 'dist' folder for Traktor-DJ-NowPlaying-Discord-Bot-GUI.exe
 echo This file can be distributed to users without Python installed.
 echo.
 pause

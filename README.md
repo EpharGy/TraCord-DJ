@@ -1,4 +1,4 @@
-# DJ Discord Bot
+# Traktor DJ NowPlaying Discord Bot
 
 A comprehensive Discord bot for managing music requests, interacting with Traktor DJ software collections, and enhancing DJ workflow automation. This is a standalone GUI application suitable for personal DJ environments.
 
@@ -20,7 +20,7 @@ A comprehensive Discord bot for managing music requests, interacting with Trakto
 
 ### 🎯 For End Users (No Python Required)
 
-1. **Download** the latest `DJ-Discord-Bot-GUI.exe` from [Releases](https://github.com/your-repo/releases)
+1. **Download** the latest `Traktor-DJ-NowPlaying-Discord-Bot-GUI.exe` from [Releases](https://github.com/your-repo/releases)
 2. **Run** the executable - it will create a `.env` configuration file
 3. **Edit** the `.env` file with your Discord bot token and settings
 4. **Run** the executable again to start the bot
@@ -43,9 +43,8 @@ A comprehensive Discord bot for managing music requests, interacting with Trakto
 ### 🛠️ For Developers
 
 1. **Clone** the repository and install dependencies:
-   ```bash
-   git clone <your-repo-url>
-   cd DJ-Discord-Bot
+   ```bash   git clone <your-repo-url>
+   cd Traktor-DJ-NowPlaying-Discord-Bot
    pip install -r requirements.txt
    ```
 
@@ -84,7 +83,7 @@ pip install -r requirements-dev.txt
 python build.py
 ```
 
-Output: `dist/DJ-Discord-Bot-GUI.exe`
+Output: `dist/Traktor-DJ-NowPlaying-Discord-Bot-GUI.exe`
 
 ### 📦 Distribution Notes
 - Executable is fully portable and self-contained
@@ -97,7 +96,7 @@ Output: `dist/DJ-Discord-Bot-GUI.exe`
 The bot uses a modular Discord.py Cogs architecture for better organization:
 
 ```
-DJ-Discord-Bot/
+Traktor-DJ-NowPlaying-Discord-Bot/
 ├── 🚀 Launchers
 │   ├── gui.py              # Standalone GUI application
 │   ├── run_bot.py          # Cross-platform launcher

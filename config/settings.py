@@ -1,5 +1,5 @@
 """
-Configuration settings for DJ Discord Bot
+Configuration settings for Traktor DJ NowPlaying Discord Bot
 Handles environment variables, constants, and validation
 """
 import os
@@ -54,8 +54,15 @@ class Settings:
         base_dir = get_executable_dir()
         return os.path.join(base_dir, 'search_counter.txt')
     
+    @staticmethod
+    def get_collection_json_file():
+        """Get the collection JSON file path, handling both development and executable modes"""
+        base_dir = get_executable_dir()
+        return os.path.join(base_dir, 'collection.json')
+    
     SONG_REQUESTS_FILE: str = get_song_requests_file()
     SEARCH_COUNTER_FILE: str = get_search_counter_file()
+    COLLECTION_JSON_FILE: str = get_collection_json_file()
     
     # Live Notification Roles
     DISCORD_LIVE_NOTIFICATION_ROLES_ENV: Optional[str] = os.getenv('DISCORD_LIVE_NOTIFICATION_ROLES')

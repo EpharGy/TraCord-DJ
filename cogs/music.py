@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Dict, Any
 
 from config.settings import Settings
-from utils.traktor import parse_traktor_collection
+from utils.traktor import parse_traktor_collection, load_collection_json, search_collection_json
 from utils.helpers import check_channel_permissions, truncate_response
 
 
@@ -46,28 +46,73 @@ class MusicCog(commands.Cog, name="Music"):
                 "This command can only be used in the designated channels.", 
                 ephemeral=True
             )
-            return
-
-        copied_file_path = os.path.join(os.getcwd(), "collection.nml")
-        results, total_matches = parse_traktor_collection(
-            copied_file_path, search, Settings.EXCLUDED_ITEMS, 
-            Settings.MAX_SONGS, Settings.DEBUG
-        )
+            return        # Load collection JSON for fast searching
+        songs = load_collection_json(Settings.COLLECTION_JSON_FILE)
+        if not songs:
+            await interaction.response.send_message("Collection not available. Please refresh the collection.", ephemeral=True)
+            print(f"Collection JSON not found or empty for {interaction.user}'s search")
+            return        # Fast JSON-based search (get all matches, we'll fit what we can in Discord's limit)
+        results, total_matches = search_collection_json(songs, search)  # No artificial limit
 
         if not results:
             await interaction.response.send_message("No matching results found.")
             print(f"{interaction.user}'s search '{search}' matched 0 songs")
             return
-
-        # Limit the results to MAX_SONGS for display
-        displayed_results = results[:Settings.MAX_SONGS]
-        instruction_message = "\n\nTo request a song, immediately REPLY with the # of the song, e.g. 6."
+              # Dynamically fit as many results as possible within Discord's 2000 character limit
+        base_message = "Search Results:\n"
+        instruction_message = "\nTo request a song, immediately REPLY with the # of the song, e.g. 6."        # Calculate message endings dynamically
+        # Format: "\n🎵 Showing XXX results.\nTo request a song..." (when no truncation needed)
+        no_truncation_ending = f"\n🎵 Showing {len(results)} results.{instruction_message}"
         
-        results_message = "Search Results:\n" + "\n".join(displayed_results) + instruction_message
-
-        # Add a note if there are more matches than MAX_SONGS
-        if len(results) > Settings.MAX_SONGS:
-            results_message += f"\n\n**{Settings.MAX_SONGS} of {total_matches} matches displayed. Refine your search if needed.**"
+        # Format: "\n🎶 Showing XXX of YYY results.\nTo request a song..." (when truncation needed)  
+        truncation_ending_template = f"\n🎶 Showing {{}} of {total_matches} results.{instruction_message}"
+        
+        # Calculate available space - try without truncation first
+        available_space_no_truncation = 2000 - len(base_message) - len(no_truncation_ending) - 2  # 2 char buffer
+        
+        # Fit as many results as possible
+        fitted_results = []
+        current_length = 0
+        
+        for result in results:
+            result_line = result + "\n"
+            if current_length + len(result_line) > available_space_no_truncation:
+                break
+            fitted_results.append(result)
+            current_length += len(result_line)
+        
+        # Build the message
+        results_text = "\n".join(fitted_results)
+        
+        # Check if we need truncation
+        if len(fitted_results) < total_matches:
+            # We need truncation - recalculate with truncation ending
+            truncation_ending = truncation_ending_template.format(len(fitted_results))
+            
+            # Recalculate available space with truncation ending
+            available_space_truncation = 2000 - len(base_message) - len(truncation_ending) - 2  # 2 char buffer
+            
+            # Re-fit results with truncation space
+            fitted_results = []
+            current_length = 0
+            
+            for result in results:
+                result_line = result + "\n"
+                if current_length + len(result_line) > available_space_truncation:
+                    break
+                fitted_results.append(result)
+                current_length += len(result_line)
+              # Rebuild results text and final message
+            results_text = "\n".join(fitted_results)
+            truncation_ending = truncation_ending_template.format(len(fitted_results))  # Update count
+            results_message = base_message + results_text + truncation_ending
+        else:
+            # No truncation needed
+            no_truncation_ending = f"\n🎵 Showing {len(fitted_results)} results.{instruction_message}"
+            results_message = base_message + results_text + no_truncation_ending
+        
+        print(f"[DEBUG] Message length: {len(results_message)}/2000 characters")
+        print(f"[DEBUG] Showing {len(fitted_results)} results out of {total_matches} total matches")
         
         await interaction.response.send_message(results_message)
         print(f"{interaction.user}'s search '{search}' matched {total_matches} songs")
@@ -75,8 +120,8 @@ class MusicCog(commands.Cog, name="Music"):
         # Increment search counter for GUI tracking
         self._increment_search_counter()
 
-        # Store only the displayed results in the result_dict
-        result_dict = {str(i + 1): result.split(" | ", 1)[1] for i, result in enumerate(displayed_results)}
+        # Store only the fitted results in the result_dict
+        result_dict = {str(i + 1): result.split(" | ", 1)[1] for i, result in enumerate(fitted_results)}
 
         def check(m):
             return m.author == interaction.user and m.channel == interaction.channel and m.content in result_dict.keys()

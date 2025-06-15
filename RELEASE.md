@@ -13,7 +13,7 @@
    ```bash
    python build.py
    ```
-   - This creates `dist/DJ-Discord-Bot-GUI.exe` (static filename)
+   - This creates `dist/Traktor-DJ-NowPlaying-Discord-Bot-GUI.exe` (static filename)
    - Version number is automatically included from `version.py`
 
 3. **Test the executable**:
@@ -27,9 +27,9 @@
    - Go to your GitHub repository
    - Click "Releases" → "Create a new release"
    - Tag version: `v1.0.0` (follow semantic versioning)
-   - Release title: `DJ Discord Bot v1.0.0`
+   - Release title: `Traktor DJ NowPlaying Discord Bot v1.0.0`
    - Description: Include changelog and setup instructions
-   - Upload the `DJ-Discord-Bot-GUI.exe` file
+   - Upload the `Traktor-DJ-NowPlaying-Discord-Bot-GUI.exe` file
    - Mark as latest release
 
 5. **Update version for next release**:
@@ -83,14 +83,14 @@ This follows industry-standard **Semantic Versioning** practices, ensuring clear
 ### For users WITH Python:
 ```bash
 git clone <repo-url>
-cd DJ-Discord-Bot
+cd Traktor-DJ-NowPlaying-Discord-Bot
 pip install -r requirements.txt
 python gui.py
 ```
 
 ### For users WITHOUT Python:
 1. Go to GitHub Releases
-2. Download `DJ-Discord-Bot-GUI.exe` (or latest version)
+2. Download `Traktor-DJ-NowPlaying-Discord-Bot-GUI.exe` (or latest version)
 3. **First Launch**: Run the executable - it will automatically create a `.env` file and show setup instructions
 4. **Configure**: Edit the `.env` file with your Discord bot settings and file paths
 5. **Second Launch**: Run the executable again to start the bot

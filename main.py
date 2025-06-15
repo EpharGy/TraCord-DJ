@@ -1,5 +1,5 @@
 """
-DJ Discord Bot - Main Entry Point
+Traktor DJ NowPlaying Discord Bot - Main Entry Point
 A comprehensive Discord bot for managing music requests, interacting with Traktor DJ software collections,
 and enhancing DJ workflow automation.
 
@@ -13,7 +13,7 @@ from discord.ext import commands
 
 # Import configuration
 from config.settings import Settings
-from utils.traktor import count_songs_in_collection, get_new_songs
+from utils.traktor import refresh_collection_json, load_collection_json, count_songs_in_collection_json, get_new_songs_json
 
 
 class DJBot(commands.Bot):
@@ -60,7 +60,7 @@ class DJBot(commands.Bot):
     async def on_ready(self):
         """Event fired when bot is ready"""
         print('━' * 50)
-        print(f'🎵 DJ Discord Bot Loaded')
+        print(f'🎵 Traktor DJ NowPlaying Discord Bot Loaded')
         print(f'🤖 Logged in as {self.user} (ID: {self.user.id if self.user else "Unknown"})')
         print(f'🗄️ Using Cogs architecture')
         print('━' * 50)
@@ -72,24 +72,33 @@ class DJBot(commands.Bot):
         print('━' * 50)
     
     async def _initialize_collection(self):
-        """Copy Traktor collection file and display statistics"""
+        """Initialize collection by converting XML to JSON and display statistics"""
         try:
-            copied_file_path = os.path.join(os.getcwd(), "collection.nml")
-            shutil.copyfile(Settings.TRAKTOR_PATH, copied_file_path)
-            print("📁 Traktor collection file copied successfully")
+            print("🔄 Initializing collection system...")
             
-            # Count the number of songs in the collection and print statistics
-            total_songs = count_songs_in_collection(copied_file_path, Settings.EXCLUDED_ITEMS)
-            _, total_new_songs = get_new_songs(
-                copied_file_path, Settings.NEW_SONGS_DAYS, 
-                Settings.EXCLUDED_ITEMS, Settings.MAX_SONGS, Settings.DEBUG
+            # Use the new JSON refresh workflow
+            song_count = refresh_collection_json(
+                Settings.TRAKTOR_PATH, 
+                Settings.COLLECTION_JSON_FILE, 
+                Settings.EXCLUDED_ITEMS, 
+                debug=True
             )
             
-            print(f"📊 Statistics:")
-            print(f"   • Max songs returned per search: {Settings.MAX_SONGS}")
-            print(f"   • Default days for new songs: {Settings.NEW_SONGS_DAYS}")
-            print(f"   • Total songs in collection: {total_songs:,}")
-            print(f"   • New songs (last {Settings.NEW_SONGS_DAYS} days): {total_new_songs}")
+            print("📁 Collection converted to JSON successfully")
+            
+            # Load the JSON collection for statistics
+            songs = load_collection_json(Settings.COLLECTION_JSON_FILE)
+            if songs:
+                total_songs = count_songs_in_collection_json(songs)
+                _, total_new_songs = get_new_songs_json(songs, Settings.NEW_SONGS_DAYS, Settings.MAX_SONGS, Settings.DEBUG)
+                
+                print(f"📊 Statistics:")
+                print(f"   • Max songs returned per search: {Settings.MAX_SONGS}")
+                print(f"   • Default days for new songs: {Settings.NEW_SONGS_DAYS}")
+                print(f"   • Total songs in collection: {total_songs:,}")
+                print(f"   • New songs (last {Settings.NEW_SONGS_DAYS} days): {total_new_songs}")
+            else:
+                print("⚠️ Collection JSON is empty or could not be loaded")
             
         except Exception as e:
             print(f"❌ Error initializing collection: {e}")
@@ -102,7 +111,7 @@ async def main():
         print("Please check your .env file and ensure DISCORD_TOKEN is set.")
         return
     
-    print("🚀 Starting DJ Discord Bot...")
+    print("🚀 Starting Traktor DJ NowPlaying Discord Bot...")
     
     # Create and start the bot
     bot = DJBot()

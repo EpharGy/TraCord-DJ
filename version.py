@@ -1,12 +1,12 @@
 """
-Version and Changelog for DJ Discord Bot
+Version and Changelog for Traktor DJ NowPlaying Discord Bot
 
 This file contains the current version and complete changelog.
 For the latest version information, check this file or the GUI application.
 """
 
-__version__ = "1.0.2"
-__version_info__ = (1, 0, 2)
+__version__ = "1.1.1"
+__version_info__ = (1, 1, 1)
 
 # =============================================================================
 # VERSIONING SCHEME
@@ -21,6 +21,83 @@ __version_info__ = (1, 0, 2)
 # =============================================================================
 
 # -----------------------------------------------------------------------------
+# Version 1.1.1 - PATCH RELEASE (2025-06-16)
+# -----------------------------------------------------------------------------
+# Critical Discord message limit fixes and search optimization
+#
+# BUG FIXES:
+# - Fixed Discord 2000-character message limit causing search timeouts
+# - Resolved "hasu" search timeout issue (was message length, not search performance)
+# - Fixed incorrect result count displays in truncation messages
+# - Corrected message formatting (truncation info now on separate line)
+#
+# PERFORMANCE IMPROVEMENTS:
+# - Removed artificial MAX_SONGS limit - now dynamically fits maximum results
+# - Implemented smart message truncation with precise character counting
+# - Two-pass algorithm for optimal result fitting within Discord limits
+# - Dynamic message length calculation for both truncated and non-truncated scenarios
+#
+# ENHANCEMENTS:
+# - Improved user feedback with accurate "showing X of Y results" messages
+# - Enhanced collection display with smart truncation for new songs feature
+# - Better debug logging for message length monitoring
+# - Consistent 2000-character limit handling across all Discord responses
+#
+# TECHNICAL DETAILS:
+# - Dynamic string length calculation instead of fixed buffers
+# - Precise character counting for message components
+# - Optimal result fitting algorithm maximizes displayed songs
+# - Proper line formatting for professional Discord message appearance
+
+# -----------------------------------------------------------------------------
+# Version 1.1.0 - MINOR RELEASE (2025-06-15)
+# -----------------------------------------------------------------------------
+# Major performance optimization and architectural enhancement
+# 
+# PERFORMANCE IMPROVEMENTS:
+# - Converted XML collection parsing to optimized JSON format for 10x+ faster searches
+# - Fixed Discord interaction timeout errors for searches like "hasu" and "hasunosora"
+# - Implemented new workflow: XML → JSON conversion → fast JSON-based searches
+# - Added collection.json to .gitignore (auto-generated file)
+# - All search and collection functions now use lightning-fast JSON parsing
+#
+# NEW FEATURES & ENHANCEMENTS:
+# - Added COVERARTID field to collection data for future artwork features
+# - Enhanced collection refresh workflow with better error handling
+# - Improved memory efficiency and search performance
+# - Future-ready data structure for upcoming enhancements
+#
+# CODE CLEANUP & MAINTENANCE:
+# - Removed deprecated SongBot.py (old monolithic bot replaced by Cogs system)
+# - Removed old "DJ Discord Bot.code-workspace" file (renamed for clarity)
+# - Comprehensive audit and cleanup of unused files
+# - Optimized codebase structure and imports
+#
+# ARCHITECTURAL CHANGES:
+# - New JSON-based collection system with fields: artist, title, album, cover_art_id, import_date
+# - Updated refresh workflow: copy XML → create JSON → delete temp XML
+# - All search functions (song search, new songs, collection stats) now use JSON
+# - Enhanced modularity and maintainability
+#
+# BUG FIXES:
+# - Fixed "The application did not respond" timeout errors on Discord searches
+# - Resolved slow search performance for terms with many matches
+# - Fixed collection refresh workflow for better reliability
+
+# -----------------------------------------------------------------------------
+# Version 1.0.3 - PATCH RELEASE (2025-06-15)
+# -----------------------------------------------------------------------------
+# Complete rebranding and naming consistency
+# 
+# REBRANDING:
+# - Repository renamed to "Traktor-DJ-NowPlaying-Discord-Bot" for clarity
+# - Executable renamed to "Traktor-DJ-NowPlaying-Discord-Bot-GUI.exe"
+# - Updated all GUI titles and messages with new branding
+# - Updated all documentation and build scripts with new naming
+# - Consistent branding across all application interfaces
+# - Better describes the bot's actual functionality (Traktor + NowPlaying + Discord)
+
+# -----------------------------------------------------------------------------
 # Version 1.0.2 - PATCH RELEASE (2025-06-15)
 # -----------------------------------------------------------------------------
 # Documentation streamlining and build improvements
@@ -29,7 +106,7 @@ __version_info__ = (1, 0, 2)
 # - Streamlined README.md by 50%+ - removed lengthy version sections
 # - Centralized all version/changelog information in version.py
 # - Moved Commands section after Quick Start for better user flow
-# - Switched to static executable naming (DJ-Discord-Bot-GUI.exe) for simplicity
+# - Switched to static executable naming for simplicity
 # - Updated build.py and RELEASE.md to use static naming
 # - Simplified setup instructions and distribution notes
 # - README now focuses on essentials with clear version.py reference
@@ -46,61 +123,13 @@ __version_info__ = (1, 0, 2)
 # - Added search_counter.txt to .gitignore (auto-created file)
 # - Recovered all missing project files for complete build system
 # - Updated documentation with changelog ordering (newest first)
-# - Updated executable naming to static "DJ-Discord-Bot-GUI.exe"
 
-# -----------------------------------------------------------------------------  
-# Version 1.0.0 - MAJOR RELEASE (2025-06-15)
-# -----------------------------------------------------------------------------
-# Complete rewrite from V0.13 single-file bot to modular GUI application
-#
-# ARCHITECTURAL TRANSFORMATION:
-# - Complete rewrite: SongBot.py → Modular Discord.py Cogs system
-# - New project structure: config/, utils/, cogs/ modules
-# - Centralized configuration in config/settings.py
-# - Modular commands: music, collection, admin, requests in separate cogs
-#
-# BRAND NEW GUI APPLICATION:
-# - Standalone tkinter-based control panel replacing command-line interface
-# - Auto-start bot functionality with real-time monitoring
-# - Live dashboard: bot status, logs, collection statistics, search counter
-# - GUI admin controls: collection refresh and track history via buttons
-# - Dynamic interface with auto-sizing elements for optimal display
-#
-# ROBUST DISTRIBUTION SYSTEM:
-# - PyInstaller integration with build.py and build.bat
-# - Portable executable that runs from any directory
-# - Auto-create .env from template on first run with user guidance
-# - Template value detection with configuration warnings
-# - Two-step setup: create config file, then launch
-#
-# MODERNIZATION & CLEANUP:
-# - Migrated admin functions from Discord commands to GUI buttons
-# - Enhanced error handling with robust PyInstaller compatibility
-# - Smart file management with automatic creation relative to executable
-# - Clean output with organized logging and color coding
-# - Fast Discord disconnect with proper cleanup
-# - Cross-platform support for development and compiled modes
-
-# -----------------------------------------------------------------------------
-# Version 0.13 - Code quality improvements (2025-06-15)
-# -----------------------------------------------------------------------------
-# - Fixed all lint/type errors for enhanced code safety
-# - Added proper null checks for Discord objects (channel, guild, user)
-# - Improved type annotations with explicit list declarations
-# - Enhanced XML parsing with null safety for location elements
-# - Added robust TOKEN validation before bot startup
-# - Fixed environment variable type handling and splitting logic
-
-# -----------------------------------------------------------------------------
-# Version 0.12 - Dynamic Traktor version detection (2025-06-15)
-# -----------------------------------------------------------------------------
-# - Automatic detection of latest Traktor version folder
-# - Enhanced path management and future-proofing
-# - Improved collection file handling
-
-# -----------------------------------------------------------------------------
-# Earlier Versions (0.1 - 0.11)
-# -----------------------------------------------------------------------------
+# =============================================================================
+# Earlier Versions (0.1 - 1.0.0)
+# =============================================================================
+# - 1.0.0: Complete rewrite - Modular GUI application with cogs system and distribution
+# - 0.13: Code quality improvements with enhanced null safety and type annotations
+# - 0.12: Dynamic Traktor version detection with enhanced path management
 # - 0.11: Live streaming notifications with role mentions and community features
 # - 0.10: Complete song request management with full CRUD operations
 # - 0.9: Interactive song request system - Major code reorganization, timeout handling

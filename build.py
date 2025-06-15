@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Build script for creating standalone DJ Discord Bot executable
+Build script for creating standalone Traktor DJ NowPlaying Discord Bot executable
 """
 
 import subprocess
@@ -22,9 +22,8 @@ def install_build_deps():
 def build_gui_executable():
     """Build the GUI version using PyInstaller"""
     print(f"Building GUI executable for version {__version__}...")
-    
-    # Static executable name for easier distribution
-    exe_name = "DJ-Discord-Bot-GUI"
+      # Static executable name for easier distribution
+    exe_name = "Traktor-DJ-NowPlaying-Discord-Bot-GUI"
       # PyInstaller command for GUI version
     cmd = [
         "pyinstaller",
@@ -58,8 +57,8 @@ def build_gui_executable():
 
 def main():
     """Main build function"""
-    print("DJ Discord Bot - GUI Executable Build Script")
-    print("=" * 50)
+    print("Traktor DJ NowPlaying Discord Bot - GUI Executable Build Script")
+    print("=" * 70)
     print(f"Building version: {__version__}")
     print()
     

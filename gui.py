@@ -1,6 +1,6 @@
 """
-DJ Discord Bot - Standalone GUI Application
-A standalone GUI application for running the DJ Discord Bot with real-time monitoring.
+Traktor DJ NowPlaying Discord Bot - Standalone GUI Application
+A standalone GUI application for running the Traktor DJ NowPlaying Discord Bot with real-time monitoring.
 """
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
@@ -28,7 +28,7 @@ def check_and_create_env_file():
     
     if not os.path.exists(env_path):
         # Default .env template content
-        example_content = """# Example environment file for DJ Discord Bot
+        example_content = """# Example environment file for Traktor DJ NowPlaying Discord Bot
 # Copy this to .env and fill in your actual values
 
 # Discord Bot Configuration
@@ -167,11 +167,11 @@ except ImportError as e:
 
 
 class BotGUI:
-    """GUI application for the DJ Discord Bot"""
+    """GUI application for the Traktor DJ NowPlaying Discord Bot"""
     
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title(f"DJ Discord Bot v{__version__} - Control Panel")
+        self.root.title(f"Traktor DJ NowPlaying Discord Bot v{__version__} - Control Panel")
         self.root.geometry("900x700")
         self.root.minsize(700, 500)
         
@@ -223,7 +223,7 @@ class BotGUI:
         # Title
         title_label = ttk.Label(
             main_frame, 
-            text="🎵 DJ Discord Bot Control Panel", 
+            text="🎵 Traktor DJ NowPlaying Discord Bot Control Panel", 
             font=("Arial", 16, "bold")
         )
         title_label.grid(row=0, column=0, columnspan=2, pady=(0, 15))        # Left panel - Controls
@@ -338,7 +338,7 @@ class BotGUI:
         self.output_text.tag_configure("timestamp", foreground="#888888")
         
         # Add initial message
-        self.add_log("DJ Discord Bot Control Panel initialized", "info")
+        self.add_log("Traktor DJ NowPlaying Discord Bot Control Panel initialized", "info")
         self.add_log("Auto-starting bot in 1 second...", "info")        # Print launching message to terminal (will also appear in GUI once output capture is active)
         # Note: This message shows after output capture is initialized
         
@@ -526,10 +526,9 @@ class BotGUI:
             self.bot_id_label.config(text=f"ID: {self.bot.user.id}")
               # Count commands
             command_count = len([cmd for cmd in self.bot.tree.walk_commands()])
-            self.commands_label.config(text=f"Commands: {command_count} loaded")
-            
+            self.commands_label.config(text=f"Commands: {command_count} loaded")            
             # Print to both terminal and GUI (using print so it goes through output capture)
-            print("🎵 DJ Discord Bot Loaded")
+            print("🎵 Traktor DJ NowPlaying Discord Bot Loaded")
             print(f"🤖 Logged in as {self.bot.user} (ID: {self.bot.user.id})")
             print(f"✅ Loaded {command_count} slash commands")
             print("✅ Bot is ready and operational!")
@@ -619,8 +618,7 @@ class BotGUI:
         """Stop the bot and close the application"""
         if self.is_running:
             self.add_log("Stopping bot and closing application...", "warning")
-            self.stop_bot()
-            # Reduced wait time since we now wait for proper shutdown in stop_bot
+            self.stop_bot()            # Reduced wait time since we now wait for proper shutdown in stop_bot
             self.root.after(500, self.root.destroy)
         else:
             self.root.destroy()
@@ -630,36 +628,41 @@ class BotGUI:
         def _refresh():
             try:
                 from config.settings import Settings
-                import shutil
+                from utils.traktor import refresh_collection_json
                 
-                # Copy the collection file from the original location (same as bot does)
+                # Check if original Traktor collection file exists
                 if not Settings.TRAKTOR_PATH or not os.path.exists(Settings.TRAKTOR_PATH):
                     print("❌ Original Traktor collection file not found or not configured")
                     return
                 
-                # Define the local copy path
-                copied_file_path = os.path.join(os.getcwd(), "collection.nml")
-                  # Copy the file
                 print("🔄 Refreshing collection from Traktor...")
-                print("📁 Copying latest Traktor collection file...")
-                shutil.copyfile(Settings.TRAKTOR_PATH, copied_file_path)
-                print("✅ Collection refreshed successfully")
+                print("📁 Converting XML to optimized JSON format...")
+                
+                # Use the new JSON refresh workflow
+                song_count = refresh_collection_json(
+                    Settings.TRAKTOR_PATH, 
+                    Settings.COLLECTION_JSON_FILE, 
+                    Settings.EXCLUDED_ITEMS, 
+                    debug=True
+                )
+                
+                print(f"✅ Collection refreshed successfully - {song_count} songs processed")
                   # Reset search counter on refresh
                 self.search_count = 0
                 # Reset the search counter file
-                search_counter_file = "search_counter.txt"
+                search_counter_file = Settings.SEARCH_COUNTER_FILE
                 with open(search_counter_file, "w") as f:
                     f.write("0")
                 self.root.after(0, lambda: self.searches_label.config(text=f"Song Searches: {self.search_count}"))
                 print("🔄 Search counter reset")
-                
-                # Now load the stats from the fresh copy
+                  # Now load the stats from the fresh JSON
                 self.load_collection_stats()
                 
             except Exception as e:
                 error_msg = f"Error refreshing collection: {e}"
                 print(f"❌ {error_msg}")
-          # Run in background thread to avoid blocking UI
+                
+        # Run in background thread to avoid blocking UI
         threading.Thread(target=_refresh, daemon=True).start()
     
     def load_collection_stats(self):
@@ -667,32 +670,45 @@ class BotGUI:
         def _load_stats():
             try:
                 # Import here to avoid circular imports
-                from utils.traktor import count_songs_in_collection, get_new_songs
+                from utils.traktor import load_collection_json, count_songs_in_collection_json, get_new_songs_json, refresh_collection_json
                 from config.settings import Settings
+                import os
                 
-                # Use the local copied collection file (same as the bot uses)
-                collection_path = os.path.join(os.getcwd(), "collection.nml")
-                
-                # If local copy doesn't exist, try to copy it from the original location
-                if not os.path.exists(collection_path) and Settings.TRAKTOR_PATH:
-                    if os.path.exists(Settings.TRAKTOR_PATH):
-                        import shutil
-                        shutil.copyfile(Settings.TRAKTOR_PATH, collection_path)
-                        print("📁 Collection file copied to local directory")
+                # Check if JSON collection file exists, if not create it
+                if not os.path.exists(Settings.COLLECTION_JSON_FILE):
+                    print("⚠️ Collection JSON not found, creating from Traktor collection...")
+                    if Settings.TRAKTOR_PATH and os.path.exists(Settings.TRAKTOR_PATH):
+                        try:
+                            refresh_collection_json(
+                                Settings.TRAKTOR_PATH, 
+                                Settings.COLLECTION_JSON_FILE, 
+                                Settings.EXCLUDED_ITEMS, 
+                                debug=True
+                            )
+                            print("✅ Collection JSON created successfully")
+                        except Exception as e:
+                            print(f"❌ Error creating collection JSON: {e}")
+                            self.root.after(0, lambda: self.songs_label.config(text="Songs: Error creating collection"))
+                            self.root.after(0, lambda: self.new_songs_label.config(text="New Songs: Error creating collection"))
+                            return
                     else:
-                        print(f"⚠️  Original collection file not found at: {Settings.TRAKTOR_PATH}")
+                        print("❌ Traktor collection path not configured or file not found")
+                        self.root.after(0, lambda: self.songs_label.config(text="Songs: Traktor path not found"))
+                        self.root.after(0, lambda: self.new_songs_label.config(text="New Songs: Traktor path not found"))
                         return
                 
-                if collection_path and os.path.exists(collection_path):
+                # Use the JSON collection file for fast loading
+                songs = load_collection_json(Settings.COLLECTION_JSON_FILE)
+                
+                if songs:
                     # Print to both terminal and GUI
-                    print(f"📊 Loading collection stats from: {collection_path}")
+                    print(f"📊 Loading collection stats from JSON: {Settings.COLLECTION_JSON_FILE}")
                     
                     # Count total songs
-                    total_songs = count_songs_in_collection(collection_path, Settings.EXCLUDED_ITEMS)
+                    total_songs = count_songs_in_collection_json(songs)
                     
                     # Count new songs (last 7 days)
-                    new_songs = get_new_songs(collection_path, Settings.NEW_SONGS_DAYS, Settings.EXCLUDED_ITEMS, 1000)
-                    new_songs_count = len(new_songs)
+                    _, new_songs_count = get_new_songs_json(songs, Settings.NEW_SONGS_DAYS, 1000)
                     
                     # Update UI in main thread
                     self.root.after(0, lambda: self.songs_label.config(text=f"Songs: {total_songs:,}"))
@@ -700,7 +716,7 @@ class BotGUI:
                       # Print results to both terminal and GUI
                     print(f"📊 Collection stats: {total_songs:,} total songs, {new_songs_count:,} new songs")
                 else:
-                    error_msg = f"Collection file not found at: {collection_path}" if collection_path else "Collection path not configured"
+                    error_msg = "Collection JSON not found or empty"
                     print(f"⚠️  {error_msg}")
                     self.root.after(0, lambda: self.songs_label.config(text="Songs: Collection not found"))
                     self.root.after(0, lambda: self.new_songs_label.config(text="New Songs: Collection not found"))
@@ -841,7 +857,7 @@ def main():
         if not os.path.exists('config/settings.py'):
             messagebox.showerror(
                 "Setup Error",
-                "This application must be run from the DJ Discord Bot directory.\n\n"
+                "This application must be run from the Traktor DJ NowPlaying Discord Bot directory.\n\n"
                 "Please ensure you're in the correct directory and all required files are present."
             )
             return
