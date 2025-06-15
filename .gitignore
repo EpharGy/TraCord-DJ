@@ -74,6 +74,7 @@ Thumbs.db
 *.log
 logs/
 song_requests.json
+search_counter.txt
 collection.nml
 
 # Temporary files

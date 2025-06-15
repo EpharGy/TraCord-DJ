@@ -2,10 +2,11 @@
 Version information for DJ Discord Bot
 """
 
-__version__ = "1.0.0"
-__version_info__ = (1, 0, 0)
+__version__ = "1.0.1"
+__version_info__ = (1, 0, 1)
 
 # Version history
+# 1.0.1 - Minor fixes: changelog reordering, gitignore update for search_counter.txt
 # 1.0.0 - MAJOR RELEASE: Complete rewrite from V0.13 single-file bot to modular GUI application
 #         - Complete architectural transformation: SongBot.py → Modular Cogs system
 #         - Brand new standalone GUI application with real-time monitoring
@@ -15,4 +16,4 @@ __version_info__ = (1, 0, 0)
 #         - Auto-create .env with template and user guidance system
 #         - Portable executable that runs from any directory
 #         - Enhanced build system with versioned executables
-#         - Professional desktop application suitable for live DJ environments
+#         - Desktop application suitable for personal DJ environments
