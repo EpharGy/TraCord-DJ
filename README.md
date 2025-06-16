@@ -2,7 +2,7 @@
 
 A comprehensive Discord bot for managing music requests, interacting with Traktor DJ software collections, and enhancing DJ workflow automation. This is a standalone GUI application suitable for personal DJ environments.
 
-> **📝 Version & Changelog**: Current version and complete changelog available in [`version.py`](version.py)
+> **📝 Version & Releases**: Current version in [`version.py`](version.py) | Release history at [GitHub Releases](https://github.com/EpharGy/Traktor-DJ-NowPlaying-Discord-Bot/releases)
 
 ## Features
 
@@ -15,6 +15,7 @@ A comprehensive Discord bot for managing music requests, interacting with Trakto
 - **🔒 Permission System**: Granular access control for different user roles
 - **🧹 Admin Controls**: Collection refresh and track history via GUI buttons
 - **📊 Search Analytics**: Track and display search statistics
+- **🎧 NowPlaying Integration**: (Optional) Clear recent playing history for seamless workflow - [NowPlaying App](https://www.nowplayingapp.com/)
 
 ## Quick Start
 
@@ -38,20 +39,32 @@ A comprehensive Discord bot for managing music requests, interacting with Trakto
 ### Utility Commands
 - `/srblive <message>` - Send live streaming notifications with role mentions (admin only)
 
+## Configuration
+
+### Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `DISCORD_TOKEN` | Your Discord bot token |
+| `APPLICATION_ID` | Your Discord application ID |
+| `CHANNEL_IDS` | Comma-separated list of channel IDs where the bot can be used |
+| `ALLOWED_USER_IDS` | Comma-separated list of user IDs allowed to use admin commands |
+| `DISCORD_LIVE_NOTIFICATION_ROLES` | Comma-separated list of role names to mention for live notifications (optional) |
+| `TRAKTOR_LOCATION` | Path to your Traktor installation folder |
+| `TRAKTOR_COLLECTION_FILENAME` | Name of the Traktor collection file |
+| `NOWPLAYING_CONFIG_JSON_PATH` | Path to the now playing configuration file (optional - leave blank if not using NowPlaying integration) |
+| `SONG_REQUESTS_FILE` | Path to song requests JSON file (optional - defaults to song_requests.json in current directory) |
+
 ### 🛠️ For Developers
 
-1. **Clone** the repository and install dependencies:
-   ```bash   git clone <your-repo-url>
-   cd Traktor-DJ-NowPlaying-Discord-Bot
-   pip install -r requirements.txt
-   ```
+**Branches available:**
+- `main` - Stable releases only
+- `dev` - Active development (use this for contributions)
 
-2. **Run** the GUI application:
-   ```bash
-   python gui.py
-   ```
-
-3. **Configure** the auto-created `.env` file and relaunch
+**Quick start:**
+```bash
+python gui.py  # Run the GUI application
+```
 
 ## Running the Bot
 
@@ -95,47 +108,48 @@ The bot uses a modular Discord.py Cogs architecture for better organization:
 
 ```
 Traktor-DJ-NowPlaying-Discord-Bot/
-├── 🚀 Launchers
-│   ├── gui.py              # Standalone GUI application
-│   ├── run_bot.py          # Cross-platform launcher
-│   ├── start_bot.bat       # Windows batch launcher
-│   └── main.py             # Command-line entry point
+├── 🚀 Entry Points
+│   ├── gui.py                      # Main GUI application (recommended)
+│   ├── main.py                     # Command-line entry point
+│   ├── run_bot.py                  # Cross-platform launcher
+│   └── start_bot.bat               # Windows batch launcher
 ├── 📁 Core Application
+│   ├── cogs/
+│   │   ├── admin.py                # Administrative commands
+│   │   ├── collection.py           # Collection management commands
+│   │   ├── music.py                # Music search and song request commands
+│   │   └── requests.py             # Song request list management
 │   ├── config/
-│   │   └── settings.py     # Environment variables and configuration
+│   │   └── settings.py             # Environment variables and configuration
 │   ├── utils/
-│   │   ├── traktor.py      # Traktor collection parsing and management
-│   │   └── helpers.py      # Utility functions and permission checks
-│   └── cogs/
-│       ├── music.py        # Music search and song request commands
-│       ├── collection.py   # Collection management commands
-│       ├── requests.py     # Song request list management
-│       └── admin.py        # Administrative commands
-├── 📄 Configuration
-│   ├── requirements.txt
-│   ├── .env.example
-│   ├── version.py          # Version and changelog information
-│   └── .gitignore
-└── 📖 Documentation
-    ├── README.md
-    └── LICENSE
+│   │   ├── helpers.py              # Utility functions and permission checks
+│   │   └── traktor.py              # Traktor collection parsing and management
+│   └── version.py                  # Version information
+├── 🎨 Assets
+│   ├── app_icon.ico                # Application icon (Windows)
+│   └── icon.png                    # Application icon (PNG fallback)
+├── 🔧 Build & Development
+│   ├── .env.example                # Environment configuration template
+│   ├── build.bat                   # Windows build script
+│   ├── build.py                    # Executable build script
+│   ├── requirements-dev.txt        # Development dependencies
+│   └── requirements.txt            # Runtime dependencies
+├── 📖 Documentation
+│   ├── LICENSE                     # MIT License
+│   ├── README.md                   # Project documentation
+│   └── RELEASE.md                  # Release workflow guide
+├── ⚙️ Configuration
+│   ├── .gitignore                  # Git ignore rules
+│   └── Traktor DJ NowPlaying Discord Bot.code-workspace  # VS Code workspace
+└── 📝 Generated Files (git-ignored)
+    ├── .env                        # Your personal environment file
+    ├── *.spec                      # PyInstaller spec files
+    ├── build/                      # Build artifacts
+    ├── collection.json             # Traktor collection cache
+    ├── collection.nml              # Traktor collection file    ├── dist/                       # Built executables
+    ├── search_counter.txt          # Search statistics
+    └── song_requests.json          # Song request database
 ```
-
-## Configuration
-
-### Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `DISCORD_TOKEN` | Your Discord bot token |
-| `APPLICATION_ID` | Your Discord application ID |
-| `CHANNEL_IDS` | Comma-separated list of channel IDs where the bot can be used |
-| `ALLOWED_USER_IDS` | Comma-separated list of user IDs allowed to use admin commands |
-| `DISCORD_LIVE_NOTIFICATION_ROLES` | Comma-separated list of role names to mention for live notifications (optional) |
-| `TRAKTOR_LOCATION` | Path to your Traktor installation folder |
-| `TRAKTOR_COLLECTION_FILENAME` | Name of the Traktor collection file |
-| `NOWPLAYING_CONFIG_JSON_PATH` | Path to the now playing configuration file (optional - leave blank if not using NowPlaying integration) |
-| `SONG_REQUESTS_FILE` | Path to song requests JSON file (optional - defaults to song_requests.json in current directory) |
 
 ## License
 

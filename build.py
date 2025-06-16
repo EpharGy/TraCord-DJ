@@ -29,14 +29,15 @@ def build_gui_executable():
         "pyinstaller",
         "--onefile",                # Single executable file
         "--windowed",              # No console window (GUI app)
-        "--name", exe_name,
-        "--icon", "icon.ico",      # Add icon if available
+        "--name", exe_name,        "--icon", "app_icon.ico",      # Add icon if available
         "--add-data", "config;config",
         "--add-data", "utils;utils", 
         "--add-data", "cogs;cogs",
         "--add-data", "main.py;.",  # Explicitly include main.py
         "--add-data", "version.py;.",
         "--add-data", ".env.example;.",
+        "--add-data", "app_icon.ico;.",  # Include icon file in bundle
+        "--add-data", "icon.png;.",      # Include PNG icon as fallback
         "--hidden-import", "discord",
         "--hidden-import", "discord.ext.commands",
         "--hidden-import", "tkinter",
@@ -46,11 +47,10 @@ def build_gui_executable():
         "--hidden-import", "version",
         "gui.py"
     ]
-    
-    # Remove icon parameter if icon file doesn't exist
-    if not os.path.exists("icon.ico"):
+      # Remove icon parameter if icon file doesn't exist
+    if not os.path.exists("app_icon.ico"):
         cmd.remove("--icon")
-        cmd.remove("icon.ico")
+        cmd.remove("app_icon.ico")
     
     subprocess.run(cmd, check=True)
     return exe_name

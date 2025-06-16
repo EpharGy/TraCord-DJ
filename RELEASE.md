@@ -1,11 +1,23 @@
 # Release Workflow
 
+## Development Branch Workflow
+
+### For Development Work:
+- **Main branch (`main`)**: Stable, release-ready code only
+- **Development branch (`dev`)**: Active development, small commits, experimentation
+
+### Development Process:
+1. **Work on dev branch**: `git checkout dev`
+2. **Push frequently**: Small commits are encouraged on dev branch
+3. **When ready for release**: Merge dev → main and create release
+
 ## For Repository Maintainers
 
 ### Creating a New Release
 
 1. **Prepare the release**:
-   - Ensure all changes are committed and pushed
+   - Ensure dev branch changes are tested and ready
+   - Merge dev branch into main: `git checkout main && git merge dev`
    - Update version numbers if needed
    - Test the application thoroughly
 
