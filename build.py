@@ -28,8 +28,9 @@ def build_gui_executable():
     cmd = [
         "pyinstaller",
         "--onefile",                # Single executable file
-        "--windowed",              # No console window (GUI app)        "--name", exe_name,
-        "--icon", "app_icon.ico",  # Updated icon filename
+        "--windowed",              # No console window (GUI app)
+        "--name", exe_name,
+        "--icon", "icon.ico",      # Add icon if available
         "--add-data", "config;config",
         "--add-data", "utils;utils", 
         "--add-data", "cogs;cogs",
@@ -43,25 +44,15 @@ def build_gui_executable():
         "--hidden-import", "main",     # Explicitly import main module
         "--hidden-import", "config.settings",
         "--hidden-import", "version",
-        "gui.py"    ]
+        "gui.py"
+    ]
     
     # Remove icon parameter if icon file doesn't exist
-    if not os.path.exists("app_icon.ico"):
+    if not os.path.exists("icon.ico"):
         cmd.remove("--icon")
-        cmd.remove("app_icon.ico")
+        cmd.remove("icon.ico")
     
     subprocess.run(cmd, check=True)
-    
-    # Clean up auto-generated spec files (not needed after build)
-    spec_files = [f"{exe_name}.spec", "gui.spec"]
-    for spec_file in spec_files:
-        if os.path.exists(spec_file):
-            try:
-                os.remove(spec_file)
-                print(f"🧹 Cleaned up {spec_file}")
-            except Exception as e:
-                print(f"⚠️  Could not remove {spec_file}: {e}")
-    
     return exe_name
 
 def main():

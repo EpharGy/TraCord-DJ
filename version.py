@@ -5,8 +5,8 @@ This file contains the current version and complete changelog. And 5 most recent
 For the latest version information, check this file or the GUI application.
 """
 
-__version__ = "1.1.3"
-__version_info__ = (1, 1, 3)
+__version__ = "1.1.4"
+__version_info__ = (1, 1, 4)
 
 # =============================================================================
 # VERSIONING SCHEME
@@ -19,6 +19,17 @@ __version_info__ = (1, 1, 3)
 # =============================================================================
 # COMPLETE CHANGELOG (Newest First) - Only the most recent 5 versions detailed
 # =============================================================================
+
+# -----------------------------------------------------------------------------
+# Version 1.1.4 - PATCH RELEASE (2025-06-16)
+# -----------------------------------------------------------------------------
+# Fixed Build issue with filename
+#
+# BUG FIXES:
+# - Fixed Build issue with filename
+#
+# TECHNICAL DETAILS:
+# - Broken array in build.py fixed
 
 # -----------------------------------------------------------------------------
 # Version 1.1.3 - PATCH RELEASE (2025-06-16)
