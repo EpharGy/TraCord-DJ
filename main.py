@@ -60,7 +60,7 @@ class DJBot(commands.Bot):
     async def on_ready(self):
         """Event fired when bot is ready"""
         print('━' * 50)
-        print(f'🎵 Traktor DJ NowPlaying Discord Bot Loaded')
+        print(f'� Traktor DJ NowPlaying Discord Bot Loaded')
         print(f'🤖 Logged in as {self.user} (ID: {self.user.id if self.user else "Unknown"})')
         print(f'🗄️ Using Cogs architecture')
         print('━' * 50)

@@ -134,7 +134,7 @@ Traktor-DJ-NowPlaying-Discord-Bot/
 | `DISCORD_LIVE_NOTIFICATION_ROLES` | Comma-separated list of role names to mention for live notifications (optional) |
 | `TRAKTOR_LOCATION` | Path to your Traktor installation folder |
 | `TRAKTOR_COLLECTION_FILENAME` | Name of the Traktor collection file |
-| `NOWPLAYING_CONFIG_JSON_PATH` | Path to the now playing configuration file |
+| `NOWPLAYING_CONFIG_JSON_PATH` | Path to the now playing configuration file (optional - leave blank if not using NowPlaying integration) |
 | `SONG_REQUESTS_FILE` | Path to song requests JSON file (optional - defaults to song_requests.json in current directory) |
 
 ## License

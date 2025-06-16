@@ -293,7 +293,7 @@ def convert_collection_xml_to_json(xml_file_path: str, json_file_path: str, excl
             processed_count += 1
             
             if debug and processed_count % 1000 == 0:
-                print(f"🎵 Processed {processed_count} songs...")
+                print(f"� Processed {processed_count} songs...")
         
         # Write to JSON file
         if debug:

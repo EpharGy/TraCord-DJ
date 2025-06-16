@@ -41,6 +41,11 @@ class Settings:
     # File Paths - Use executable directory for file paths when frozen
     NOWPLAYING_CONFIG_JSON_PATH: Optional[str] = os.getenv('NOWPLAYING_CONFIG_JSON_PATH')
     
+    @classmethod
+    def is_nowplaying_enabled(cls) -> bool:
+        """Check if NowPlaying integration is enabled"""
+        return bool(cls.NOWPLAYING_CONFIG_JSON_PATH and cls.NOWPLAYING_CONFIG_JSON_PATH.strip())
+    
     @staticmethod
     def get_song_requests_file():
         """Get the song requests file path, handling both development and executable modes"""

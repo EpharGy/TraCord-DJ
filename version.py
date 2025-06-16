@@ -5,8 +5,8 @@ This file contains the current version and complete changelog. And 5 most recent
 For the latest version information, check this file or the GUI application.
 """
 
-__version__ = "1.1.4"
-__version_info__ = (1, 1, 4)
+__version__ = "1.1.5"
+__version_info__ = (1, 1, 5)
 
 # =============================================================================
 # VERSIONING SCHEME
@@ -19,6 +19,15 @@ __version_info__ = (1, 1, 4)
 # =============================================================================
 # COMPLETE CHANGELOG (Newest First) - Only the most recent 5 versions detailed
 # =============================================================================
+
+# -----------------------------------------------------------------------------
+# Version 1.1.5 - PATCH RELEASE (2025-06-16)
+# -----------------------------------------------------------------------------
+# Commited missing files
+#
+# BUG FIXES:
+# - Commited missing files
+#
 
 # -----------------------------------------------------------------------------
 # Version 1.1.4 - PATCH RELEASE (2025-06-16)
@@ -100,57 +109,11 @@ __version_info__ = (1, 1, 4)
 # - Optimal result fitting algorithm maximizes displayed songs
 # - Proper line formatting for professional Discord message appearance
 
-# -----------------------------------------------------------------------------
-# Version 1.1.0 - MINOR RELEASE (2025-06-15)
-# -----------------------------------------------------------------------------
-# Major performance optimization and architectural enhancement
-# 
-# PERFORMANCE IMPROVEMENTS:
-# - Converted XML collection parsing to optimized JSON format for 10x+ faster searches
-# - Fixed Discord interaction timeout errors for large search results
-# - Implemented new workflow: XML → JSON conversion → fast JSON-based searches
-# - Added collection.json to .gitignore (auto-generated file)
-# - All search and collection functions now use lightning-fast JSON parsing
-#
-# NEW FEATURES & ENHANCEMENTS:
-# - Added COVERARTID field to collection data for future artwork features
-# - Enhanced collection refresh workflow with better error handling
-# - Improved memory efficiency and search performance
-# - Future-ready data structure for upcoming enhancements
-#
-# CODE CLEANUP & MAINTENANCE:
-# - Removed deprecated SongBot.py (old monolithic bot replaced by Cogs system)
-# - Removed old "DJ Discord Bot.code-workspace" file (renamed for clarity)
-# - Comprehensive audit and cleanup of unused files
-# - Optimized codebase structure and imports
-#
-# ARCHITECTURAL CHANGES:
-# - New JSON-based collection system with fields: artist, title, album, cover_art_id, import_date
-# - Updated refresh workflow: copy XML → create JSON → delete temp XML
-# - All search functions (song search, new songs, collection stats) now use JSON
-# - Enhanced modularity and maintainability
-#
-# BUG FIXES:
-# - Fixed "The application did not respond" timeout errors on Discord searches
-# - Resolved slow search performance for terms with many matches
-# - Fixed collection refresh workflow for better reliability
-
-# -----------------------------------------------------------------------------
-# Version 1.0.3 - PATCH RELEASE (2025-06-15)
-# -----------------------------------------------------------------------------
-# Complete rebranding and naming consistency
-# 
-# REBRANDING:
-# - Repository renamed to "Traktor-DJ-NowPlaying-Discord-Bot" for clarity
-# - Executable renamed to "Traktor-DJ-NowPlaying-Discord-Bot-GUI.exe"
-# - Updated all GUI titles and messages with new branding
-# - Updated all documentation and build scripts with new naming
-# - Consistent branding across all application interfaces
-# - Better describes the bot's actual functionality (Traktor + NowPlaying + Discord)
-
 # =============================================================================
-# Earlier Versions (0.1 - 1.0.2) 
+# Earlier Versions (0.1 - 1.1.0) 
 # =============================================================================
+# - 1.1.0: Major performance optimization and architectural enhancement
+# - 1.0.3: PATCH RELEASE (2025-06-15) Complete rebranding and naming consistency
 # - 1.0.2: Documentation streamlining and build improvements - README reduced by 50%+, static executable naming
 # - 1.0.1: Bug fixes and command cleanup - Fixed Discord command count, cleaned up commands, GUI-only admin functions
 # - 1.0.0: Complete rewrite - Modular GUI application with cogs system and distribution

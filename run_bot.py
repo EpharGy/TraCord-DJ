@@ -32,7 +32,7 @@ def main():
     root = tk.Tk()
     root.withdraw()  # Hide the main window
     
-    print("🎵 Traktor DJ NowPlaying Discord Bot Launcher")
+    print("� Traktor DJ NowPlaying Discord Bot Launcher")
     print("=" * 40)
     
     # Check requirements
