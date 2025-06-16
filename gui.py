@@ -173,7 +173,32 @@ class BotGUI:
         self.root = tk.Tk()
         self.root.title(f"Traktor DJ NowPlaying Discord Bot v{__version__} - Control Panel")
         self.root.geometry("900x700")
-        self.root.minsize(700, 500)
+        self.root.minsize(700, 500)        # Set window icon - remove the janky black diamond/question mark icon
+        try:
+            # First try to use a custom .ico file if available
+            icon_path = 'app_icon.ico'
+            if os.path.exists(icon_path):
+                self.root.iconbitmap(icon_path)
+                print(f"✅ Using custom icon: {icon_path}")
+            else:
+                # Try PNG icon as PhotoImage
+                png_icon_path = 'icon.png'
+                if os.path.exists(png_icon_path):
+                    # Load and use PNG icon
+                    icon_image = tk.PhotoImage(file=png_icon_path)
+                    self.root.iconphoto(True, icon_image)
+                    print(f"✅ Using PNG icon: {png_icon_path}")
+                else:
+                    # Remove the default janky icon by setting empty
+                    self.root.wm_iconbitmap('')
+                    print("ℹ️  Removed default icon - no custom icon found")
+        except Exception as e:
+            print(f"⚠️  Could not set custom icon: {e}")
+            try:
+                # Fallback - try to remove default icon
+                self.root.wm_iconbitmap('')
+            except:
+                pass
         
         # Set up global warning filters for aiohttp cleanup messages
         import warnings
@@ -213,34 +238,40 @@ class BotGUI:
         # Configure the root grid
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
-        
-        # Main frame
+          # Main frame
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky="nsew")
-        main_frame.columnconfigure(1, weight=1)
+        main_frame.columnconfigure(1, weight=3)  # Give log more weight
+        main_frame.columnconfigure(0, weight=0)  # Controls don't expand
         main_frame.rowconfigure(1, weight=1)
-        
-        # Title
+          # Title
         title_label = ttk.Label(
             main_frame, 
-            text="🎵 Traktor DJ NowPlaying Discord Bot Control Panel", 
+            text="Traktor DJ NowPlaying Discord Bot Control Panel", 
             font=("Arial", 16, "bold")
         )
-        title_label.grid(row=0, column=0, columnspan=2, pady=(0, 15))        # Left panel - Controls
+        title_label.grid(row=0, column=0, columnspan=2, pady=(0, 15))
+        
+        # Left panel - Controls
         controls_frame = ttk.Frame(main_frame)
-        controls_frame.grid(row=1, column=0, sticky="new", padx=(0, 15))        # Define button texts for dynamic sizing
+        controls_frame.grid(row=1, column=0, sticky="nsew", padx=(0, 15))
+        
+        # Check if NowPlaying is enabled
+        from config.settings import Settings
+        self.nowplaying_enabled = Settings.is_nowplaying_enabled()
+        
+        # Define button texts for dynamic sizing (conditionally include NowPlaying button)
         button_texts = [
             "🛑 Stop & Close",
             "🗑️ Clear Log", 
-            "🔄 Refresh Collection & Stats",
-            "🧹 Clear NP Track Info"
+            "🔄 Refresh Collection & Stats"
         ]
-          # Calculate optimal button width
-        optimal_width = self.calculate_optimal_button_width(button_texts)
-        # Configure the controls frame to not shrink and set proper width
-        controls_frame.grid_propagate(False)
-        frame_width = max(optimal_width * 6.5, 170)  # Slightly more room for text
-        controls_frame.configure(width=int(frame_width), height=500)
+        if self.nowplaying_enabled:
+            button_texts.append("🧹 Clear NP Track Info")        # Calculate optimal button width
+        optimal_width = self.calculate_optimal_button_width(button_texts)# Configure controls frame - no expansion, let content determine size
+        controls_frame.columnconfigure(0, weight=0)  # Don't expand
+        # Set a reasonable fixed width based on button content
+        controls_frame.grid_columnconfigure(0, minsize=200)  # Conservative fixed width
           # Control buttons (Start Bot removed - now auto-starts)
         self.stop_button = ttk.Button(
             controls_frame,
@@ -251,7 +282,7 @@ class BotGUI:
         # Bind separate events for press and release
         self.stop_button.bind('<Button-1>', self.on_stop_button_press)
         self.stop_button.bind('<ButtonRelease-1>', self.on_stop_button_release)
-        self.stop_button.grid(row=0, column=0, pady=8, sticky="ew")
+        self.stop_button.grid(row=0, column=0, pady=8)
         
         # Status section
         status_frame = ttk.LabelFrame(controls_frame, text="Status", padding="10")
@@ -271,42 +302,53 @@ class BotGUI:
         self.bot_id_label.grid(row=1, column=0, sticky="w")
         
         self.commands_label = ttk.Label(info_frame, text="Commands: Not loaded")
-        self.commands_label.grid(row=2, column=0, sticky="w")
-          # Statistics section
+        self.commands_label.grid(row=2, column=0, sticky="w")        # Statistics section
         stats_frame = ttk.LabelFrame(controls_frame, text="Collection Stats", padding="10")
         stats_frame.grid(row=4, column=0, pady=10, sticky="ew")
         
+        # Traktor Import (first item, special formatting)
+        self.import_title_label = ttk.Label(stats_frame, text="Traktor Import:", font=("Arial", 9, "bold"))
+        self.import_title_label.grid(row=0, column=0, sticky="w")
+        
+        self.import_date_label = ttk.Label(stats_frame, text="Loading...", font=("Arial", 8))
+        self.import_date_label.grid(row=1, column=0, sticky="w", padx=(10, 0))
+        
+        self.import_time_label = ttk.Label(stats_frame, text="", font=("Arial", 8))
+        self.import_time_label.grid(row=2, column=0, sticky="w", padx=(10, 0))
+        
+        # Other stats
         self.songs_label = ttk.Label(stats_frame, text="Songs: Loading...")
-        self.songs_label.grid(row=0, column=0, sticky="w")
+        self.songs_label.grid(row=3, column=0, sticky="w", pady=(5, 0))
         
         self.new_songs_label = ttk.Label(stats_frame, text="New Songs: Loading...")
-        self.new_songs_label.grid(row=1, column=0, sticky="w")
+        self.new_songs_label.grid(row=4, column=0, sticky="w")
         
         self.searches_label = ttk.Label(stats_frame, text="Song Searches: 0")
-        self.searches_label.grid(row=2, column=0, sticky="w")        # Clear log button
+        self.searches_label.grid(row=5, column=0, sticky="w")
+        
+        # Clear log button
         clear_button = ttk.Button(
             controls_frame,
             text=button_texts[1],
             command=self.clear_log,
             width=optimal_width
         )
-        clear_button.grid(row=5, column=0, pady=(15, 8), sticky="ew")
-          # Refresh collection button with better styling
+        clear_button.grid(row=5, column=0, pady=(15, 8))        # Refresh collection button with better styling
         refresh_button = ttk.Button(
             controls_frame,
             text=button_texts[2],
             command=self.refresh_collection,
             width=optimal_width
         )
-        refresh_button.grid(row=6, column=0, pady=8, sticky="ew")
-          # Clear NP track info button
-        clear_history_button = ttk.Button(
-            controls_frame,
-            text=button_texts[3],
-            command=self.clear_track_history,
-            width=optimal_width
-        )
-        clear_history_button.grid(row=7, column=0, pady=8, sticky="ew")
+        refresh_button.grid(row=6, column=0, pady=8)        # Clear NP track info button (only if NowPlaying is enabled)
+        if self.nowplaying_enabled:
+            clear_history_button = ttk.Button(
+                controls_frame,
+                text=button_texts[3],
+                command=self.clear_track_history,
+                width=optimal_width
+            )
+            clear_history_button.grid(row=7, column=0, pady=8)
         
         # Right panel - Log
         log_frame = ttk.LabelFrame(main_frame, text="Bot Output Log", padding="8")
@@ -333,12 +375,9 @@ class BotGUI:
         self.output_text.tag_configure("success", foreground="#4CAF50")
         self.output_text.tag_configure("warning", foreground="#FF9800")
         self.output_text.tag_configure("error", foreground="#f44336")
-        self.output_text.tag_configure("timestamp", foreground="#888888")
-        
-        # Add initial message
+        self.output_text.tag_configure("timestamp", foreground="#888888")        # Add initial message
         self.add_log("Traktor DJ NowPlaying Discord Bot Control Panel initialized", "info")
-        self.add_log("Auto-starting bot in 1 second...", "info")        # Print launching message to terminal (will also appear in GUI once output capture is active)
-        # Note: This message shows after output capture is initialized
+        self.add_log("Auto-starting bot in 1 second...", "info")
         
         # Show GUI
         self.root.deiconify()  # Show the window
@@ -530,9 +569,8 @@ class BotGUI:
             print(f"🤖 Logged in as {self.bot.user} (ID: {self.bot.user.id})")
             print(f"✅ Loaded {command_count} slash commands")
             print("✅ Bot is ready and operational!")
-            
-            # Refresh collection stats when bot comes online
-            self.load_collection_stats()
+              # Refresh collection stats when bot comes online
+            self.initialize_collection_on_startup()
     
     def _handle_bot_error(self, error_msg):
         """Handle bot errors"""
@@ -683,20 +721,19 @@ class BotGUI:
                 # Import here to avoid circular imports
                 from utils.traktor import load_collection_json, count_songs_in_collection_json, get_new_songs_json, refresh_collection_json
                 from config.settings import Settings
-                import os
-                
-                # Check if JSON collection file exists, if not create it
+                import os                # Check if JSON collection file exists, if not create it
                 if not os.path.exists(Settings.COLLECTION_JSON_FILE):
                     print("⚠️ Collection JSON not found, creating from Traktor collection...")
                     if Settings.TRAKTOR_PATH and os.path.exists(Settings.TRAKTOR_PATH):
                         try:
-                            refresh_collection_json(
+                            print("📁 Converting XML to optimized JSON format...")
+                            song_count = refresh_collection_json(
                                 Settings.TRAKTOR_PATH, 
                                 Settings.COLLECTION_JSON_FILE, 
                                 Settings.EXCLUDED_ITEMS, 
                                 debug=True
                             )
-                            print("✅ Collection JSON created successfully")
+                            print(f"✅ Initial collection import completed successfully - {song_count} songs processed")
                         except Exception as e:
                             print(f"❌ Error creating collection JSON: {e}")
                             self.root.after(0, lambda: self.songs_label.config(text="Songs: Error creating collection"))
@@ -707,14 +744,11 @@ class BotGUI:
                         self.root.after(0, lambda: self.songs_label.config(text="Songs: Traktor path not found"))
                         self.root.after(0, lambda: self.new_songs_label.config(text="New Songs: Traktor path not found"))
                         return
-                
-                # Use the JSON collection file for fast loading
+                  # Load collection from JSON and show loading message
+                print(f"📊 Loading collection stats from JSON: {Settings.COLLECTION_JSON_FILE}")
                 songs = load_collection_json(Settings.COLLECTION_JSON_FILE)
                 
                 if songs:
-                    # Print to both terminal and GUI
-                    print(f"📊 Loading collection stats from JSON: {Settings.COLLECTION_JSON_FILE}")
-                    
                     # Count total songs
                     total_songs = count_songs_in_collection_json(songs)
                     
@@ -724,19 +758,31 @@ class BotGUI:
                     # Update UI in main thread
                     self.root.after(0, lambda: self.songs_label.config(text=f"Songs: {total_songs:,}"))
                     self.root.after(0, lambda: self.new_songs_label.config(text=f"New Songs: {new_songs_count:,}"))
-                      # Print results to both terminal and GUI
+                      # Update import date
+                    date_str, time_str = self.get_collection_import_date()
+                    self.root.after(0, lambda: self.import_date_label.config(text=date_str))
+                    self.root.after(0, lambda: self.import_time_label.config(text=time_str))
+                    
+                    # Update controls frame sizing after content changes
+                    self.root.after(50, self.update_controls_frame_sizing)
+                    
+                    # Print results to both terminal and GUI
                     print(f"📊 Collection stats: {total_songs:,} total songs, {new_songs_count:,} new songs")
                 else:
                     error_msg = "Collection JSON not found or empty"
                     print(f"⚠️  {error_msg}")
                     self.root.after(0, lambda: self.songs_label.config(text="Songs: Collection not found"))
                     self.root.after(0, lambda: self.new_songs_label.config(text="New Songs: Collection not found"))
+                    self.root.after(0, lambda: self.import_date_label.config(text="Not available"))
+                    self.root.after(0, lambda: self.import_time_label.config(text=""))
                     
             except Exception as e:
                 error_msg = f"Error loading collection stats: {e}"
                 print(f"❌ {error_msg}")
                 self.root.after(0, lambda: self.songs_label.config(text="Songs: Error loading"))
                 self.root.after(0, lambda: self.new_songs_label.config(text="New Songs: Error loading"))
+                self.root.after(0, lambda: self.import_date_label.config(text="Error"))
+                self.root.after(0, lambda: self.import_time_label.config(text=""))
         
         # Load stats in background thread to avoid blocking UI
         threading.Thread(target=_load_stats, daemon=True).start()
@@ -753,6 +799,10 @@ class BotGUI:
                 from config.settings import Settings
                 import json
                 import shutil
+                
+                if not Settings.is_nowplaying_enabled():
+                    print("❌ NowPlaying integration is not enabled")
+                    return
                 
                 if not Settings.NOWPLAYING_CONFIG_JSON_PATH:
                     print("❌ Config file path not set in environment variable NOWPLAYING_CONFIG_JSON_PATH")
@@ -818,7 +868,46 @@ class BotGUI:
                     self.searches_label.config(text=f"Song Searches: {self.search_count}")
             except (FileNotFoundError, ValueError):
                 pass
-        except Exception as e:            print(f"Error updating search count display: {e}")
+        except Exception as e:
+            print(f"Error updating search count display: {e}")
+    
+    def get_collection_import_date(self):
+        """Get the modification date of the collection.json file"""
+        try:
+            from config.settings import Settings
+            import os
+            from datetime import datetime
+            
+            collection_file = Settings.COLLECTION_JSON_FILE
+            if os.path.exists(collection_file):
+                # Get file modification time
+                mod_time = os.path.getmtime(collection_file)
+                # Convert to readable format - separate date and time
+                dt = datetime.fromtimestamp(mod_time)
+                date_str = dt.strftime("%Y-%m-%d")
+                time_str = dt.strftime("%H:%M:%S")
+                return date_str, time_str
+            else:
+                return "Not available", ""
+        except Exception as e:
+            print(f"Error getting collection import date: {e}")
+            return "Error", ""
+    
+    def update_import_date_display(self):
+        """Update the import date display"""
+        try:
+            date_str, time_str = self.get_collection_import_date()
+            self.import_date_label.config(text=date_str)
+            self.import_time_label.config(text=time_str)
+        except Exception as e:
+            print(f"Error updating import date display: {e}")
+            self.import_date_label.config(text="Error")
+            self.import_time_label.config(text="")
+    
+    def update_statistics(self):
+        """Update statistics labels (songs, new songs, import date)"""
+        self.load_collection_stats()
+        self.update_import_date_display()
     
     def on_closing(self):
         """Handle application closing"""
@@ -829,27 +918,61 @@ class BotGUI:
             )
             if result:
                 print("🔄 User requested application close - stopping bot...")
-                self.stop_bot()
-                # Reduced wait time since we now have proper shutdown
+                self.stop_bot()                # Reduced wait time since we now have proper shutdown
                 self.root.after(500, self.root.destroy)
             return        
+        
         print("🔄 Closing application...")
         self.root.destroy()
     
     def calculate_optimal_button_width(self, button_texts):
         """Calculate optimal button width based on the longest text"""
         max_length = 0
-        for text in button_texts:
-            # Remove emoji and count characters more accurately
-            # Most emojis are rendered as single characters in tkinter
+        for text in button_texts:            # Simple character count with some accommodation for emojis
             text_length = len(text)
-            max_length = max(max_length, text_length)
+            max_length = max(max_length, text_length)        # Minimal padding to prevent text cutoff while keeping buttons compact
+        optimal_width = max_length  # No extra padding - just the text length
+        return max(optimal_width, 12)  # Further reduced minimum from 16 to 12
+    
+    def calculate_controls_frame_width(self):
+        """Calculate optimal width for controls frame based on content"""
+        max_width = 0
         
-        # Minimal padding - just enough to prevent text cutoff
-        optimal_width = max_length + 1
+        # Check button widths (this should be the controlling factor)
+        button_texts = [
+            "🛑 Stop & Close",
+            "🗑️ Clear Log", 
+            "🔄 Refresh Collection & Stats"
+        ]
+        if self.nowplaying_enabled:
+            button_texts.append("🧹 Clear NP Track Info")
         
-        # Ensure minimum width but keep it tight
-        return max(optimal_width, 16)
+        button_width = self.calculate_optimal_button_width(button_texts)
+        max_width = max(max_width, button_width)
+        
+        # Check typical stats content (be more conservative)
+        stats_texts = [
+            "Songs: 999,999",  # Reasonable max
+            "New Songs: 9,999"
+        ]
+        
+        for text in stats_texts:
+            max_width = max(max_width, len(text))
+          # Much more conservative padding
+        return max_width + 2  # Minimal padding only
+    
+    def update_controls_frame_sizing(self):
+        """Update controls frame sizing after content changes"""
+        try:
+            optimal_width = self.calculate_controls_frame_width()
+            # Convert character width to approximate pixel width (more conservative)
+            pixel_width = optimal_width * 7  # Reduced from 8 to 7 pixels per character
+              # Set minimum size but allow expansion if needed
+            controls_frame = self.stop_button.master  # Get the controls frame
+            controls_frame.grid_columnconfigure(0, minsize=pixel_width)
+            
+        except Exception as e:
+            print(f"Error updating controls frame sizing: {e}")
     
     def run(self):
         """Run the GUI application"""
@@ -858,7 +981,57 @@ class BotGUI:
         except KeyboardInterrupt:
             self.on_closing()
 
-
+    def initialize_collection_on_startup(self):
+        """Initialize collection by importing from .nml file (same as refresh)"""
+        def _initialize():
+            try:
+                from config.settings import Settings
+                from utils.traktor import refresh_collection_json, load_collection_json, count_songs_in_collection_json, get_new_songs_json
+                
+                # Always refresh from .nml file to ensure latest data and consistent messaging
+                print("🔄 Importing collection from Traktor...")
+                print("📁 Converting XML to optimized JSON format...")
+                
+                # Use the same refresh workflow as the refresh button
+                song_count = refresh_collection_json(
+                    Settings.TRAKTOR_PATH, 
+                    Settings.COLLECTION_JSON_FILE, 
+                    Settings.EXCLUDED_ITEMS, 
+                    debug=True
+                )
+                
+                print(f"✅ Collection imported successfully - {song_count} songs processed")
+                
+                # Load the collection and update stats
+                songs = load_collection_json(Settings.COLLECTION_JSON_FILE)
+                if songs:
+                    total_songs = count_songs_in_collection_json(songs)
+                    _, total_new_songs = get_new_songs_json(songs, Settings.NEW_SONGS_DAYS, Settings.MAX_SONGS, Settings.DEBUG)
+                    print(f"📊 Collection stats: {total_songs:,} total songs, {total_new_songs:,} new songs")
+                      # Update UI on main thread
+                    self.root.after(0, lambda: self.songs_label.config(text=f"Songs: {total_songs:,}"))
+                    self.root.after(0, lambda: self.new_songs_label.config(text=f"New Songs: {total_new_songs:,}"))
+                    
+                    # Update import date
+                    date_str, time_str = self.get_collection_import_date()
+                    self.root.after(0, lambda: self.import_date_label.config(text=date_str))
+                    self.root.after(0, lambda: self.import_time_label.config(text=time_str))
+                    
+                    # Update controls frame sizing after content changes
+                    self.root.after(50, self.update_controls_frame_sizing)
+                else:
+                    print("⚠️ Collection JSON is empty or could not be loaded")
+                    self.root.after(0, lambda: self.songs_label.config(text="Songs: Collection not found"))
+                    self.root.after(0, lambda: self.new_songs_label.config(text="New Songs: Collection not found"))
+                    
+            except Exception as e:
+                error_msg = f"Error initializing collection: {e}"
+                print(f"❌ {error_msg}")
+                self.root.after(0, lambda: self.songs_label.config(text="Songs: Error loading"))
+                self.root.after(0, lambda: self.new_songs_label.config(text="New Songs: Error loading"))
+        
+        # Run in background thread to avoid blocking UI
+        threading.Thread(target=_initialize, daemon=True).start()
 def main():
     """Main entry point for the GUI application"""
     # For PyInstaller executables, we don't need the directory check

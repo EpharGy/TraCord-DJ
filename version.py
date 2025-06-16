@@ -1,12 +1,12 @@
 """
 Version and Changelog for Traktor DJ NowPlaying Discord Bot
 
-This file contains the current version and complete changelog.
+This file contains the current version and complete changelog. And 5 most recent versions are detailed.
 For the latest version information, check this file or the GUI application.
 """
 
-__version__ = "1.1.2"
-__version_info__ = (1, 1, 2)
+__version__ = "1.1.3"
+__version_info__ = (1, 1, 3)
 
 # =============================================================================
 # VERSIONING SCHEME
@@ -21,12 +21,33 @@ __version_info__ = (1, 1, 2)
 # =============================================================================
 
 # -----------------------------------------------------------------------------
+# Version 1.1.3 - PATCH RELEASE (2025-06-16)
+# -----------------------------------------------------------------------------
+# GUI layout improvements and startup messaging consistency
+#
+# BUG FIXES:
+# - Fixed GUI layout issues with controls panel being cut off or having excessive whitespace
+# - Improved button width calculation to prevent text truncation
+# - Fixed controls frame sizing to ensure proper display of all elements
+#
+# IMPROVEMENTS:
+# - Enhanced GUI layout with better proportional sizing between controls and log panels
+# - Improved startup messaging consistency to match refresh operation details
+# - Optimized button sizing algorithm for better text accommodation
+# - Added minimum width constraints to prevent UI cramping
+#
+# TECHNICAL DETAILS:
+# - Refactored controls frame grid configuration for better layout management
+# - Improved column weight distribution between control and log panels
+# - Enhanced button width calculation with better emoji and text handling
+# - Streamlined GUI initialization process
+
+# -----------------------------------------------------------------------------
 # Version 1.1.2 - PATCH RELEASE (2025-06-16)
 # -----------------------------------------------------------------------------
 # GUI cleanup and layout optimization
 #
 # BUG FIXES:
-# - Removed test button from GUI interface after testing completion
 # - Fixed button panel layout to prevent any visual cutoff issues
 # - Cleaned up unused button references and methods
 #
@@ -116,23 +137,10 @@ __version_info__ = (1, 1, 2)
 # - Consistent branding across all application interfaces
 # - Better describes the bot's actual functionality (Traktor + NowPlaying + Discord)
 
-# -----------------------------------------------------------------------------
-# Version 1.0.2 - PATCH RELEASE (2025-06-15)
-# -----------------------------------------------------------------------------
-# Documentation streamlining and build improvements
-# 
-# IMPROVEMENTS:
-# - Streamlined README.md by 50%+ - removed lengthy version sections
-# - Centralized all version/changelog information in version.py
-# - Moved Commands section after Quick Start for better user flow
-# - Switched to static executable naming for simplicity
-# - Updated build.py and RELEASE.md to use static naming
-# - Simplified setup instructions and distribution notes
-# - README now focuses on essentials with clear version.py reference
-
 # =============================================================================
-# Earlier Versions (0.1 - 1.0.1)
+# Earlier Versions (0.1 - 1.0.2) 
 # =============================================================================
+# - 1.0.2: Documentation streamlining and build improvements - README reduced by 50%+, static executable naming
 # - 1.0.1: Bug fixes and command cleanup - Fixed Discord command count, cleaned up commands, GUI-only admin functions
 # - 1.0.0: Complete rewrite - Modular GUI application with cogs system and distribution
 # - 0.13: Code quality improvements with enhanced null safety and type annotations
