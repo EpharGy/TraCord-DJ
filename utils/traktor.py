@@ -9,6 +9,9 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Tuple, Optional, Dict, Any
 
+# Import our centralized logger
+from utils.logger import debug, info, warning, error
+
 
 def get_latest_traktor_folder(root_path: str) -> str:
     """
@@ -313,45 +316,51 @@ def convert_collection_xml_to_json(xml_file_path: str, json_file_path: str, excl
         raise ValueError(f"Error converting XML to JSON: {e}")
 
 
-def refresh_collection_json(original_traktor_path: str, json_file_path: str, excluded_items: dict, debug: bool = False) -> int:
+def refresh_collection_json(original_traktor_path: str, json_file_path: str, excluded_items: dict, debug_mode: bool = False) -> int:
     """
     Complete refresh workflow: copy XML -> convert to JSON -> cleanup
     Returns the number of songs processed.
     """
     temp_xml_path = "collection_temp.nml"
+    working_nml_path = "collection.nml"  # The .nml file that gets created in working directory
     
     try:
-        if debug:
-            print(f"📁 Copying collection from: {original_traktor_path}")
-            
-        # Step 1: Copy the original collection file
+        debug(f"Looking for Traktor collection at: {original_traktor_path}")
+        
+        # Step 1: Copy the original collection file to temp location
+        debug("Copying collection.nml to temporary file")
         shutil.copyfile(original_traktor_path, temp_xml_path)
         
-        if debug:
-            print(f"🔄 Converting XML to JSON...")
-            
         # Step 2: Convert XML to JSON
-        song_count = convert_collection_xml_to_json(temp_xml_path, json_file_path, excluded_items, debug)
+        debug("Converting XML to JSON format")
+        song_count = convert_collection_xml_to_json(temp_xml_path, json_file_path, excluded_items, debug_mode)
+        debug(f"Processed {song_count} tracks from collection")
         
-        if debug:
-            print(f"🗑️ Cleaning up temporary file...")
-            
         # Step 3: Clean up temporary XML file
+        debug("Cleaning up temporary files")
         if os.path.exists(temp_xml_path):
             os.remove(temp_xml_path)
-            
-        if debug:
-            print(f"✅ Collection refresh complete: {song_count} songs")
-            
+            debug("Removed temporary collection file")
+        
+        # Step 4: Clean up working directory .nml file if it exists
+        # (This file sometimes gets created during processing and is no longer needed)
+        if os.path.exists(working_nml_path):
+            os.remove(working_nml_path)
+            debug("Removed working directory collection.nml file (no longer needed)")
+        
+        info(f"Collection imported: {song_count} songs loaded")
         return song_count
         
     except Exception as e:
-        # Clean up temp file if it exists
-        if os.path.exists(temp_xml_path):
-            try:
-                os.remove(temp_xml_path)
-            except:
-                pass
+        error(f"Collection import failed: {e}")
+        # Clean up any temp files if they exist
+        for cleanup_path in [temp_xml_path, working_nml_path]:
+            if os.path.exists(cleanup_path):
+                try:
+                    os.remove(cleanup_path)
+                    debug(f"Cleaned up {cleanup_path} after error")
+                except:
+                    pass
         raise e
 
 
@@ -361,13 +370,14 @@ def load_collection_json(json_file_path: str) -> List[Dict[str, Any]]:
     Returns the list of song records.
     """
     if not os.path.exists(json_file_path):
+        warning(f"Collection JSON file not found: {json_file_path}")
         return []
         
     try:
         with open(json_file_path, 'r', encoding='utf-8') as f:
             return json.load(f)
     except (json.JSONDecodeError, IOError) as e:
-        print(f"Error loading collection JSON: {e}")
+        error(f"Error loading collection JSON: {e}")
         return []
 
 

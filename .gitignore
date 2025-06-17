@@ -81,3 +81,6 @@ collection.json
 # Temporary files
 *.tmp
 *.temp
+
+# Persona files
+!Persona.txt

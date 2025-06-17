@@ -686,13 +686,12 @@ class BotGUI:
                 
                 print("🔄 Refreshing collection from Traktor...")
                 print("📁 Converting XML to optimized JSON format...")
-                
-                # Use the new JSON refresh workflow
+                  # Use the new JSON refresh workflow
                 song_count = refresh_collection_json(
                     Settings.TRAKTOR_PATH, 
                     Settings.COLLECTION_JSON_FILE, 
                     Settings.EXCLUDED_ITEMS, 
-                    debug=True
+                    debug_mode=True
                 )
                 
                 print(f"✅ Collection refreshed successfully - {song_count} songs processed")
@@ -731,7 +730,7 @@ class BotGUI:
                                 Settings.TRAKTOR_PATH, 
                                 Settings.COLLECTION_JSON_FILE, 
                                 Settings.EXCLUDED_ITEMS, 
-                                debug=True
+                                debug_mode=True
                             )
                             print(f"✅ Initial collection import completed successfully - {song_count} songs processed")
                         except Exception as e:
@@ -991,13 +990,12 @@ class BotGUI:
                 # Always refresh from .nml file to ensure latest data and consistent messaging
                 print("🔄 Importing collection from Traktor...")
                 print("📁 Converting XML to optimized JSON format...")
-                
-                # Use the same refresh workflow as the refresh button
+                  # Use the same refresh workflow as the refresh button
                 song_count = refresh_collection_json(
                     Settings.TRAKTOR_PATH, 
                     Settings.COLLECTION_JSON_FILE, 
                     Settings.EXCLUDED_ITEMS, 
-                    debug=True
+                    debug_mode=True
                 )
                 
                 print(f"✅ Collection imported successfully - {song_count} songs processed")

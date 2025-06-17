@@ -11,9 +11,10 @@ import shutil
 import discord
 from discord.ext import commands
 
-# Import configuration
+# Import configuration and utilities
 from config.settings import Settings
 from utils.traktor import refresh_collection_json, load_collection_json, count_songs_in_collection_json, get_new_songs_json
+from utils.logger import debug, info, warning, error
 
 
 class DJBot(commands.Bot):
@@ -75,13 +76,12 @@ class DJBot(commands.Bot):
         """Initialize collection by converting XML to JSON and display statistics"""
         try:
             print("🔄 Initializing collection system...")
-            
-            # Use the new JSON refresh workflow
+              # Use the new JSON refresh workflow
             song_count = refresh_collection_json(
                 Settings.TRAKTOR_PATH, 
                 Settings.COLLECTION_JSON_FILE, 
                 Settings.EXCLUDED_ITEMS, 
-                debug=True
+                debug_mode=True
             )
             
             print("📁 Collection converted to JSON successfully")
