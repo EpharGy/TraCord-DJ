@@ -1,6 +1,7 @@
 """
 Traktor DJ NowPlaying Discord Bot - Main Entry Point
-A comprehensive Discord bot for managing music requests, interacting with Traktor DJ software collections,
+
+Comprehensive Discord bot for managing music requests, interacting with Traktor DJ software collections,
 and enhancing DJ workflow automation.
 
 This bot uses Discord.py Cogs for modular organization.
@@ -28,12 +29,11 @@ class DJBot(commands.Bot):
         super().__init__(
             command_prefix='!',  # Keep for compatibility, mainly using slash commands
             intents=intents,
-            application_id=Settings.APPLICATION_ID
-        )
+            application_id=Settings.APPLICATION_ID        )
     
     async def setup_hook(self):
         """Load all cogs when the bot starts"""
-        print("Loading cogs...")
+        info("Loading cogs...")
         
         # List of cogs to load
         cogs = [
@@ -47,61 +47,58 @@ class DJBot(commands.Bot):
         for cog in cogs:
             try:
                 await self.load_extension(cog)
-                print(f"✅ Loaded {cog}")
+                info(f"✅ Loaded {cog}")
             except Exception as e:
-                print(f"❌ Failed to load {cog}: {e}")
+                error(f"❌ Failed to load {cog}: {e}")
         
         # Sync slash commands
         try:
             synced = await self.tree.sync()
-            print(f"✅ Synced {len(synced)} slash commands")
+            info(f"✅ Synced {len(synced)} slash commands")
         except Exception as e:
-            print(f"❌ Failed to sync commands: {e}")
+            error(f"❌ Failed to sync commands: {e}")
     
     async def on_ready(self):
         """Event fired when bot is ready"""
-        print('━' * 50)
-        print(f'� Traktor DJ NowPlaying Discord Bot Loaded')
-        print(f'🤖 Logged in as {self.user} (ID: {self.user.id if self.user else "Unknown"})')
-        print(f'🗄️ Using Cogs architecture')
-        print('━' * 50)
+        info('━' * 50)
+        info(f'🎵 Traktor DJ NowPlaying Discord Bot Loaded')
+        info(f'🤖 Logged in as {self.user} (ID: {self.user.id if self.user else "Unknown"})')
+        info(f'🗄️ Using Cogs architecture')
+        info('━' * 50)
         
         # Initialize collection file
         await self._initialize_collection()
         
-        print('✅ Bot is ready and operational!')
-        print('━' * 50)
-    
+        info('✅ Bot is ready and operational!')
+        info('━' * 50)
+
     async def _initialize_collection(self):
         """Initialize collection by converting XML to JSON and display statistics"""
         try:
-            print("🔄 Initializing collection system...")
+            info("🔄 Initializing collection system...")
               # Use the new JSON refresh workflow
             song_count = refresh_collection_json(
                 Settings.TRAKTOR_PATH, 
                 Settings.COLLECTION_JSON_FILE, 
                 Settings.EXCLUDED_ITEMS, 
-                debug_mode=True
+                debug_mode=Settings.DEBUG
             )
             
-            print("📁 Collection converted to JSON successfully")
-            
-            # Load the JSON collection for statistics
+            info(f"✅ Collection imported successfully - {song_count:,} songs processed")
+              # Load the JSON collection for statistics
             songs = load_collection_json(Settings.COLLECTION_JSON_FILE)
             if songs:
                 total_songs = count_songs_in_collection_json(songs)
                 _, total_new_songs = get_new_songs_json(songs, Settings.NEW_SONGS_DAYS, Settings.MAX_SONGS, Settings.DEBUG)
                 
-                print(f"📊 Statistics:")
-                print(f"   • Max songs returned per search: {Settings.MAX_SONGS}")
-                print(f"   • Default days for new songs: {Settings.NEW_SONGS_DAYS}")
-                print(f"   • Total songs in collection: {total_songs:,}")
-                print(f"   • New songs (last {Settings.NEW_SONGS_DAYS} days): {total_new_songs}")
+                info(f"📊 Collection stats: {total_songs:,} total songs, {total_new_songs:,} new songs (last {Settings.NEW_SONGS_DAYS} days)")
+                debug(f"   • Max songs returned per search: {Settings.MAX_SONGS}")
+                debug(f"   • Default days for new songs: {Settings.NEW_SONGS_DAYS}")
             else:
-                print("⚠️ Collection JSON is empty or could not be loaded")
+                warning("⚠️ Collection JSON is empty or could not be loaded")
             
         except Exception as e:
-            print(f"❌ Error initializing collection: {e}")
+            error(f"❌ Error initializing collection: {e}")
 
 
 async def main():

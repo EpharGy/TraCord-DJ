@@ -341,14 +341,14 @@ def refresh_collection_json(original_traktor_path: str, json_file_path: str, exc
         if os.path.exists(temp_xml_path):
             os.remove(temp_xml_path)
             debug("Removed temporary collection file")
-        
-        # Step 4: Clean up working directory .nml file if it exists
+          # Step 4: Clean up working directory .nml file if it exists
         # (This file sometimes gets created during processing and is no longer needed)
         if os.path.exists(working_nml_path):
             os.remove(working_nml_path)
             debug("Removed working directory collection.nml file (no longer needed)")
         
-        info(f"Collection imported: {song_count} songs loaded")
+        # Return count for caller to handle success messaging
+        debug(f"Collection refresh completed successfully: {song_count} songs processed")
         return song_count
         
     except Exception as e:

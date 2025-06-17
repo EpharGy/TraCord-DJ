@@ -11,6 +11,9 @@ import os
 from datetime import datetime
 import asyncio
 
+# Import the centralized logger
+from utils.logger import set_gui_callback, set_debug_mode, info, debug, warning, error
+
 # Setup for PyInstaller executable - MUST be done before any local imports
 if getattr(sys, 'frozen', False):
     # Running as PyInstaller executable
@@ -217,18 +220,27 @@ class BotGUI:
         
         # Threading
         self.output_queue = queue.Queue()
-        
-        # Set up the GUI
+          # Set up the GUI
         self.setup_gui()
-        self.setup_output_capture()        # Start checking for output updates
+        self.setup_output_capture()
+          # Set up the centralized logger to send messages to GUI
+        set_gui_callback(self.add_log)
+        
+        # Set debug mode based on settings
+        from config.settings import Settings
+        set_debug_mode(Settings.DEBUG)
+        
+        info("GUI logger callback initialized")
+        debug("Debug mode is enabled" if Settings.DEBUG else "Debug mode is disabled")
+        
+        # Start checking for output updates
         self.check_output_queue()
         
         # Start output capture immediately
         sys.stdout = self.stdout_capture
         sys.stderr = self.stderr_capture
-        
-        # Handle window closing
-        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+          # Handle window closing - redirect X button to use same logic as stop button
+        self.root.protocol("WM_DELETE_WINDOW", self.on_x_button_clicked)
         
         # Auto-start the bot after GUI is ready
         self.root.after(1000, self.auto_start_bot)
@@ -376,8 +388,8 @@ class BotGUI:
         self.output_text.tag_configure("warning", foreground="#FF9800")
         self.output_text.tag_configure("error", foreground="#f44336")
         self.output_text.tag_configure("timestamp", foreground="#888888")        # Add initial message
-        self.add_log("Traktor DJ NowPlaying Discord Bot Control Panel initialized", "info")
-        self.add_log("Auto-starting bot in 1 second...", "info")
+        info("🎛️ Traktor DJ NowPlaying Discord Bot Control Panel initialized")
+        info("⏱️ Auto-startup scheduled in 1 second...")
         
         # Show GUI
         self.root.deiconify()  # Show the window
@@ -466,31 +478,39 @@ class BotGUI:
                         self.add_log(clean_message, level)
         except queue.Empty:
             pass
-          # Update search count display
+        
+        # Update search count display
         self.update_search_count_display()
         
-        # Schedule next check
-        self.root.after(100, self.check_output_queue)
-    
+        # Schedule next check        self.root.after(100, self.check_output_queue)
+
     def auto_start_bot(self):
         """Automatically start the bot on launch"""
-        print("🤖 Auto-starting Discord bot...")
+        # Prevent multiple auto-starts
+        if self.is_running:
+            debug("Auto-startup skipped - bot already running")
+            return
+            
+        debug("Auto-startup enabled - initiating bot start")
         self.start_bot()
-    
+
     def start_bot(self):
         """Start the Discord bot"""
         if self.is_running:
             return
         
-        try:            # Validate configuration
+        try:
+            # Validate configuration
             if not Settings.TOKEN:
+                error("Discord token not found in configuration")
                 messagebox.showerror(
                     "Configuration Error",
                     "Discord token not found!\n\nPlease check your .env file and ensure DISCORD_TOKEN is set."
                 )
                 return
             
-            print("🚀 Starting Discord bot...")
+            info("🚀 Starting Discord bot...")
+            debug(f"Bot token configured: {Settings.TOKEN[:10]}...")
             
             # Start bot in separate thread
             self.bot_thread = threading.Thread(target=self._run_bot, daemon=True)
@@ -501,6 +521,7 @@ class BotGUI:
             self.status_label.config(text="🟡 Starting...", foreground="orange")
             
         except Exception as e:
+            error(f"Error starting bot: {e}")
             self.add_log(f"Error starting bot: {e}", "error")
             messagebox.showerror("Startup Error", f"Failed to start bot:\n{e}")
     
@@ -560,17 +581,12 @@ class BotGUI:
         if self.bot and self.bot.user:
             self.status_label.config(text="🟢 Bot Online", foreground="green")
             self.bot_name_label.config(text=f"Name: {self.bot.user}")
-            self.bot_id_label.config(text=f"ID: {self.bot.user.id}")
-              # Count commands
+            self.bot_id_label.config(text=f"ID: {self.bot.user.id}")            # Count commands
             command_count = len([cmd for cmd in self.bot.tree.walk_commands()])
-            self.commands_label.config(text=f"Commands: {command_count} loaded")            
-            # Print to both terminal and GUI (using print so it goes through output capture)
-            print("🎵 Traktor DJ NowPlaying Discord Bot Loaded")
-            print(f"🤖 Logged in as {self.bot.user} (ID: {self.bot.user.id})")
-            print(f"✅ Loaded {command_count} slash commands")
-            print("✅ Bot is ready and operational!")
-              # Refresh collection stats when bot comes online
-            self.initialize_collection_on_startup()
+            self.commands_label.config(text=f"Commands: {command_count} loaded")
+            
+            # Load collection stats when bot comes online (bot already imported collection)
+            self.load_collection_stats()
     
     def _handle_bot_error(self, error_msg):
         """Handle bot errors"""
@@ -589,9 +605,8 @@ class BotGUI:
         self.commands_label.config(text="Commands: Not loaded")
         self.songs_label.config(text="Songs: Not loaded")
         self.new_songs_label.config(text="New Songs: Not loaded")
-          # Restore output
-        sys.stdout = self.original_stdout
-        sys.stderr = self.original_stderr
+        
+        # Keep output capture active - don't restore stdout/stderr
     
     def stop_bot(self):
         """Stop the Discord bot immediately"""
@@ -619,18 +634,17 @@ class BotGUI:
             
             if self.bot and hasattr(self.bot, 'close'):
                 # Create a new event loop to properly close the bot
-                if hasattr(self.bot, 'loop') and self.bot.loop and not self.bot.loop.is_closed():
-                    # Schedule the close operation in the bot's event loop
+                if hasattr(self.bot, 'loop') and self.bot.loop and not self.bot.loop.is_closed():                    # Schedule the close operation in the bot's event loop
                     future = asyncio.run_coroutine_threadsafe(self.bot.close(), self.bot.loop)
                     # Wait for the close operation to complete (with timeout)
                     try:
                         future.result(timeout=3.0)  # Reduced timeout
-                        print("✅ Bot disconnected successfully")
+                        info("✅ Bot disconnected successfully")
                     except Exception:
                         # Suppress timeout/error messages - bot is closing anyway
-                        print("✅ Bot closed")
+                        info("✅ Bot closed")
                 else:
-                    print("✅ Bot closed")
+                    info("✅ Bot closed")
                     
         except Exception as e:
             # Only show critical errors, suppress session-related messages
@@ -639,39 +653,24 @@ class BotGUI:
         finally:
             # Restore stderr (warnings filters remain active permanently)
             sys.stderr = original_stderr
-        
-        # Mark as not running immediately
+          # Mark as not running immediately
         self.is_running = False
         
         # Give the bot thread a moment to clean up (simplified output)
         if self.bot_thread and self.bot_thread.is_alive():
             self.bot_thread.join(timeout=2.0)  # Reduced timeout
-          # Always show final success message
-        print("✅ Bot shutdown complete")
+        
+        # Always show final success message
+        info("✅ Bot shutdown complete")
 
     def on_stop_button_press(self, event):
-        """Show stopping message when stop button is pressed down"""
+        """Show stopping message when stop button is pressed down or X is clicked"""
         self.add_log("Stop button pressed - preparing to close...", "warning")
-    
+
     def on_stop_button_release(self, event):
         """Execute stop and close when button is released"""
-        if self.is_running:
-            self.add_log("Stopping bot and closing application...", "warning")
-            self.stop_bot()
-            # Reduced wait time since we now wait for proper shutdown in stop_bot
-            self.root.after(500, self.root.destroy)
-        else:
-            self.root.destroy()
+        self._shutdown_application()
 
-    def stop_and_close(self):
-        """Stop the bot and close the application - Legacy method"""
-        if self.is_running:
-            self.add_log("Stopping bot and closing application...", "warning")
-            self.stop_bot()            # Reduced wait time since we now wait for proper shutdown in stop_bot
-            self.root.after(500, self.root.destroy)
-        else:
-            self.root.destroy()
-    
     def refresh_collection(self):
         """Refresh the Traktor collection by copying the latest file and reloading stats"""
         def _refresh():
@@ -681,38 +680,41 @@ class BotGUI:
                 
                 # Check if original Traktor collection file exists
                 if not Settings.TRAKTOR_PATH or not os.path.exists(Settings.TRAKTOR_PATH):
-                    print("❌ Original Traktor collection file not found or not configured")
+                    error("Original Traktor collection file not found or not configured")
                     return
                 
-                print("🔄 Refreshing collection from Traktor...")
-                print("📁 Converting XML to optimized JSON format...")
-                  # Use the new JSON refresh workflow
+                info("🔄 Refreshing collection from Traktor...")
+                debug(f"Converting XML from: {Settings.TRAKTOR_PATH}")
+                debug(f"Output JSON to: {Settings.COLLECTION_JSON_FILE}")
+                
+                # Use the new JSON refresh workflow
                 song_count = refresh_collection_json(
                     Settings.TRAKTOR_PATH, 
                     Settings.COLLECTION_JSON_FILE, 
                     Settings.EXCLUDED_ITEMS, 
-                    debug_mode=True
+                    debug_mode=Settings.DEBUG
                 )
                 
-                print(f"✅ Collection refreshed successfully - {song_count} songs processed")
-                  # Reset search counter on refresh
+                info(f"✅ Collection refreshed successfully - {song_count:,} songs processed")
+                
+                # Reset search counter on refresh
                 self.search_count = 0
                 # Reset the search counter file
                 search_counter_file = Settings.SEARCH_COUNTER_FILE
                 with open(search_counter_file, "w") as f:
                     f.write("0")
                 self.root.after(0, lambda: self.searches_label.config(text=f"Song Searches: {self.search_count}"))
-                print("🔄 Search counter reset")
-                  # Now load the stats from the fresh JSON
-                self.load_collection_stats()
+                debug("Search counter reset to 0")
                 
+                # Now load the stats from the fresh JSON
+                self.load_collection_stats()                
             except Exception as e:
                 error_msg = f"Error refreshing collection: {e}"
-                print(f"❌ {error_msg}")
+                error(error_msg)
                 
         # Run in background thread to avoid blocking UI
         threading.Thread(target=_refresh, daemon=True).start()
-    
+
     def load_collection_stats(self):
         """Load and display collection statistics"""
         def _load_stats():
@@ -720,31 +722,34 @@ class BotGUI:
                 # Import here to avoid circular imports
                 from utils.traktor import load_collection_json, count_songs_in_collection_json, get_new_songs_json, refresh_collection_json
                 from config.settings import Settings
-                import os                # Check if JSON collection file exists, if not create it
+                import os
+                
+                # Check if JSON collection file exists, if not create it
                 if not os.path.exists(Settings.COLLECTION_JSON_FILE):
-                    print("⚠️ Collection JSON not found, creating from Traktor collection...")
+                    warning("Collection JSON not found, creating from Traktor collection...")
                     if Settings.TRAKTOR_PATH and os.path.exists(Settings.TRAKTOR_PATH):
                         try:
-                            print("📁 Converting XML to optimized JSON format...")
+                            info("📁 Converting XML to optimized JSON format...")
                             song_count = refresh_collection_json(
                                 Settings.TRAKTOR_PATH, 
                                 Settings.COLLECTION_JSON_FILE, 
                                 Settings.EXCLUDED_ITEMS, 
-                                debug_mode=True
+                                debug_mode=Settings.DEBUG
                             )
-                            print(f"✅ Initial collection import completed successfully - {song_count} songs processed")
+                            info(f"✅ Initial collection import completed successfully - {song_count:,} songs processed")
                         except Exception as e:
-                            print(f"❌ Error creating collection JSON: {e}")
+                            error(f"Error creating collection JSON: {e}")
                             self.root.after(0, lambda: self.songs_label.config(text="Songs: Error creating collection"))
                             self.root.after(0, lambda: self.new_songs_label.config(text="New Songs: Error creating collection"))
                             return
                     else:
-                        print("❌ Traktor collection path not configured or file not found")
+                        error("Traktor collection path not configured or file not found")
                         self.root.after(0, lambda: self.songs_label.config(text="Songs: Traktor path not found"))
                         self.root.after(0, lambda: self.new_songs_label.config(text="New Songs: Traktor path not found"))
                         return
-                  # Load collection from JSON and show loading message
-                print(f"📊 Loading collection stats from JSON: {Settings.COLLECTION_JSON_FILE}")
+                
+                # Load collection from JSON and show loading message
+                debug(f"📊 Loading collection stats from JSON: {Settings.COLLECTION_JSON_FILE}")
                 songs = load_collection_json(Settings.COLLECTION_JSON_FILE)
                 
                 if songs:
@@ -757,19 +762,18 @@ class BotGUI:
                     # Update UI in main thread
                     self.root.after(0, lambda: self.songs_label.config(text=f"Songs: {total_songs:,}"))
                     self.root.after(0, lambda: self.new_songs_label.config(text=f"New Songs: {new_songs_count:,}"))
-                      # Update import date
+                    
+                    # Update import date
                     date_str, time_str = self.get_collection_import_date()
                     self.root.after(0, lambda: self.import_date_label.config(text=date_str))
                     self.root.after(0, lambda: self.import_time_label.config(text=time_str))
-                    
-                    # Update controls frame sizing after content changes
+                      # Update controls frame sizing after content changes
                     self.root.after(50, self.update_controls_frame_sizing)
-                    
-                    # Print results to both terminal and GUI
-                    print(f"📊 Collection stats: {total_songs:,} total songs, {new_songs_count:,} new songs")
+                      # Log results using centralized logger
+                    info(f"📊 Collection stats: {total_songs:,} total songs, {new_songs_count:,} new songs (last {Settings.NEW_SONGS_DAYS} days)")
                 else:
                     error_msg = "Collection JSON not found or empty"
-                    print(f"⚠️  {error_msg}")
+                    warning(f"⚠️  {error_msg}")
                     self.root.after(0, lambda: self.songs_label.config(text="Songs: Collection not found"))
                     self.root.after(0, lambda: self.new_songs_label.config(text="New Songs: Collection not found"))
                     self.root.after(0, lambda: self.import_date_label.config(text="Not available"))
@@ -860,16 +864,15 @@ class BotGUI:
         try:
             search_counter_file = "search_counter.txt"
             try:
-                with open(search_counter_file, "r") as f:
-                    new_count = int(f.read().strip())
+                with open(search_counter_file, "r") as f:                    new_count = int(f.read().strip())
                 if new_count != self.search_count:
                     self.search_count = new_count
                     self.searches_label.config(text=f"Song Searches: {self.search_count}")
             except (FileNotFoundError, ValueError):
                 pass
         except Exception as e:
-            print(f"Error updating search count display: {e}")
-    
+            error(f"Error updating search count display: {e}")
+
     def get_collection_import_date(self):
         """Get the modification date of the collection.json file"""
         try:
@@ -889,9 +892,9 @@ class BotGUI:
             else:
                 return "Not available", ""
         except Exception as e:
-            print(f"Error getting collection import date: {e}")
+            error(f"Error getting collection import date: {e}")
             return "Error", ""
-    
+
     def update_import_date_display(self):
         """Update the import date display"""
         try:
@@ -899,30 +902,48 @@ class BotGUI:
             self.import_date_label.config(text=date_str)
             self.import_time_label.config(text=time_str)
         except Exception as e:
-            print(f"Error updating import date display: {e}")
+            error(f"Error updating import date display: {e}")
             self.import_date_label.config(text="Error")
             self.import_time_label.config(text="")
-    
+
     def update_statistics(self):
         """Update statistics labels (songs, new songs, import date)"""
         self.load_collection_stats()
         self.update_import_date_display()
-    
-    def on_closing(self):
-        """Handle application closing"""
+
+    def on_x_button_clicked(self):
+        """Handle X button click with confirmation dialog for instant user feedback"""
         if self.is_running:
             result = messagebox.askyesno(
-                "Confirm Exit", 
+                "Confirm Exit",
                 "The bot is still running. Do you want to stop it and exit?"
             )
             if result:
-                print("🔄 User requested application close - stopping bot...")
-                self.stop_bot()                # Reduced wait time since we now have proper shutdown
+                info("🔄 User requested application close - stopping bot...")
+                self.stop_bot()
+                # Wait for clean shutdown then close
                 self.root.after(500, self.root.destroy)
-            return        
+            return
         
-        print("🔄 Closing application...")
+        info("🔄 Closing application...")
         self.root.destroy()
+
+    def on_closing(self):
+        """Handle application closing - X button clicked"""
+        # Use the same user feedback as the stop button
+        self.on_stop_button_press(None)
+        self._shutdown_application()
+    
+    def _shutdown_application(self):
+        """Common shutdown logic for both Stop button and X button"""
+        if self.is_running:
+            info("🔄 User requested application close - stopping bot...")
+            self.stop_bot()
+            # Wait for clean shutdown then close
+            self.root.after(500, self.root.destroy)
+        else:
+            info("🔄 Closing application...")
+            self.root.destroy()
     
     def calculate_optimal_button_width(self, button_texts):
         """Calculate optimal button width based on the longest text"""
@@ -988,24 +1009,23 @@ class BotGUI:
                 from utils.traktor import refresh_collection_json, load_collection_json, count_songs_in_collection_json, get_new_songs_json
                 
                 # Always refresh from .nml file to ensure latest data and consistent messaging
-                print("🔄 Importing collection from Traktor...")
-                print("📁 Converting XML to optimized JSON format...")
+                info("🔄 Importing collection from Traktor...")
+                info("📁 Converting XML to optimized JSON format...")
                   # Use the same refresh workflow as the refresh button
                 song_count = refresh_collection_json(
                     Settings.TRAKTOR_PATH, 
                     Settings.COLLECTION_JSON_FILE, 
                     Settings.EXCLUDED_ITEMS, 
-                    debug_mode=True
+                    debug_mode=Settings.DEBUG
                 )
                 
-                print(f"✅ Collection imported successfully - {song_count} songs processed")
-                
-                # Load the collection and update stats
+                info(f"✅ Collection imported successfully - {song_count:,} songs processed")
+                  # Load the collection and update stats
                 songs = load_collection_json(Settings.COLLECTION_JSON_FILE)
                 if songs:
                     total_songs = count_songs_in_collection_json(songs)
                     _, total_new_songs = get_new_songs_json(songs, Settings.NEW_SONGS_DAYS, Settings.MAX_SONGS, Settings.DEBUG)
-                    print(f"📊 Collection stats: {total_songs:,} total songs, {total_new_songs:,} new songs")
+                    info(f"📊 Collection stats: {total_songs:,} total songs, {total_new_songs:,} new songs (last {Settings.NEW_SONGS_DAYS} days)")
                       # Update UI on main thread
                     self.root.after(0, lambda: self.songs_label.config(text=f"Songs: {total_songs:,}"))
                     self.root.after(0, lambda: self.new_songs_label.config(text=f"New Songs: {total_new_songs:,}"))
@@ -1018,13 +1038,13 @@ class BotGUI:
                     # Update controls frame sizing after content changes
                     self.root.after(50, self.update_controls_frame_sizing)
                 else:
-                    print("⚠️ Collection JSON is empty or could not be loaded")
+                    warning("⚠️ Collection JSON is empty or could not be loaded")
                     self.root.after(0, lambda: self.songs_label.config(text="Songs: Collection not found"))
                     self.root.after(0, lambda: self.new_songs_label.config(text="New Songs: Collection not found"))
                     
             except Exception as e:
                 error_msg = f"Error initializing collection: {e}"
-                print(f"❌ {error_msg}")
+                error(f"❌ {error_msg}")
                 self.root.after(0, lambda: self.songs_label.config(text="Songs: Error loading"))
                 self.root.after(0, lambda: self.new_songs_label.config(text="New Songs: Error loading"))
         

@@ -83,17 +83,16 @@ class BotLogger:
             level_prefix = "[WARNING] "
         elif level == self.ERROR:
             level_prefix = "[ERROR] "
+        else:
+            level_prefix = "[UNKNOWN] "  # Fallback for unknown levels
         
         if self._debug_enabled:
             # In debug mode, show both [DEBUG] and level prefixes
             debug_prefix = "[DEBUG] " if level != self.DEBUG else ""
             return f"{debug_prefix}{level_prefix}{message}"
         else:
-            # In normal mode, only show level prefixes (but not [INFO] to keep it clean)
-            if level == self.INFO:
-                return message  # Clean INFO messages in normal mode
-            else:
-                return f"{level_prefix}{message}"
+            # In normal mode, show level prefixes for all levels
+            return f"{level_prefix}{message}"
     
     def _log(self, message: str, level: int):
         """Internal logging method"""
