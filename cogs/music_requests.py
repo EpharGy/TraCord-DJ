@@ -10,6 +10,7 @@ from typing import List, Dict, Any
 
 from config.settings import Settings
 from utils.helpers import check_permissions, format_song_requests
+from utils.logger import debug, info, warning, error
 
 
 class RequestsCog(commands.Cog, name="Requests"):
@@ -38,7 +39,7 @@ class RequestsCog(commands.Cog, name="Requests"):
             with open(Settings.SONG_REQUESTS_FILE, "w", encoding="utf-8") as file:
                 json.dump(song_requests, file, indent=4)
         except Exception as e:
-            print(f"Error saving song requests: {e}")
+            error(f"Error saving song requests: {e}")
     
     def _update_request_numbers(self, song_requests: List[Dict[str, Any]]) -> None:
         """Update request numbers to be sequential"""
@@ -52,12 +53,12 @@ class RequestsCog(commands.Cog, name="Requests"):
         
         if not song_requests:
             await interaction.response.send_message("No song requests found.")
-            print(f"{interaction.user} viewed the song request list.")
+            info(f"{interaction.user} viewed the song request list.")
             return
         
         response = format_song_requests(song_requests)
         await interaction.response.send_message(response)
-        print(f"{interaction.user} viewed the song request list.")
+        info(f"{interaction.user} viewed the song request list.")
     
     @app_commands.command(name="srbreqdel", description="Delete a song request by RequestNumber, 'all', 'self', or a specific user")
     @app_commands.describe(request_number="RequestNumber to delete, 'all', 'self', or a specific user")
@@ -85,7 +86,7 @@ class RequestsCog(commands.Cog, name="Requests"):
                 self._save_song_requests(song_requests)
 
                 await interaction.response.send_message("All song requests have been deleted.")
-                print(f"{interaction.user} deleted all song requests.")
+                info(f"{interaction.user} deleted all song requests.")
                 return
 
             # Handle 'self' deletion
@@ -107,7 +108,7 @@ class RequestsCog(commands.Cog, name="Requests"):
                 updated_list = format_song_requests(song_requests)
 
                 await interaction.response.send_message("All your song requests have been deleted.\nUpdated Song Request List:")
-                print(f"{interaction.user} deleted all their song requests.")
+                info(f"{interaction.user} deleted all their song requests.")
                 await interaction.followup.send(updated_list)
                 return
 
@@ -144,7 +145,7 @@ class RequestsCog(commands.Cog, name="Requests"):
 
                 # Send the response
                 await interaction.response.send_message(f"Deleting Song Request\n({deleted_song_details})\nUpdated Song Request List:")
-                print(f"{interaction.user} deleted song request #{request_number}.")
+                info(f"{interaction.user} deleted song request #{request_number}.")
                 await interaction.followup.send(updated_list)
                 return
 
@@ -177,12 +178,12 @@ class RequestsCog(commands.Cog, name="Requests"):
                 updated_list = format_song_requests(song_requests)
 
                 await interaction.response.send_message(f"All song requests from user '{target_user}' have been deleted.\nUpdated Song Request List:")
-                print(f"{interaction.user} deleted all song requests from user '{target_user}'.")
+                info(f"{interaction.user} deleted all song requests from user '{target_user}'.")
                 await interaction.followup.send(updated_list)
                 return
 
         except Exception as e:
-            print(f"Error deleting song request: {e}")
+            error(f"Error deleting song request: {e}")
             await interaction.response.send_message(f"Error deleting song request: {e}", ephemeral=True)
 
 

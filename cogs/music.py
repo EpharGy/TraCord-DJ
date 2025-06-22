@@ -13,6 +13,7 @@ from typing import Dict, Any
 from config.settings import Settings
 from utils.traktor import parse_traktor_collection, load_collection_json, search_collection_json
 from utils.helpers import check_channel_permissions, truncate_response
+from utils.logger import debug, info, warning, error
 
 
 class MusicCog(commands.Cog, name="Music"):
@@ -35,7 +36,7 @@ class MusicCog(commands.Cog, name="Music"):
             with open(search_counter_file, "w") as f:
                 f.write(str(count))
         except Exception as e:
-            print(f"Error updating search counter: {e}")
+            error(f"Error updating search counter: {e}")
     
     @app_commands.command(name="song", description="Search for a song in the Traktor collection and optionally select one by replying.")
     @app_commands.describe(search="search query")
@@ -50,13 +51,13 @@ class MusicCog(commands.Cog, name="Music"):
         songs = load_collection_json(Settings.COLLECTION_JSON_FILE)
         if not songs:
             await interaction.response.send_message("Collection not available. Please refresh the collection.", ephemeral=True)
-            print(f"Collection JSON not found or empty for {interaction.user}'s search")
+            warning(f"Collection JSON not found or empty for {interaction.user}'s search")
             return        # Fast JSON-based search (get all matches, we'll fit what we can in Discord's limit)
         results, total_matches = search_collection_json(songs, search)  # No artificial limit
 
         if not results:
             await interaction.response.send_message("No matching results found.")
-            print(f"{interaction.user}'s search '{search}' matched 0 songs")
+            info(f"{interaction.user}'s search '{search}' matched 0 songs")
             return
               # Dynamically fit as many results as possible within Discord's 2000 character limit
         base_message = "Search Results:\n"
@@ -110,11 +111,11 @@ class MusicCog(commands.Cog, name="Music"):
             no_truncation_ending = f"\n� Showing {len(fitted_results)} results.{instruction_message}"
             results_message = base_message + results_text + no_truncation_ending
         
-        print(f"[DEBUG] Message length: {len(results_message)}/2000 characters")
-        print(f"[DEBUG] Showing {len(fitted_results)} results out of {total_matches} total matches")
+        debug(f"Message length: {len(results_message)}/2000 characters")
+        debug(f"Showing {len(fitted_results)} results out of {total_matches} total matches")
         
         await interaction.response.send_message(results_message)
-        print(f"{interaction.user}'s search '{search}' matched {total_matches} songs")
+        info(f"{interaction.user}'s search '{search}' matched {total_matches} songs")
         
         # Increment search counter for GUI tracking
         self._increment_search_counter()
@@ -142,10 +143,10 @@ class MusicCog(commands.Cog, name="Music"):
                                 song_requests = json.load(file)
                             except json.JSONDecodeError:
                                 song_requests = []  # Start fresh if JSON is invalid
-                                print(f"⚠️ Invalid JSON in {song_requests_file}, starting with empty list")
+                                warning(f"⚠️ Invalid JSON in {song_requests_file}, starting with empty list")
                     else:
                         song_requests = []
-                        print(f"📄 Creating new song requests file: {song_requests_file}")
+                        info(f"📄 Creating new song requests file: {song_requests_file}")
 
                     # Determine the next request number
                     next_request_num = len(song_requests) + 1
@@ -166,18 +167,18 @@ class MusicCog(commands.Cog, name="Music"):
                     with open(song_requests_file, "w", encoding="utf-8") as file:
                         json.dump(song_requests, file, indent=4)
 
-                    print(f"{interaction.user} selected and saved the song: {selected_song}")
+                    info(f"{interaction.user} selected and saved the song: {selected_song}")
                     await interaction.followup.send(f"Added the song to the Song Request List: {selected_song}")
                     
                 except Exception as e:
-                    print(f"❌ Error saving song request: {e}")
+                    error(f"❌ Error saving song request: {e}")
                     await interaction.followup.send("❌ Error saving song request. Please try again.", ephemeral=True)
                     
         except asyncio.TimeoutError:
-            print(f"{interaction.user} did not respond in time for song selection.")
+            warning(f"{interaction.user} did not respond in time for song selection.")
         except KeyError:
             await interaction.followup.send("Invalid input for song selection.")
-            print(f"{interaction.user} entered invalid input for song selection.")
+            warning(f"{interaction.user} entered invalid input for song selection.")
 
 
 async def setup(bot: commands.Bot):
