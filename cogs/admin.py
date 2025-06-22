@@ -11,6 +11,7 @@ from typing import List
 
 from config.settings import Settings
 from utils.helpers import check_permissions
+from utils.logger import info, warning
 
 
 class AdminCog(commands.Cog, name="Admin"):
@@ -33,7 +34,7 @@ class AdminCog(commands.Cog, name="Admin"):
         # If no roles are configured, send a simple notification
         if not Settings.DISCORD_LIVE_NOTIFICATION_ROLES:
             await interaction.response.send_message(f"🔴 **LIVE NOW** 🔴\n{message}")
-            print(f"{interaction.user} sent live notification (no roles configured): {message}")
+            info(f"{interaction.user} sent live notification (no roles configured): {message}")
             return
         
         # Get all configured roles from the guild
@@ -63,9 +64,9 @@ class AdminCog(commands.Cog, name="Admin"):
         
         # Log the action and any missing roles
         if missing_roles:
-            print(f"{interaction.user} sent live notification with missing roles: {missing_roles}")
+            warning(f"{interaction.user} sent live notification with missing roles: {missing_roles}")
         else:
-            print(f"{interaction.user} sent live notification: {message}")
+            info(f"{interaction.user} sent live notification: {message}")
 
 
 async def setup(bot: commands.Bot):

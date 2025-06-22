@@ -7,6 +7,7 @@ import sys
 from dotenv import load_dotenv
 from pathlib import Path
 from typing import List, Optional
+from utils.logger import debug, info, warning, error
 
 def get_executable_dir():
     """Get the directory where the executable is running from"""
@@ -156,7 +157,7 @@ class Settings:
                 raise ValueError(f"Collection file not found: {cls.TRAKTOR_PATH}")
                 
         except Exception as e:
-            print(f"Error setting up Traktor path: {e}")
+            error(f"Error setting up Traktor path: {e}")
             raise
 
 # Initialize settings when module is imported

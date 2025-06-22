@@ -10,6 +10,7 @@ import shutil
 from config.settings import Settings
 from utils.traktor import count_songs_in_collection, get_new_songs, load_collection_json, get_new_songs_json, count_songs_in_collection_json
 from utils.helpers import check_permissions, check_channel_permissions, truncate_response
+from utils.logger import debug, info, warning, error
 
 
 class CollectionCog(commands.Cog, name="Collection"):
@@ -35,14 +36,14 @@ class CollectionCog(commands.Cog, name="Collection"):
         songs = load_collection_json(Settings.COLLECTION_JSON_FILE)
         if not songs:
             await interaction.followup.send("Collection not available. Please refresh the collection.")
-            print(f"Collection JSON not found or empty for {interaction.user}'s new songs request")
+            warning(f"Collection JSON not found or empty for {interaction.user}'s new songs request")
             return
             
         results, total_new_songs = get_new_songs_json(songs, days, Settings.MAX_SONGS, Settings.DEBUG)
         
         if Settings.DEBUG:
-            print(f"Total new songs found: {total_new_songs}")
-            print(f"Results: {results}")
+            debug(f"Total new songs found: {total_new_songs}")
+            debug(f"Results: {results}")
         
         if results:
             # Smart truncation for better user experience
@@ -66,10 +67,10 @@ class CollectionCog(commands.Cog, name="Collection"):
                 response += f"\n... (showing {len(fitted_results)} of {total_new_songs} new songs)"
             
             await interaction.followup.send(response)
-            print(f"{interaction.user} requested new songs from the last {days} days, found {total_new_songs} songs")
+            info(f"{interaction.user} requested new songs from the last {days} days, found {total_new_songs} songs")
         else:
             await interaction.followup.send("No new songs found.")
-            print(f"{interaction.user} requested new songs from the last {days} days, found 0 songs")
+            info(f"{interaction.user} requested new songs from the last {days} days, found 0 songs")
 
 
 async def setup(bot: commands.Bot):
