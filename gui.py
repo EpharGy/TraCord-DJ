@@ -172,9 +172,10 @@ except ImportError as e:
 class BotGUI:
     """GUI application for the Traktor DJ NowPlaying Discord Bot"""
     
-    def __init__(self):
+    def __init__(self, title=None):
         self.root = tk.Tk()
-        self.root.title(f"Traktor DJ NowPlaying Discord Bot v{__version__} - Control Panel")
+        app_title = title or f"Traktor DJ NowPlaying Discord Bot v{__version__} - Control Panel"
+        self.root.title(app_title)
         self.root.geometry("900x700")
         self.root.minsize(700, 500)        # Set window icon - remove the janky black diamond/question mark icon
         try:
