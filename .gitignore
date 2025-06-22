@@ -81,3 +81,11 @@ collection.json
 # Temporary files
 *.tmp
 *.temp
+
+# Persona files
+!Persona.txt
+
+# Test files
+run_eph.py
+build/build_eph.py
+anime.py
