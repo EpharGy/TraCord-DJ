@@ -29,7 +29,7 @@ def build_gui_executable():
         "pyinstaller",
         "--onefile",                # Single executable file
         "--windowed",              # No console window (GUI app)
-        "--name", exe_name,        
+        "--name", exe_name,
         "--icon", "app_icon.ico",      # Add icon if available
         "--add-data", "config;config",
         "--add-data", "utils;utils", 

@@ -178,27 +178,27 @@ class BotGUI:
         self.root.geometry("900x700")
         self.root.minsize(700, 500)        # Set window icon - remove the janky black diamond/question mark icon
         try:
-            # First try to use a custom .ico file if available
-            icon_path = 'app_icon.ico'
+            # Use PyInstaller's _MEIPASS for bundled resources
+            if getattr(sys, 'frozen', False):
+                bundle_dir = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
+                icon_path = os.path.join(bundle_dir, 'app_icon.ico')
+                png_icon_path = os.path.join(bundle_dir, 'icon.png')
+            else:
+                icon_path = 'app_icon.ico'
+                png_icon_path = 'icon.png'
             if os.path.exists(icon_path):
                 self.root.iconbitmap(icon_path)
                 print(f"✅ Using custom icon: {icon_path}")
+            elif os.path.exists(png_icon_path):
+                icon_image = tk.PhotoImage(file=png_icon_path)
+                self.root.iconphoto(True, icon_image)
+                print(f"✅ Using PNG icon: {png_icon_path}")
             else:
-                # Try PNG icon as PhotoImage
-                png_icon_path = 'icon.png'
-                if os.path.exists(png_icon_path):
-                    # Load and use PNG icon
-                    icon_image = tk.PhotoImage(file=png_icon_path)
-                    self.root.iconphoto(True, icon_image)
-                    print(f"✅ Using PNG icon: {png_icon_path}")
-                else:
-                    # Remove the default janky icon by setting empty
-                    self.root.wm_iconbitmap('')
-                    print("ℹ️  Removed default icon - no custom icon found")
+                self.root.wm_iconbitmap('')
+                print("ℹ️  Removed default icon - no custom icon found")
         except Exception as e:
             print(f"⚠️  Could not set custom icon: {e}")
             try:
-                # Fallback - try to remove default icon
                 self.root.wm_iconbitmap('')
             except:
                 pass
