@@ -85,7 +85,3 @@ collection.json
 # Persona files
 __Persona.txt
 
-# Test files
-run_eph.py
-anime.py
-run_eph.bat
