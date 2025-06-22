@@ -14,6 +14,12 @@ try:
 except ImportError:
     __version__ = "dev"
 
+# === Build configuration variables ===
+APP_NAME = "Traktor DJ NowPlaying Discord Bot"
+EXE_NAME = "Traktor-DJ-NowPlaying-Discord-Bot-GUI"
+ENTRY_POINT = "gui.py"
+BUILD_FILENAME = "build.py"
+
 def install_build_deps():
     """Install build dependencies"""
     print("Installing build dependencies...")
@@ -22,58 +28,53 @@ def install_build_deps():
 def build_gui_executable():
     """Build the GUI version using PyInstaller"""
     print(f"Building GUI executable for version {__version__}...")
-      # Static executable name for easier distribution
-    exe_name = "Traktor-DJ-NowPlaying-Discord-Bot-GUI"
-      # PyInstaller command for GUI version
     cmd = [
         "pyinstaller",
         "--onefile",                # Single executable file
         "--windowed",              # No console window (GUI app)
-        "--name", exe_name,
-        "--icon", "app_icon.ico",      # Add icon if available
-        "--add-data", "config;config",
-        "--add-data", "utils;utils", 
-        "--add-data", "cogs;cogs",
-        "--add-data", "main.py;.",  # Explicitly include main.py
-        "--add-data", "version.py;.",
-        "--add-data", ".env.example;.",
-        "--add-data", "app_icon.ico;.",  # Include icon file in bundle
-        "--add-data", "icon.png;.",      # Include PNG icon as fallback
-        "--hidden-import", "discord",
-        "--hidden-import", "discord.ext.commands",
-        "--hidden-import", "tkinter",
-        "--hidden-import", "asyncio",
-        "--hidden-import", "main",     # Explicitly import main module
-        "--hidden-import", "config.settings",
-        "--hidden-import", "version",
-        "gui.py"
+        f"--name={EXE_NAME}",
+        "--icon=app_icon.ico",      # Add icon if available
+        "--add-data=config;config",
+        "--add-data=utils;utils",
+        "--add-data=cogs;cogs",
+        "--add-data=main.py;.",  # Explicitly include main.py
+        "--add-data=version.py;.",
+        "--add-data=.env.example;.",
+        "--add-data=app_icon.ico;.",  # Include icon file in bundle
+        "--add-data=icon.png;.",      # Include PNG icon as fallback
+        "--hidden-import=discord",
+        "--hidden-import=discord.ext.commands",
+        "--hidden-import=tkinter",
+        "--hidden-import=asyncio",
+        "--hidden-import=main",     # Explicitly import main module
+        "--hidden-import=config.settings",
+        "--hidden-import=version",
+        ENTRY_POINT
     ]
-    
     # Remove icon parameter if icon file doesn't exist
-    if not os.path.exists("icon.ico"):
-        cmd.remove("--icon")
-        cmd.remove("app_icon.ico")
+    if not os.path.exists("app_icon.ico"):
+        cmd = [arg for arg in cmd if not arg.startswith("--icon")]  # Remove icon argument
     
     subprocess.run(cmd, check=True)
-    return exe_name
+    return EXE_NAME
 
 def main():
     """Main build function"""
-    print("Traktor DJ NowPlaying Discord Bot - GUI Executable Build Script")
+    print(f"{APP_NAME} - GUI Executable Build Script")
     print("=" * 70)
     print(f"Building version: {__version__}")
     print()
     
     # Check if we're in the right directory
-    if not os.path.exists("main.py") or not os.path.exists("gui.py"):
+    if not os.path.exists("main.py") or not os.path.exists(ENTRY_POINT):
         print("Error: Please run this script from the bot's root directory")
         sys.exit(1)
     
     # Check for command line arguments
     if len(sys.argv) > 1 and sys.argv[1] == "--help":
         print("Usage:")
-        print("  python build.py    - Build GUI executable for distribution")
-        print("  python build.py --help - Show this help message")
+        print(f"  python {BUILD_FILENAME} - Build GUI executable for distribution")
+        print(f"  python {BUILD_FILENAME} --help - Show this help message")
         return
     
     try:
