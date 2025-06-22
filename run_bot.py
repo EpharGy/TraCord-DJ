@@ -7,6 +7,7 @@ import os
 import subprocess
 import tkinter as tk
 from tkinter import messagebox
+from utils.logger import info, warning, error
 
 def check_requirements():
     """Check if all requirements are met"""
@@ -32,19 +33,19 @@ def main():
     root = tk.Tk()
     root.withdraw()  # Hide the main window
     
-    print("� Traktor DJ NowPlaying Discord Bot Launcher")
-    print("=" * 40)
+    info("🚀 Traktor DJ NowPlaying Discord Bot Launcher")
+    info("=" * 40)
     
     # Check requirements
     issues = check_requirements()
     if issues:
         error_msg = "\\n".join(issues)
-        print(error_msg)
+        warning(error_msg)
         messagebox.showerror("Setup Error", error_msg)
         return
     
-    print("✅ All requirements met")
-    print("🚀 Starting GUI application...")
+    info("✅ All requirements met")
+    info("🚀 Starting GUI application...")
     
     # Close the hidden window
     root.destroy()
@@ -57,7 +58,7 @@ def main():
     except FileNotFoundError:
         messagebox.showerror("Error", "Python not found! Please ensure Python is installed.")
     except KeyboardInterrupt:
-        print("\\n🛑 Interrupted by user")
+        warning("🛑 Interrupted by user")
 
 if __name__ == "__main__":
     main()
