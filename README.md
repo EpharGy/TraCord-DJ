@@ -118,11 +118,12 @@ Traktor-DJ-NowPlaying-Discord-Bot/
 │   │   ├── admin.py                # Administrative commands
 │   │   ├── collection.py           # Collection management commands
 │   │   ├── music.py                # Music search and song request commands
-│   │   └── requests.py             # Song request list management
+│   │   └── music_requests.py       # Song request list management
 │   ├── config/
 │   │   └── settings.py             # Environment variables and configuration
 │   ├── utils/
 │   │   ├── helpers.py              # Utility functions and permission checks
+|   |   ├── logger.py               # Logging setup
 │   │   └── traktor.py              # Traktor collection parsing and management
 │   └── version.py                  # Version information
 ├── 🎨 Assets
@@ -145,8 +146,9 @@ Traktor-DJ-NowPlaying-Discord-Bot/
     ├── .env                        # Your personal environment file
     ├── *.spec                      # PyInstaller spec files
     ├── build/                      # Build artifacts
+    ├── dist/                       # Built executables
     ├── collection.json             # Traktor collection cache
-    ├── collection.nml              # Traktor collection file    ├── dist/                       # Built executables
+    ├── collection.nml              # Traktor collection file
     ├── search_counter.txt          # Search statistics
     └── song_requests.json          # Song request database
 ```

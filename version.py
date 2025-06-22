@@ -2,8 +2,8 @@
 Version information for Traktor DJ NowPlaying Discord Bot
 """
 
-__version__ = "1.1.5"
-__version_info__ = (1, 1, 5)
+__version__ = "1.1.6"
+__version_info__ = (1, 1, 6)
 
 # For detailed changelog and release history, see:
 # - GitHub Releases: https://github.com/EpharGy/Traktor-DJ-NowPlaying-Discord-Bot/releases

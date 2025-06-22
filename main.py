@@ -39,7 +39,7 @@ class DJBot(commands.Bot):
         cogs = [
             'cogs.music',
             'cogs.collection', 
-            'cogs.requests',
+            'cogs.music_requests',
             'cogs.admin'
         ]
         
@@ -55,9 +55,10 @@ class DJBot(commands.Bot):
         try:
             synced = await self.tree.sync()
             info(f"✅ Synced {len(synced)} slash commands")
+            info(f"✅ Waiting for Bot initialization...")
         except Exception as e:
             error(f"❌ Failed to sync commands: {e}")
-    
+        
     async def on_ready(self):
         """Event fired when bot is ready"""
         info('━' * 50)

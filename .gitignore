@@ -84,3 +84,8 @@ collection.json
 
 # Persona files
 !Persona.txt
+
+# Test files
+run_eph.py
+build/build_eph.py
+anime.py
