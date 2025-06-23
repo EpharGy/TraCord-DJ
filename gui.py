@@ -385,23 +385,10 @@ class BotGUI:
         self.nowplaying_panel.grid(row=0, column=0, sticky="nsew")
 
         # Log Panel (bottom half of console_panel)
-        log_frame = ttk.LabelFrame(console_panel, text="Bot Output Log", padding="8")
-        log_frame.grid(row=1, column=0, sticky="nsew")
-        log_frame.columnconfigure(0, weight=1)
-        log_frame.rowconfigure(0, weight=1)
-        # Output text area with scrollbar
-        self.output_text = scrolledtext.ScrolledText(
-            log_frame,
-            wrap=tk.WORD,
-            width=60,
-            height=15,
-            font=("Consolas", 10),
-            bg="#1a1a1a",
-            fg="#ffffff",
-            insertbackground="#ffffff",
-            selectbackground="#404040"
-        )
-        self.output_text.grid(row=0, column=0, sticky="nsew")
+        from gui.gui_logconsole import LogConsolePanel
+        self.log_console_panel = LogConsolePanel(console_panel)
+        self.log_console_panel.grid(row=1, column=0, sticky="nsew")
+        self.output_text = self.log_console_panel.output_text
         # Configure text tags for colored output
         self.output_text.tag_configure("info", foreground="#ffffff")
         self.output_text.tag_configure("success", foreground="#4CAF50")
