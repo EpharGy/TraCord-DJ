@@ -258,20 +258,14 @@ class BotGUI:
         # Configure the root grid
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
-          # Main frame
+        # Main frame
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky="nsew")
         main_frame.columnconfigure(1, weight=3)  # Console/NowPlaying area
         main_frame.columnconfigure(2, weight=2)  # Song Requests area
         main_frame.columnconfigure(0, weight=0)  # Controls don't expand
         main_frame.rowconfigure(1, weight=1)
-          # Title
-        title_label = ttk.Label(
-            main_frame, 
-            text="Traktor DJ NowPlaying Discord Bot Control Panel", 
-            font=("Arial", 16, "bold")
-        )
-        title_label.grid(row=0, column=0, columnspan=2, pady=(0, 15))
+        # Removed the large title label to save space
         
         # Left panel - Controls
         from gui.gui_controls_stats import ControlsStatsPanel
@@ -428,20 +422,16 @@ class BotGUI:
         self._shutdown_application()
 
     def on_x_button_clicked(self):
-        """Handle X button click with confirmation dialog for instant user feedback"""
-        if self.is_running:
-            result = messagebox.askyesno(
-                "Confirm Exit",
-                "The bot is still running. Do you want to stop it and exit?"
-            )
-            if result:
-                info("🔄 User requested application close - stopping bot...")
-                self.stop_discord_bot()
-                # Wait for clean shutdown then close
-                self.root.after(500, self.root.destroy)
-            return
-        info("🔄 Closing application...")
-        self.root.destroy()
+        """Always prompt for confirmation when X is clicked. Only proceed if user confirms."""
+        result = messagebox.askyesno(
+            "Confirm Exit",
+            "Are you sure you want to exit the application?\n\nIf the bot is running, it will be stopped."
+        )
+        if result:
+            info("🔄 User requested application close - stopping bot (if running)...")
+            self._shutdown_application()
+        else:
+            info("Exit cancelled by user.")
 
     def update_controls_frame_sizing(self):
         if hasattr(self, 'controls_stats_panel'):

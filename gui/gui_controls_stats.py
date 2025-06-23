@@ -11,7 +11,7 @@ class ControlsStatsPanel(ttk.Frame):
             self,
             text=button_texts[0],
             width=optimal_width,
-            state='disabled'
+            state='normal'  # Set to normal so it's not greyed out after launch
         )
         self.stop_button.bind('<Button-1>', on_stop_press)
         self.stop_button.bind('<ButtonRelease-1>', on_stop_release)

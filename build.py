@@ -37,6 +37,8 @@ def build_gui_executable():
         "--add-data=config;config",
         "--add-data=utils;utils",
         "--add-data=cogs;cogs",
+        "--add-data=services;services",
+        "--add-data=gui;gui",
         "--add-data=main.py;.",  # Explicitly include main.py
         "--add-data=version.py;.",
         "--add-data=.env.example;.",
