@@ -274,8 +274,9 @@ class BotGUI:
         title_label.grid(row=0, column=0, columnspan=2, pady=(0, 15))
         
         # Left panel - Controls
-        controls_frame = ttk.Frame(main_frame)
-        controls_frame.grid(row=1, column=0, sticky="nsew", padx=(0, 15))
+        from gui.gui_controls_stats import ControlsStatsPanel
+        self.controls_stats_panel = ControlsStatsPanel(main_frame)
+        self.controls_stats_panel.grid(row=1, column=0, sticky="nsew", padx=(0, 15))
         
         # Check if NowPlaying is enabled
         from config.settings import Settings
@@ -291,12 +292,12 @@ class BotGUI:
             button_texts.append("🧹 Clear NP Track Info")        # Calculate optimal button width
         optimal_width = self.calculate_optimal_button_width(button_texts)
 # Configure controls frame - no expansion, let content determine size
-        controls_frame.columnconfigure(0, weight=0)  # Don't expand
+        self.controls_stats_panel.columnconfigure(0, weight=0)  # Don't expand
         # Set a reasonable fixed width based on button content
-        controls_frame.grid_columnconfigure(0, minsize=200)  # Conservative fixed width
+        self.controls_stats_panel.grid_columnconfigure(0, minsize=200)  # Conservative fixed width
           # Control buttons (Start Bot removed - now auto-starts)
         self.stop_button = ttk.Button(
-            controls_frame,
+            self.controls_stats_panel,
             text=button_texts[0],
             width=optimal_width,
             state='disabled'
@@ -307,14 +308,14 @@ class BotGUI:
         self.stop_button.grid(row=0, column=0, pady=8)
         
         # Status section
-        status_frame = ttk.LabelFrame(controls_frame, text="Status", padding="10")
+        status_frame = ttk.LabelFrame(self.controls_stats_panel, text="Status", padding="10")
         status_frame.grid(row=2, column=0, pady=(15, 10), sticky="ew")
         
         self.status_label = ttk.Label(status_frame, text="⚪ Bot Stopped")
         self.status_label.grid(row=0, column=0, sticky="w")
         
         # Bot info section
-        info_frame = ttk.LabelFrame(controls_frame, text="Bot Information", padding="10")
+        info_frame = ttk.LabelFrame(self.controls_stats_panel, text="Bot Information", padding="10")
         info_frame.grid(row=3, column=0, pady=10, sticky="ew")
         
         self.bot_name_label = ttk.Label(info_frame, text="Name: Not connected")
@@ -325,7 +326,7 @@ class BotGUI:
         
         self.commands_label = ttk.Label(info_frame, text="Commands: Not loaded")
         self.commands_label.grid(row=2, column=0, sticky="w")        # Statistics section
-        stats_frame = ttk.LabelFrame(controls_frame, text="Collection Stats", padding="10")
+        stats_frame = ttk.LabelFrame(self.controls_stats_panel, text="Collection Stats", padding="10")
         stats_frame.grid(row=4, column=0, pady=10, sticky="ew")
         
         # Traktor Import (first item, special formatting)
@@ -350,14 +351,14 @@ class BotGUI:
         
         # Clear log button
         clear_button = ttk.Button(
-            controls_frame,
+            self.controls_stats_panel,
             text=button_texts[1],
             command=self.clear_log,
             width=optimal_width
         )
         clear_button.grid(row=5, column=0, pady=(15, 8))        # Refresh collection button with better styling
         refresh_button = ttk.Button(
-            controls_frame,
+            self.controls_stats_panel,
             text=button_texts[2],
             command=self.refresh_collection,
             width=optimal_width
@@ -365,7 +366,7 @@ class BotGUI:
         refresh_button.grid(row=6, column=0, pady=8)        # Clear NP track info button (only if NowPlaying is enabled)
         if self.nowplaying_enabled:
             clear_history_button = ttk.Button(
-                controls_frame,
+                self.controls_stats_panel,
                 text=button_texts[3],
                 command=self.clear_track_history,
                 width=optimal_width
