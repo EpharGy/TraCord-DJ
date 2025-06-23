@@ -10,6 +10,7 @@ import queue
 import os
 from datetime import datetime
 import asyncio
+import io
 
 # Import the centralized logger
 from utils.logger import set_gui_callback, set_debug_mode, info, debug, warning, error
@@ -173,7 +174,6 @@ class BotGUI:
     """GUI application for the Traktor DJ NowPlaying Discord Bot"""
     
     def __init__(self, title=None):
-        # Set debug mode from launch flag BEFORE any setup
         self.debug_mode = '--debug' in sys.argv
         self.root = tk.Tk()
         app_title = title or f"Traktor DJ NowPlaying Discord Bot v{__version__} - Control Panel"
@@ -218,40 +218,28 @@ class BotGUI:
         self.bot_task = None
         self.is_running = False
         self.bot_thread = None
-          # Search counter
         self.search_count = 0
         self.load_search_count()
-        
-        # Threading
         self.output_queue = queue.Queue()
-          # Set up the GUI
         self.setup_gui()
         self.setup_output_capture()
-          # Set up the centralized logger to send messages to GUI
         set_gui_callback(self.add_log)
-        
-        # Set debug mode based on settings
         from config.settings import Settings
         set_debug_mode(Settings.DEBUG)
-        
         info("GUI logger callback initialized")
         debug("Debug mode is enabled" if Settings.DEBUG else "Debug mode is disabled")
-        
-        # Start checking for output updates
         self.check_output_queue()
-        
-        # Start output capture immediately
         sys.stdout = self.stdout_capture
         sys.stderr = self.stderr_capture
-          # Handle window closing - redirect X button to use same logic as stop button
         self.root.protocol("WM_DELETE_WINDOW", self.on_x_button_clicked)
-        
-        # Auto-start the bot after GUI is ready, but only if not in debug mode
+        # Always enable all GUI features, but only block Discord bot connection in debug mode
         if not self.debug_mode:
             self.root.after(1000, self.auto_start_bot)
         else:
             info("Debug mode enabled: Bot will not connect to Discord.")
             self.status_label.config(text="🟡 Debug Mode (Bot Not Connected)", foreground="orange")
+            # Optionally, load collection stats and other features for testing
+            self.load_collection_stats()
     
     def setup_gui(self):
         """Set up the GUI elements"""
@@ -599,253 +587,13 @@ class BotGUI:
         # Always show final success message
         info("✅ Bot shutdown complete")
 
-    def on_stop_button_press(self, event):
+    def on_stop_button_press(self, event=None):
         """Show stopping message when stop button is pressed down or X is clicked"""
         self.add_log("Stop button pressed - preparing to close...", "warning")
 
-    def on_stop_button_release(self, event):
+    def on_stop_button_release(self, event=None):
         """Execute stop and close when button is released"""
         self._shutdown_application()
-
-    def refresh_collection(self):
-        """Refresh the Traktor collection by copying the latest file and reloading stats"""
-        def _refresh():
-            try:
-                from config.settings import Settings
-                from utils.traktor import refresh_collection_json
-                
-                # Check if original Traktor collection file exists
-                if not Settings.TRAKTOR_PATH or not os.path.exists(Settings.TRAKTOR_PATH):
-                    error("Original Traktor collection file not found or not configured")
-                    return
-                
-                info("🔄 Refreshing collection from Traktor...")
-                debug(f"Converting XML from: {Settings.TRAKTOR_PATH}")
-                debug(f"Output JSON to: {Settings.COLLECTION_JSON_FILE}")
-                
-                # Use the new JSON refresh workflow
-                song_count = refresh_collection_json(
-                    Settings.TRAKTOR_PATH, 
-                    Settings.COLLECTION_JSON_FILE, 
-                    Settings.EXCLUDED_ITEMS, 
-                    debug_mode=Settings.DEBUG
-                )
-                
-                info(f"✅ Collection refreshed successfully - {song_count:,} songs processed")
-                
-                # Reset search counter on refresh
-                self.search_count = 0
-                # Reset the search counter file
-                search_counter_file = Settings.SEARCH_COUNTER_FILE
-                with open(search_counter_file, "w") as f:
-                    f.write("0")
-                self.root.after(0, lambda: self.searches_label.config(text=f"Song Searches: {self.search_count}"))
-                debug("Search counter reset to 0")
-                
-                # Now load the stats from the fresh JSON
-                self.load_collection_stats()                
-            except Exception as e:
-                error_msg = f"Error refreshing collection: {e}"
-                error(error_msg)
-                
-        # Run in background thread to avoid blocking UI
-        threading.Thread(target=_refresh, daemon=True).start()
-
-    def load_collection_stats(self):
-        """Load and display collection statistics"""
-        def _load_stats():
-            try:
-                # Import here to avoid circular imports
-                from utils.traktor import load_collection_json, count_songs_in_collection_json, get_new_songs_json, refresh_collection_json
-                from config.settings import Settings
-                import os
-                
-                # Check if JSON collection file exists, if not create it
-                if not os.path.exists(Settings.COLLECTION_JSON_FILE):
-                    warning("Collection JSON not found, creating from Traktor collection...")
-                    if Settings.TRAKTOR_PATH and os.path.exists(Settings.TRAKTOR_PATH):
-                        try:
-                            info("📁 Converting XML to optimized JSON format...")
-                            song_count = refresh_collection_json(
-                                Settings.TRAKTOR_PATH, 
-                                Settings.COLLECTION_JSON_FILE, 
-                                Settings.EXCLUDED_ITEMS, 
-                                debug_mode=Settings.DEBUG
-                            )
-                            info(f"✅ Initial collection import completed successfully - {song_count:,} songs processed")
-                        except Exception as e:
-                            error(f"Error creating collection JSON: {e}")
-                            self.root.after(0, lambda: self.songs_label.config(text="Songs: Error creating collection"))
-                            self.root.after(0, lambda: self.new_songs_label.config(text="New Songs: Error creating collection"))
-                            return
-                    else:
-                        error("Traktor collection path not configured or file not found")
-                        self.root.after(0, lambda: self.songs_label.config(text="Songs: Traktor path not found"))
-                        self.root.after(0, lambda: self.new_songs_label.config(text="New Songs: Traktor path not found"))
-                        return
-                
-                # Load collection from JSON and show loading message
-                debug(f"📊 Loading collection stats from JSON: {Settings.COLLECTION_JSON_FILE}")
-                songs = load_collection_json(Settings.COLLECTION_JSON_FILE)
-                
-                if songs:
-                    # Count total songs
-                    total_songs = count_songs_in_collection_json(songs)
-                    
-                    # Count new songs (last 7 days)
-                    _, new_songs_count = get_new_songs_json(songs, Settings.NEW_SONGS_DAYS, 1000)
-                    
-                    # Update UI in main thread
-                    self.root.after(0, lambda: self.songs_label.config(text=f"Songs: {total_songs:,}"))
-                    self.root.after(0, lambda: self.new_songs_label.config(text=f"New Songs: {new_songs_count:,}"))
-                    
-                    # Update import date
-                    date_str, time_str = self.get_collection_import_date()
-                    self.root.after(0, lambda: self.import_date_label.config(text=date_str))
-                    self.root.after(0, lambda: self.import_time_label.config(text=time_str))
-                      # Update controls frame sizing after content changes
-                    self.root.after(50, self.update_controls_frame_sizing)
-                      # Log results using centralized logger
-                    info(f"📊 Collection stats: {total_songs:,} total songs, {new_songs_count:,} new songs (last {Settings.NEW_SONGS_DAYS} days)")
-                else:
-                    error_msg = "Collection JSON not found or empty"
-                    warning(f"⚠️  {error_msg}")
-                    self.root.after(0, lambda: self.songs_label.config(text="Songs: Collection not found"))
-                    self.root.after(0, lambda: self.new_songs_label.config(text="New Songs: Collection not found"))
-                    self.root.after(0, lambda: self.import_date_label.config(text="Not available"))
-                    self.root.after(0, lambda: self.import_time_label.config(text=""))
-                    
-            except Exception as e:
-                error_msg = f"Error loading collection stats: {e}"
-                print(f"❌ {error_msg}")
-                self.root.after(0, lambda: self.songs_label.config(text="Songs: Error loading"))
-                self.root.after(0, lambda: self.new_songs_label.config(text="New Songs: Error loading"))
-                self.root.after(0, lambda: self.import_date_label.config(text="Error"))
-                self.root.after(0, lambda: self.import_time_label.config(text=""))
-        
-        # Load stats in background thread to avoid blocking UI
-        threading.Thread(target=_load_stats, daemon=True).start()
-    
-    def clear_log(self):
-        """Clear the output log"""
-        self.output_text.delete("1.0", tk.END)
-        self.add_log("Log cleared", "info")
-    
-    def clear_track_history(self):
-        """Clear track history in NowPlaying config.json"""
-        def _clear_history():
-            try:
-                from config.settings import Settings
-                import json
-                import shutil
-                
-                if not Settings.is_nowplaying_enabled():
-                    warning("❌ NowPlaying integration is not enabled")
-                    return
-                
-                if not Settings.NOWPLAYING_CONFIG_JSON_PATH:
-                    warning("❌ Config file path not set in environment variable NOWPLAYING_CONFIG_JSON_PATH")
-                    return
-
-                info("🗑️ Clearing track history...")
-                
-                # Backup config.json
-                backup_path = Settings.NOWPLAYING_CONFIG_JSON_PATH + ".bak"
-                shutil.copyfile(Settings.NOWPLAYING_CONFIG_JSON_PATH, backup_path)
-                info(f"📁 Backup saved as {backup_path}")
-
-                # Load config.json
-                with open(Settings.NOWPLAYING_CONFIG_JSON_PATH, "r", encoding="utf-8") as file:
-                    config = json.load(file)
-
-                # Clear specific fields in currentTrack
-                fields_to_clear = ["title", "artist", "comment", "label", "album", "artwork"]
-                if "currentTrack" in config:
-                    for field in fields_to_clear:
-                        if field in config["currentTrack"]:
-                            config["currentTrack"][field] = ""
-
-                # Clear track list
-                if "trackList" in config:
-                    config["trackList"] = []                # Save updated config.json
-                with open(Settings.NOWPLAYING_CONFIG_JSON_PATH, "w", encoding="utf-8") as file:
-                    json.dump(config, file, indent=4)
-
-                info("✅ Track history cleared successfully")
-                
-            except Exception as e:
-                error_msg = f"Error clearing track history: {e}"
-                error(f"❌ {error_msg}")        # Run in background thread to avoid blocking UI
-        threading.Thread(target=_clear_history, daemon=True).start()
-
-    def show_test_message(self):
-        """Legacy method - no longer used but kept for compatibility"""
-        pass
-
-    def load_search_count(self):
-        """Load the search count from file"""
-        try:
-            search_counter_file = "search_counter.txt"
-            try:
-                with open(search_counter_file, "r") as f:
-                    self.search_count = int(f.read().strip())
-            except (FileNotFoundError, ValueError):
-                self.search_count = 0
-        except Exception as e:
-            error(f"Error loading search count: {e}")
-            self.search_count = 0
-    
-    def update_search_count_display(self):
-        """Update the search count display by reading from file"""
-        try:
-            search_counter_file = "search_counter.txt"
-            try:
-                with open(search_counter_file, "r") as f:                    new_count = int(f.read().strip())
-                if new_count != self.search_count:
-                    self.search_count = new_count
-                    self.searches_label.config(text=f"Song Searches: {self.search_count}")
-            except (FileNotFoundError, ValueError):
-                pass
-        except Exception as e:
-            error(f"Error updating search count display: {e}")
-
-    def get_collection_import_date(self):
-        """Get the modification date of the collection.json file"""
-        try:
-            from config.settings import Settings
-            import os
-            from datetime import datetime
-            
-            collection_file = Settings.COLLECTION_JSON_FILE
-            if os.path.exists(collection_file):
-                # Get file modification time
-                mod_time = os.path.getmtime(collection_file)
-                # Convert to readable format - separate date and time
-                dt = datetime.fromtimestamp(mod_time)
-                date_str = dt.strftime("%Y-%m-%d")
-                time_str = dt.strftime("%H:%M:%S")
-                return date_str, time_str
-            else:
-                return "Not available", ""
-        except Exception as e:
-            error(f"Error getting collection import date: {e}")
-            return "Error", ""
-
-    def update_import_date_display(self):
-        """Update the import date display"""
-        try:
-            date_str, time_str = self.get_collection_import_date()
-            self.import_date_label.config(text=date_str)
-            self.import_time_label.config(text=time_str)
-        except Exception as e:
-            error(f"Error updating import date display: {e}")
-            self.import_date_label.config(text="Error")
-            self.import_time_label.config(text="")
-
-    def update_statistics(self):
-        """Update statistics labels (songs, new songs, import date)"""
-        self.load_collection_stats()
-        self.update_import_date_display()
 
     def on_x_button_clicked(self):
         """Handle X button click with confirmation dialog for instant user feedback"""
@@ -860,16 +608,13 @@ class BotGUI:
                 # Wait for clean shutdown then close
                 self.root.after(500, self.root.destroy)
             return
-        
         info("🔄 Closing application...")
         self.root.destroy()
 
-    def on_closing(self):
-        """Handle application closing - X button clicked"""
-        # Use the same user feedback as the stop button
-        self.on_stop_button_press(None)
-        self._shutdown_application()
-    
+    def update_controls_frame_sizing(self):
+        if hasattr(self, 'controls_stats_panel'):
+            self.controls_stats_panel.update_controls_frame_sizing(self.nowplaying_enabled)
+
     def _shutdown_application(self):
         """Common shutdown logic for both Stop button and X button"""
         if self.is_running:
@@ -880,26 +625,30 @@ class BotGUI:
         else:
             info("🔄 Closing application...")
             self.root.destroy()
-    
-    def calculate_optimal_button_width(self, button_texts):
-        return self.controls_stats_panel.calculate_optimal_button_width(button_texts)
 
-    def calculate_controls_frame_width(self):
-        return self.controls_stats_panel.calculate_controls_frame_width(self.nowplaying_enabled)
+    def clear_log(self):
+        """Clear the output log via the log console panel."""
+        if hasattr(self, 'log_console_panel'):
+            self.log_console_panel.clear_log()
 
-    def update_controls_frame_sizing(self):
-        self.controls_stats_panel.update_controls_frame_sizing(self.nowplaying_enabled)
-    
-    def run(self):
-        """Run the GUI application"""
-        try:
-            self.root.mainloop()
-        except KeyboardInterrupt:
-            self.on_closing()
+    def clear_track_history(self):
+        """Clear track history in NowPlaying config.json using the utility function."""
+        from config.settings import Settings
+        from utils.nowplaying import clear_nowplaying_track_history
+        if not Settings.is_nowplaying_enabled():
+            warning("❌ NowPlaying integration is not enabled")
+            return
+        if not Settings.NOWPLAYING_CONFIG_JSON_PATH:
+            warning("❌ Config file path not set in environment variable NOWPLAYING_CONFIG_JSON_PATH")
+            return
+        success = clear_nowplaying_track_history(Settings.NOWPLAYING_CONFIG_JSON_PATH)
+        if not success:
+            error("❌ Failed to clear NowPlaying track history.")
+        # Optionally, update the GUI or show a messagebox if you want user feedback
 
-    def initialize_collection_on_startup(self):
-        """Initialize collection by importing from .nml file (same as refresh)"""
-        def _initialize():
+    def refresh_collection(self):
+        """Refresh the Traktor collection by copying the latest file and reloading stats"""
+        def _refresh():
             try:
                 from config.settings import Settings
                 from utils.traktor import initialize_collection
@@ -913,7 +662,14 @@ class BotGUI:
                     debug_mode=Settings.DEBUG
                 )
                 if result["success"]:
-                    info(f"📊 Collection stats: {result['total_songs']:,} total songs, {result['total_new_songs']:,} new songs (last {Settings.NEW_SONGS_DAYS} days)")
+                    info(f"✅ Collection refreshed successfully - {result['total_songs']:,} songs processed")
+                    # Reset search counter on refresh
+                    self.search_count = 0
+                    search_counter_file = Settings.SEARCH_COUNTER_FILE
+                    with open(search_counter_file, "w") as f:
+                        f.write("0")
+                    self.root.after(0, lambda: self.searches_label.config(text=f"Song Searches: {self.search_count}"))
+                    debug("Search counter reset to 0")
                     # Update UI on main thread
                     self.root.after(0, lambda: self.songs_label.config(text=f"Songs: {result['total_songs']:,}"))
                     self.root.after(0, lambda: self.new_songs_label.config(text=f"New Songs: {result['total_new_songs']:,}"))
@@ -925,32 +681,96 @@ class BotGUI:
                     self.root.after(0, lambda: self.songs_label.config(text="Songs: Collection not found"))
                     self.root.after(0, lambda: self.new_songs_label.config(text="New Songs: Collection not found"))
             except Exception as e:
-                error_msg = f"Error initializing collection: {e}"
-                error(f"❌ {error_msg}")
+                error_msg = f"Error refreshing collection: {e}"
+                error(error_msg)
+        # Run in background thread to avoid blocking UI
+        threading.Thread(target=_refresh, daemon=True).start()
+
+    def load_collection_stats(self):
+        """Load and display collection statistics"""
+        def _load_stats():
+            try:
+                from config.settings import Settings
+                from utils.traktor import initialize_collection
+                import os
+                # Only load stats if JSON exists, otherwise refresh
+                if not os.path.exists(Settings.COLLECTION_JSON_FILE):
+                    warning("Collection JSON not found, creating from Traktor collection...")
+                result = initialize_collection(
+                    Settings.TRAKTOR_PATH,
+                    Settings.COLLECTION_JSON_FILE,
+                    Settings.EXCLUDED_ITEMS,
+                    Settings.NEW_SONGS_DAYS,
+                    Settings.MAX_SONGS,
+                    debug_mode=Settings.DEBUG
+                )
+                if result["success"]:
+                    info(f"📊 Collection stats: {result['total_songs']:,} total songs, {result['total_new_songs']:,} new songs (last {Settings.NEW_SONGS_DAYS} days)")
+                    self.root.after(0, lambda: self.songs_label.config(text=f"Songs: {result['total_songs']:,}"))
+                    self.root.after(0, lambda: self.new_songs_label.config(text=f"New Songs: {result['total_new_songs']:,}"))
+                    self.root.after(0, lambda: self.import_date_label.config(text=result['date_str']))
+                    self.root.after(0, lambda: self.import_time_label.config(text=result['time_str']))
+                    self.root.after(50, self.update_controls_frame_sizing)
+                else:
+                    warning(f"⚠️ {result['error_msg']}")
+                    self.root.after(0, lambda: self.songs_label.config(text="Songs: Collection not found"))
+                    self.root.after(0, lambda: self.new_songs_label.config(text="New Songs: Collection not found"))
+                    self.root.after(0, lambda: self.import_date_label.config(text="Not available"))
+                    self.root.after(0, lambda: self.import_time_label.config(text=""))
+            except Exception as e:
+                error_msg = f"Error loading collection stats: {e}"
+                print(f"❌ {error_msg}")
                 self.root.after(0, lambda: self.songs_label.config(text="Songs: Error loading"))
                 self.root.after(0, lambda: self.new_songs_label.config(text="New Songs: Error loading"))
-        # Run in background thread to avoid blocking UI
-        threading.Thread(target=_initialize, daemon=True).start()
-def main():
-    """Main entry point for the GUI application"""
-    # For PyInstaller executables, we don't need the directory check
-    # since all modules are bundled inside the executable
-    if not getattr(sys, 'frozen', False):
-        # Only check directory when running as Python script
-        if not os.path.exists('config/settings.py'):
-            messagebox.showerror(
-                "Setup Error",
-                "This application must be run from the Traktor DJ NowPlaying Discord Bot directory.\n\n"
-                "Please ensure you're in the correct directory and all required files are present."
-            )
-            return
-    
+                self.root.after(0, lambda: self.import_date_label.config(text="Error"))
+                self.root.after(0, lambda: self.import_time_label.config(text=""))
+        threading.Thread(target=_load_stats, daemon=True).start()
+
+    def load_search_count(self):
+        """Load the search count from the file, if it exists"""
+        try:
+            from config.settings import Settings
+            if os.path.exists(Settings.SEARCH_COUNTER_FILE):
+                with open(Settings.SEARCH_COUNTER_FILE, "r") as f:
+                    count = f.read().strip()
+                    self.search_count = int(count) if count.isdigit() else 0
+                info(f"🔍 Loaded search count: {self.search_count}")
+            else:
+                info("🔍 Search counter file not found, starting at 0")
+                self.search_count = 0
+        except Exception as e:
+            warning(f"⚠️ Error loading search count: {e}")
+            self.search_count = 0
+
+    def update_search_count_display(self):
+        """Update the search count label in the GUI"""
+        try:
+            from config.settings import Settings
+            # Only update if the file exists
+            if os.path.exists(Settings.SEARCH_COUNTER_FILE):
+                with open(Settings.SEARCH_COUNTER_FILE, "r") as f:
+                    count = f.read().strip()
+                    current_count = int(count) if count.isdigit() else 0
+                    if current_count != self.search_count:
+                        self.search_count = current_count
+                        self.root.after(0, lambda: self.searches_label.config(text=f"Song Searches: {self.search_count}"))
+        except Exception as e:
+            warning(f"⚠️ Error updating search count display: {e}")
+
+# Start the GUI application
+def run_gui():
+    """Run the Tkinter GUI loop"""
     try:
         app = BotGUI()
-        app.run()
+        app.root.mainloop()
     except Exception as e:
-        messagebox.showerror("Application Error", f"Error starting GUI application: {e}")
-
+        # Handle any uncaught exceptions in the GUI
+        error_msg = f"Unexpected error in GUI: {e}"
+        print(f"❌ {error_msg}")
+        try:
+            messagebox.showerror("Unexpected Error", error_msg)
+        except:
+            pass  # Ignore errors in the error handler itself
 
 if __name__ == "__main__":
-    main()
+    run_gui()
