@@ -174,6 +174,19 @@ class BotGUI:
     """GUI application for the Traktor DJ NowPlaying Discord Bot"""
     
     def __init__(self, title=None):
+        from services.discord_bot import DiscordBotController
+        from main import DJBot
+        from config.settings import Settings
+        self.discord_bot_controller = DiscordBotController(
+            bot_class=DJBot,
+            settings=Settings,
+            gui_callbacks={
+                "on_ready": self.on_discord_bot_ready,
+                "on_status": lambda text, color: self.status_label.config(text=text, foreground=color),
+                "on_error": self.on_discord_bot_error,
+                "on_stopped": self.on_discord_bot_stopped
+            }
+        )
         self.debug_mode = '--debug' in sys.argv
         self.root = tk.Tk()
         app_title = title or f"Traktor DJ NowPlaying Discord Bot v{__version__} - Control Panel"
@@ -387,182 +400,24 @@ class BotGUI:
         # Schedule next check        self.root.after(100, self.check_output_queue)
 
     def auto_start_bot(self):
-        """Automatically start the bot on launch"""
-        # Prevent multiple auto-starts
+        """Automatically start the Discord bot on launch"""
         if self.is_running:
             debug("Auto-startup skipped - bot already running")
             return
-            
         debug("Auto-startup enabled - initiating bot start")
-        self.start_bot()
+        self.start_discord_bot()
 
-    def start_bot(self):
+    def start_discord_bot(self):
         """Start the Discord bot"""
-        if self.is_running:
-            return
         if getattr(self, 'debug_mode', False):
             info("Debug mode: Skipping Discord bot connection.")
             self.status_label.config(text="🟡 Debug Mode (Bot Not Connected)", foreground="orange")
             return
-        try:
-            # Validate configuration
-            if not Settings.TOKEN:
-                error("Discord token not found in configuration")
-                messagebox.showerror(
-                    "Configuration Error",
-                    "Discord token not found!\n\nPlease check your .env file and ensure DISCORD_TOKEN is set."
-                )
-                return
-            info("🚀 Starting Discord bot...")
-            debug(f"Bot token configured: {Settings.TOKEN[:10]}...")
-            # Start bot in separate thread
-            self.bot_thread = threading.Thread(target=self._run_bot, daemon=True)
-            self.bot_thread.start()
-            # Update UI (Start button removed - using auto-start now)
-            self.stop_button.config(state='normal')
-            self.status_label.config(text="🟡 Starting...", foreground="orange")
-        except Exception as e:
-            error(f"Error starting bot: {e}")
-            self.add_log(f"Error starting bot: {e}", "error")
-            messagebox.showerror("Startup Error", f"Failed to start bot:\n{e}")
-    
-    def _run_bot(self):
-        """Run the bot in a separate thread"""
-        loop = None
-        try:
-            self.is_running = True
-            
-            # Create new event loop for this thread
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            
-            # Create bot instance
-            self.bot = DJBot()
-            
-            # Set up bot event handlers
-            @self.bot.event
-            async def on_ready():
-                # Update UI from main thread
-                self.root.after(0, self._update_bot_info)
-            
-            # Run the bot
-            if Settings.TOKEN:
-                loop.run_until_complete(self.bot.start(Settings.TOKEN))
-            else:
-                raise ValueError("Discord TOKEN not configured")
-                
-        except Exception as e:
-            self.add_log(f"Bot error: {e}", "error")
-            self.root.after(0, self._handle_bot_error, str(e))
-        finally:
-            self.is_running = False
-            
-            # Properly close the event loop
-            if loop and not loop.is_closed():
-                try:
-                    # Cancel all pending tasks
-                    pending_tasks = asyncio.all_tasks(loop)
-                    for task in pending_tasks:
-                        task.cancel()
-                    
-                    # Wait for tasks to complete cancellation
-                    if pending_tasks:
-                        loop.run_until_complete(asyncio.gather(*pending_tasks, return_exceptions=True))
-                    
-                    # Close the loop
-                    loop.close()
-                    info("✅ Bot event loop closed properly")
-                except Exception as cleanup_error:
-                    warning(f"⚠️ Error during event loop cleanup: {cleanup_error}")
-            
-            self.root.after(0, self._bot_stopped)
-    
-    def _update_bot_info(self):
-        """Update bot information in the UI"""
-        if self.bot and self.bot.user:
-            self.status_label.config(text="🟢 Bot Online", foreground="green")
-            self.bot_name_label.config(text=f"Name: {self.bot.user}")
-            self.bot_id_label.config(text=f"ID: {self.bot.user.id}")            # Count commands
-            command_count = len([cmd for cmd in self.bot.tree.walk_commands()])
-            self.commands_label.config(text=f"Commands: {command_count} loaded")
-            
-            # Load collection stats when bot comes online (bot already imported collection)
-            self.load_collection_stats()
-    
-    def _handle_bot_error(self, error_msg):
-        """Handle bot errors"""
-        self.status_label.config(text="🔴 Bot Error", foreground="red")
-        messagebox.showerror("Bot Error", f"Bot encountered an error:\n{error_msg}")
-    
-    def _bot_stopped(self):
-        """Handle bot stopping"""
-        self.status_label.config(text="⚪ Bot Stopped", foreground="gray")
-        # Start button removed - bot will auto-restart if GUI is restarted
-        self.stop_button.config(state='disabled')
-        
-        # Reset bot info
-        self.bot_name_label.config(text="Name: Not connected")
-        self.bot_id_label.config(text="ID: Not connected")
-        self.commands_label.config(text="Commands: Not loaded")
-        self.songs_label.config(text="Songs: Not loaded")
-        self.new_songs_label.config(text="New Songs: Not loaded")
-        
-        # Keep output capture active - don't restore stdout/stderr
-    
-    def stop_bot(self):
+        self.discord_bot_controller.start_discord_bot()
+
+    def stop_discord_bot(self):
         """Stop the Discord bot immediately"""
-        if not self.is_running:
-            return
-        
-        self.add_log("Stopping bot...", "warning")        # Permanently suppress aiohttp warnings using warnings filter
-        import warnings
-        import logging
-        
-        # Add filters to permanently suppress aiohttp warnings
-        warnings.filterwarnings("ignore", message=".*Unclosed client session.*")
-        warnings.filterwarnings("ignore", message=".*Unclosed connector.*")
-        warnings.filterwarnings("ignore", category=ResourceWarning, message=".*unclosed.*")
-        
-        # Also suppress them at the logging level
-        logging.getLogger('aiohttp').setLevel(logging.CRITICAL)
-        
-        # Temporarily suppress stderr during the actual shutdown process
-        original_stderr = sys.stderr
-        try:
-            # Redirect stderr to suppress any remaining console output
-            import io
-            sys.stderr = io.StringIO()
-            
-            if self.bot and hasattr(self.bot, 'close'):
-                # Create a new event loop to properly close the bot
-                if hasattr(self.bot, 'loop') and self.bot.loop and not self.bot.loop.is_closed():                    # Schedule the close operation in the bot's event loop
-                    future = asyncio.run_coroutine_threadsafe(self.bot.close(), self.bot.loop)
-                    # Wait for the close operation to complete (with timeout)
-                    try:
-                        future.result(timeout=3.0)  # Reduced timeout
-                        info("✅ Bot disconnected successfully")
-                    except Exception:
-                        # Suppress timeout/error messages - bot is closing anyway
-                        info("✅ Bot closed")
-                else:
-                    info("✅ Bot closed")
-                    
-        except Exception as e:
-            # Only show critical errors, suppress session-related messages
-            if "session" not in str(e).lower():
-                self.add_log(f"Error stopping bot: {e}", "error")
-        finally:
-            # Restore stderr (warnings filters remain active permanently)
-            sys.stderr = original_stderr
-          # Mark as not running immediately
-        self.is_running = False
-        
-        # Give the bot thread a moment to clean up (simplified output)
-        if self.bot_thread and self.bot_thread.is_alive():
-            self.bot_thread.join(timeout=2.0)  # Reduced timeout
-        
-        # Always show final success message
-        info("✅ Bot shutdown complete")
+        self.discord_bot_controller.stop_discord_bot()
 
     def on_stop_button_press(self, event=None):
         """Show stopping message when stop button is pressed down or X is clicked"""
@@ -581,7 +436,7 @@ class BotGUI:
             )
             if result:
                 info("🔄 User requested application close - stopping bot...")
-                self.stop_bot()
+                self.stop_discord_bot()
                 # Wait for clean shutdown then close
                 self.root.after(500, self.root.destroy)
             return
@@ -596,7 +451,7 @@ class BotGUI:
         """Common shutdown logic for both Stop button and X button"""
         if self.is_running:
             info("🔄 User requested application close - stopping bot...")
-            self.stop_bot()
+            self.stop_discord_bot()
             # Wait for clean shutdown then close
             self.root.after(500, self.root.destroy)
         else:
@@ -717,6 +572,30 @@ class BotGUI:
             self.search_count = new_count
             self.root.after(0, lambda: self.searches_label.config(text=f"Song Searches: {self.search_count}"))
         update_search_count_display(Settings.SEARCH_COUNTER_FILE, self.search_count, update_label)
+
+    def on_discord_bot_ready(self, bot):
+        """Update bot information in the UI when the Discord bot is ready."""
+        self.status_label.config(text="🟢 Bot Online", foreground="green")
+        self.bot_name_label.config(text=f"Name: {bot.user}")
+        self.bot_id_label.config(text=f"ID: {bot.user.id}")
+        command_count = len([cmd for cmd in bot.tree.walk_commands()])
+        self.commands_label.config(text=f"Commands: {command_count} loaded")
+        self.load_collection_stats()
+
+    def on_discord_bot_error(self, error_msg):
+        """Handle Discord bot errors."""
+        self.status_label.config(text="🔴 Bot Error", foreground="red")
+        messagebox.showerror("Bot Error", f"Bot encountered an error:\n{error_msg}")
+
+    def on_discord_bot_stopped(self):
+        """Handle Discord bot stopping."""
+        self.status_label.config(text="⚪ Bot Stopped", foreground="gray")
+        self.stop_button.config(state='disabled')
+        self.bot_name_label.config(text="Name: Not connected")
+        self.bot_id_label.config(text="ID: Not connected")
+        self.commands_label.config(text="Commands: Not loaded")
+        self.songs_label.config(text="Songs: Not loaded")
+        self.new_songs_label.config(text="New Songs: Not loaded")
 
 # Start the GUI application
 def run_gui():
