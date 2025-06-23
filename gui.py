@@ -173,11 +173,14 @@ class BotGUI:
     """GUI application for the Traktor DJ NowPlaying Discord Bot"""
     
     def __init__(self, title=None):
+        # Set debug mode from launch flag BEFORE any setup
+        self.debug_mode = '--debug' in sys.argv
         self.root = tk.Tk()
         app_title = title or f"Traktor DJ NowPlaying Discord Bot v{__version__} - Control Panel"
         self.root.title(app_title)
-        self.root.geometry("900x700")
-        self.root.minsize(700, 500)        # Set window icon - remove the janky black diamond/question mark icon
+        self.root.geometry("1200x700")  # Widened for new layout
+        self.root.minsize(1000, 500)
+        # Set window icon - remove the janky black diamond/question mark icon
         try:
             # Use PyInstaller's _MEIPASS for bundled resources
             if getattr(sys, 'frozen', False):
@@ -243,8 +246,12 @@ class BotGUI:
           # Handle window closing - redirect X button to use same logic as stop button
         self.root.protocol("WM_DELETE_WINDOW", self.on_x_button_clicked)
         
-        # Auto-start the bot after GUI is ready
-        self.root.after(1000, self.auto_start_bot)
+        # Auto-start the bot after GUI is ready, but only if not in debug mode
+        if not self.debug_mode:
+            self.root.after(1000, self.auto_start_bot)
+        else:
+            info("Debug mode enabled: Bot will not connect to Discord.")
+            self.status_label.config(text="🟡 Debug Mode (Bot Not Connected)", foreground="orange")
     
     def setup_gui(self):
         """Set up the GUI elements"""
@@ -254,7 +261,8 @@ class BotGUI:
           # Main frame
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky="nsew")
-        main_frame.columnconfigure(1, weight=3)  # Give log more weight
+        main_frame.columnconfigure(1, weight=3)  # Console/NowPlaying area
+        main_frame.columnconfigure(2, weight=2)  # Song Requests area
         main_frame.columnconfigure(0, weight=0)  # Controls don't expand
         main_frame.rowconfigure(1, weight=1)
           # Title
@@ -281,7 +289,8 @@ class BotGUI:
         ]
         if self.nowplaying_enabled:
             button_texts.append("🧹 Clear NP Track Info")        # Calculate optimal button width
-        optimal_width = self.calculate_optimal_button_width(button_texts)# Configure controls frame - no expansion, let content determine size
+        optimal_width = self.calculate_optimal_button_width(button_texts)
+# Configure controls frame - no expansion, let content determine size
         controls_frame.columnconfigure(0, weight=0)  # Don't expand
         # Set a reasonable fixed width based on button content
         controls_frame.grid_columnconfigure(0, minsize=200)  # Conservative fixed width
@@ -363,18 +372,29 @@ class BotGUI:
             )
             clear_history_button.grid(row=7, column=0, pady=8)
         
-        # Right panel - Log
-        log_frame = ttk.LabelFrame(main_frame, text="Bot Output Log", padding="8")
-        log_frame.grid(row=1, column=1, sticky="nsew")
+        # Console/NowPlaying Panel (was right_panel)
+        console_panel = ttk.Frame(main_frame)
+        console_panel.grid(row=1, column=1, sticky="nsew")
+        console_panel.columnconfigure(0, weight=1)
+        console_panel.rowconfigure(0, weight=1)  # Now Playing (top half)
+        console_panel.rowconfigure(1, weight=1)  # Log (bottom half)
+
+        # Now Playing Panel (top half of console_panel)
+        from gui.gui_nowplaying import NowPlayingPanel
+        self.nowplaying_panel = NowPlayingPanel(console_panel)
+        self.nowplaying_panel.grid(row=0, column=0, sticky="nsew")
+
+        # Log Panel (bottom half of console_panel)
+        log_frame = ttk.LabelFrame(console_panel, text="Bot Output Log", padding="8")
+        log_frame.grid(row=1, column=0, sticky="nsew")
         log_frame.columnconfigure(0, weight=1)
         log_frame.rowconfigure(0, weight=1)
-        
         # Output text area with scrollbar
         self.output_text = scrolledtext.ScrolledText(
             log_frame,
             wrap=tk.WORD,
             width=60,
-            height=25,
+            height=15,
             font=("Consolas", 10),
             bg="#1a1a1a",
             fg="#ffffff",
@@ -382,13 +402,21 @@ class BotGUI:
             selectbackground="#404040"
         )
         self.output_text.grid(row=0, column=0, sticky="nsew")
-        
         # Configure text tags for colored output
         self.output_text.tag_configure("info", foreground="#ffffff")
         self.output_text.tag_configure("success", foreground="#4CAF50")
         self.output_text.tag_configure("warning", foreground="#FF9800")
         self.output_text.tag_configure("error", foreground="#f44336")
-        self.output_text.tag_configure("timestamp", foreground="#888888")        # Add initial message
+        self.output_text.tag_configure("timestamp", foreground="#888888")
+
+        # Song Requests Panel (new, right of console/log)
+        from gui.gui_songrequests import SongRequestsPanel
+        self.song_requests_panel = SongRequestsPanel(main_frame)
+        self.song_requests_panel.grid(row=1, column=2, sticky="nsew", padx=(15, 0))  # Add left padding
+        self.song_requests_placeholder = ttk.Label(self.song_requests_panel, text="No song requests loaded yet.", anchor="center")
+        self.song_requests_placeholder.grid(row=0, column=0, sticky="nsew")
+
+        # Add initial message
         info("🎛️ Traktor DJ NowPlaying Discord Bot Control Panel initialized")
         info("⏱️ Auto-startup scheduled in 1 second...")
         
@@ -499,7 +527,10 @@ class BotGUI:
         """Start the Discord bot"""
         if self.is_running:
             return
-        
+        if getattr(self, 'debug_mode', False):
+            info("Debug mode: Skipping Discord bot connection.")
+            self.status_label.config(text="🟡 Debug Mode (Bot Not Connected)", foreground="orange")
+            return
         try:
             # Validate configuration
             if not Settings.TOKEN:
@@ -509,18 +540,14 @@ class BotGUI:
                     "Discord token not found!\n\nPlease check your .env file and ensure DISCORD_TOKEN is set."
                 )
                 return
-            
             info("🚀 Starting Discord bot...")
             debug(f"Bot token configured: {Settings.TOKEN[:10]}...")
-            
             # Start bot in separate thread
             self.bot_thread = threading.Thread(target=self._run_bot, daemon=True)
             self.bot_thread.start()
-            
             # Update UI (Start button removed - using auto-start now)
             self.stop_button.config(state='normal')
             self.status_label.config(text="🟡 Starting...", foreground="orange")
-            
         except Exception as e:
             error(f"Error starting bot: {e}")
             self.add_log(f"Error starting bot: {e}", "error")
