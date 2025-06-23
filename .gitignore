@@ -84,4 +84,4 @@ stats.json
 *.temp
 
 # Extra Cogs
-extra_cogs/
+extra_cogs/*

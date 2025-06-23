@@ -45,7 +45,11 @@ class DJBot(commands.Bot):
                     info(f"✅ Loaded internal {cog}")
                     loaded_cogs.add(cog)
                 except Exception as e:
-                    error(f"❌ Failed to load internal {cog}: {e}")
+                    if cog.startswith("extra_cogs."):
+                        # Suppress error for missing extra_cogs cogs
+                        pass
+                    else:
+                        error(f"❌ Failed to load internal {cog}: {e}")
         except Exception as e:
             warning(f"Could not import internal cogs list: {e}")
             loaded_cogs = set()
