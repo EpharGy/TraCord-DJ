@@ -32,25 +32,24 @@ class DJBot(commands.Bot):
             application_id=Settings.APPLICATION_ID        )
     
     async def setup_hook(self):
-        """Load all cogs when the bot starts"""
-        info("Loading cogs...")
-        
-        # List of cogs to load
-        cogs = [
-            'cogs.music',
-            'cogs.collection', 
-            'cogs.music_requests',
-            'cogs.admin'
-        ]
-        
-        # Load each cog
-        for cog in cogs:
-            try:
-                await self.load_extension(cog)
-                info(f"✅ Loaded {cog}")
-            except Exception as e:
-                error(f"❌ Failed to load {cog}: {e}")
-        
+        """Dynamically load all cogs in the cogs/ directory when the bot starts."""
+        import os
+        cogs_dir = "cogs"
+        cogs_to_load = []
+        if os.path.isdir(cogs_dir):
+            for filename in os.listdir(cogs_dir):
+                if filename.endswith(".py") and not filename.startswith("_") and filename != "__init__.py":
+                    cogs_to_load.append(filename)
+            info(f"Loading {len(cogs_to_load)} cogs files...")
+            for filename in cogs_to_load:
+                cog = f"cogs.{filename[:-3]}"
+                try:
+                    await self.load_extension(cog)
+                    info(f"✅ Loaded {cog}")
+                except Exception as e:
+                    error(f"❌ Failed to load {cog}: {e}")
+        else:
+            info("No external cogs directory found. Skipping extra cogs loading.")
         # Sync slash commands
         try:
             synced = await self.tree.sync()
