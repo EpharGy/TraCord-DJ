@@ -83,6 +83,5 @@ stats.json
 *.tmp
 *.temp
 
-# Persona files
-__Persona.txt
-
+# Extra Cogs
+extra_cogs/
