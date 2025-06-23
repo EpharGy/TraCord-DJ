@@ -133,6 +133,10 @@ Traktor-DJ-NowPlaying-Discord-Bot/
 │   │   ├── music.py
 │   │   ├── music_requests.py
 │   │   └── _internal_cogs.py      # Auto-managed: always-up-to-date list of internal cogs
+│   ├── extra_cogs/                # (gitignored) Personal/dev-only cogs, launchers, and persona files
+│   │   ├── my_anime_cog.py        # Example: not included in EXE unless added to build
+│   │   ├── _persona.txt           # Example: personal character/persona data
+│   │   └── ...                    # Any .py files here are loaded as cogs in dev, but not in packaged EXE
 │   ├── config/
 │   │   └── settings.py
 │   ├── gui/                        # GUI submodules (panels, controls, etc.)
@@ -178,6 +182,13 @@ Traktor-DJ-NowPlaying-Discord-Bot/
 ```
 
 > **Note:** The `gui/` folder contains all modular GUI panels and controls. The `services/` folder contains bot lifecycle logic. The `utils/` folder contains helpers, logging, and Traktor/NowPlaying utilities.
+
+## ⚙️ Cog Loading Behavior
+
+- All cogs in `cogs/` are always loaded and should be included in packaged builds.
+- Any `.py` files in `extra_cogs/` (top-level only) are also loaded as cogs when running from source, but are **not** included in the EXE unless you add `--add-data=extra_cogs;extra_cogs` to your build.
+- Errors for missing cogs in `extra_cogs` are suppressed for a clean dev experience.
+- Use `extra_cogs/` for personal, experimental, or private cogs and files. This folder is gitignored by default.
 
 ## License
 
