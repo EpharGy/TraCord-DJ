@@ -331,12 +331,6 @@ class BotGUI:
         self.log_console_panel = LogConsolePanel(console_panel)
         self.log_console_panel.grid(row=1, column=0, sticky="nsew")
         self.output_text = self.log_console_panel.output_text
-        # Configure text tags for colored output
-        self.output_text.tag_configure("info", foreground="#ffffff")
-        self.output_text.tag_configure("success", foreground="#4CAF50")
-        self.output_text.tag_configure("warning", foreground="#FF9800")
-        self.output_text.tag_configure("error", foreground="#f44336")
-        self.output_text.tag_configure("timestamp", foreground="#888888")
 
         # Song Requests Panel (new, right of console/log)
         from gui.gui_songrequests import SongRequestsPanel
@@ -391,23 +385,8 @@ class BotGUI:
         # Output capture is now ready - subsequent print statements will appear in GUI
     
     def add_log(self, message, level="info"):
-        """Add a message to the log with timestamp and color"""
-        timestamp = datetime.now().strftime("%H:%M:%S")
-        
-        # Insert timestamp
-        self.output_text.insert(tk.END, f"[{timestamp}] ", "timestamp")
-        
-        # Insert message with appropriate color
-        self.output_text.insert(tk.END, f"{message}\n", level)
-          # Auto-scroll to bottom
-        self.output_text.see(tk.END)
-        
-        # Limit log size (keep last 1000 lines)
-        lines = self.output_text.get("1.0", tk.END).split('\n')
-        if len(lines) > 1000:
-            lines_to_delete = len(lines) - 1000
-            self.output_text.delete("1.0", f"{lines_to_delete}.0")
-    
+        self.log_console_panel.add_log(message, level)
+
     def check_output_queue(self):
         """Check for new output from the bot"""
         try:
@@ -923,48 +902,33 @@ class BotGUI:
         def _initialize():
             try:
                 from config.settings import Settings
-                from utils.traktor import refresh_collection_json, load_collection_json, count_songs_in_collection_json, get_new_songs_json
-                
-                # Always refresh from .nml file to ensure latest data and consistent messaging
-                info("🔄 Importing collection from Traktor...")
-                info("📁 Converting XML to optimized JSON format...")
-                  # Use the same refresh workflow as the refresh button
-                song_count = refresh_collection_json(
-                    Settings.TRAKTOR_PATH, 
-                    Settings.COLLECTION_JSON_FILE, 
-                    Settings.EXCLUDED_ITEMS, 
+                from utils.traktor import initialize_collection
+                # Use the new utility function for all logic
+                result = initialize_collection(
+                    Settings.TRAKTOR_PATH,
+                    Settings.COLLECTION_JSON_FILE,
+                    Settings.EXCLUDED_ITEMS,
+                    Settings.NEW_SONGS_DAYS,
+                    Settings.MAX_SONGS,
                     debug_mode=Settings.DEBUG
                 )
-                
-                info(f"✅ Collection imported successfully - {song_count:,} songs processed")
-                  # Load the collection and update stats
-                songs = load_collection_json(Settings.COLLECTION_JSON_FILE)
-                if songs:
-                    total_songs = count_songs_in_collection_json(songs)
-                    _, total_new_songs = get_new_songs_json(songs, Settings.NEW_SONGS_DAYS, Settings.MAX_SONGS, Settings.DEBUG)
-                    info(f"📊 Collection stats: {total_songs:,} total songs, {total_new_songs:,} new songs (last {Settings.NEW_SONGS_DAYS} days)")
-                      # Update UI on main thread
-                    self.root.after(0, lambda: self.songs_label.config(text=f"Songs: {total_songs:,}"))
-                    self.root.after(0, lambda: self.new_songs_label.config(text=f"New Songs: {total_new_songs:,}"))
-                    
-                    # Update import date
-                    date_str, time_str = self.get_collection_import_date()
-                    self.root.after(0, lambda: self.import_date_label.config(text=date_str))
-                    self.root.after(0, lambda: self.import_time_label.config(text=time_str))
-                    
-                    # Update controls frame sizing after content changes
+                if result["success"]:
+                    info(f"📊 Collection stats: {result['total_songs']:,} total songs, {result['total_new_songs']:,} new songs (last {Settings.NEW_SONGS_DAYS} days)")
+                    # Update UI on main thread
+                    self.root.after(0, lambda: self.songs_label.config(text=f"Songs: {result['total_songs']:,}"))
+                    self.root.after(0, lambda: self.new_songs_label.config(text=f"New Songs: {result['total_new_songs']:,}"))
+                    self.root.after(0, lambda: self.import_date_label.config(text=result['date_str']))
+                    self.root.after(0, lambda: self.import_time_label.config(text=result['time_str']))
                     self.root.after(50, self.update_controls_frame_sizing)
                 else:
-                    warning("⚠️ Collection JSON is empty or could not be loaded")
+                    warning(f"⚠️ {result['error_msg']}")
                     self.root.after(0, lambda: self.songs_label.config(text="Songs: Collection not found"))
                     self.root.after(0, lambda: self.new_songs_label.config(text="New Songs: Collection not found"))
-                    
             except Exception as e:
                 error_msg = f"Error initializing collection: {e}"
                 error(f"❌ {error_msg}")
                 self.root.after(0, lambda: self.songs_label.config(text="Songs: Error loading"))
                 self.root.after(0, lambda: self.new_songs_label.config(text="New Songs: Error loading"))
-        
         # Run in background thread to avoid blocking UI
         threading.Thread(target=_initialize, daemon=True).start()
 def main():
