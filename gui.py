@@ -219,7 +219,6 @@ class BotGUI:
         self.is_running = False
         self.bot_thread = None
         self.search_count = 0
-        self.load_search_count()
         self.output_queue = queue.Queue()
         self.setup_gui()
         self.setup_output_capture()
@@ -335,41 +334,19 @@ class BotGUI:
         self.root.deiconify()  # Show the window
     
     def setup_output_capture(self):
-        """Set up output capture for stdout and stderr"""
-        class OutputCapture:
-            def __init__(self, queue_obj, tag, original, gui_instance):
-                self.queue = queue_obj
-                self.tag = tag
-                self.original = original
-                self.gui = gui_instance
-            
-            def write(self, text):
-                # Always write to original first (terminal) - this ensures terminal gets everything
-                self.original.write(text)
-                self.original.flush()
-                
-                # Then capture for GUI (only non-empty lines)
-                if text.strip():
-                    self.queue.put((self.tag, text.strip()))
-            
-            def flush(self):
-                self.original.flush()        # Store original streams (handle None case for PyInstaller)
+        """Set up output capture for stdout and stderr using OutputCapture from logger.py"""
+        from utils.logger import OutputCapture
         self.original_stdout = sys.stdout if sys.stdout is not None else sys.__stdout__
         self.original_stderr = sys.stderr if sys.stderr is not None else sys.__stderr__
-        
+        import io
         # Ensure we have valid streams
         if self.original_stdout is None:
-            # Create a dummy stream for PyInstaller GUI mode
-            import io
             self.original_stdout = io.StringIO()
         if self.original_stderr is None:
-            import io
             self.original_stderr = io.StringIO()
-        
         # Create capture objects - these will intercept ALL output
         self.stdout_capture = OutputCapture(self.output_queue, "info", self.original_stdout, self)
         self.stderr_capture = OutputCapture(self.output_queue, "error", self.original_stderr, self)
-        
         # Output capture is now ready - subsequent print statements will appear in GUI
     
     def add_log(self, message, level="info"):
@@ -727,35 +704,19 @@ class BotGUI:
         threading.Thread(target=_load_stats, daemon=True).start()
 
     def load_search_count(self):
-        """Load the search count from the file, if it exists"""
-        try:
-            from config.settings import Settings
-            if os.path.exists(Settings.SEARCH_COUNTER_FILE):
-                with open(Settings.SEARCH_COUNTER_FILE, "r") as f:
-                    count = f.read().strip()
-                    self.search_count = int(count) if count.isdigit() else 0
-                info(f"🔍 Loaded search count: {self.search_count}")
-            else:
-                info("🔍 Search counter file not found, starting at 0")
-                self.search_count = 0
-        except Exception as e:
-            warning(f"⚠️ Error loading search count: {e}")
-            self.search_count = 0
+        """Load the search count from the file using helpers.py."""
+        from config.settings import Settings
+        from utils.helpers import load_search_count
+        self.search_count = load_search_count(Settings.SEARCH_COUNTER_FILE)
 
     def update_search_count_display(self):
-        """Update the search count label in the GUI"""
-        try:
-            from config.settings import Settings
-            # Only update if the file exists
-            if os.path.exists(Settings.SEARCH_COUNTER_FILE):
-                with open(Settings.SEARCH_COUNTER_FILE, "r") as f:
-                    count = f.read().strip()
-                    current_count = int(count) if count.isdigit() else 0
-                    if current_count != self.search_count:
-                        self.search_count = current_count
-                        self.root.after(0, lambda: self.searches_label.config(text=f"Song Searches: {self.search_count}"))
-        except Exception as e:
-            warning(f"⚠️ Error updating search count display: {e}")
+        """Update the search count label in the GUI using helpers.py."""
+        from config.settings import Settings
+        from utils.helpers import update_search_count_display
+        def update_label(new_count):
+            self.search_count = new_count
+            self.root.after(0, lambda: self.searches_label.config(text=f"Song Searches: {self.search_count}"))
+        update_search_count_display(Settings.SEARCH_COUNTER_FILE, self.search_count, update_label)
 
 # Start the GUI application
 def run_gui():
