@@ -14,6 +14,7 @@ from config.settings import Settings
 from utils.traktor import parse_traktor_collection, load_collection_json, search_collection_json
 from utils.helpers import check_channel_permissions, truncate_response
 from utils.logger import debug, info, warning, error
+from utils.stats import increment_stat
 
 
 class MusicCog(commands.Cog, name="Music"):
@@ -118,7 +119,8 @@ class MusicCog(commands.Cog, name="Music"):
         info(f"{interaction.user}'s search '{search}' matched {total_matches} songs")
         
         # Increment search counter for GUI tracking
-        self._increment_search_counter()
+        increment_stat("total_song_searches", 1)
+        increment_stat("session_song_searches", 1)
 
         # Store only the fitted results in the result_dict
         result_dict = {str(i + 1): result.split(" | ", 1)[1] for i, result in enumerate(fitted_results)}

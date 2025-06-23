@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 
 class ControlsStatsPanel(ttk.Frame):
-    def __init__(self, parent, button_texts, optimal_width, nowplaying_enabled, clear_log_cmd, refresh_collection_cmd, clear_track_history_cmd, on_stop_press, on_stop_release):
+    def __init__(self, parent, button_texts, optimal_width, nowplaying_enabled, clear_log_cmd, refresh_collection_cmd, reset_global_stats_cmd, clear_track_history_cmd, on_stop_press, on_stop_release):
         super().__init__(parent)
         self.columnconfigure(0, weight=0)
         self.grid_columnconfigure(0, minsize=200)
@@ -11,7 +11,7 @@ class ControlsStatsPanel(ttk.Frame):
             self,
             text=button_texts[0],
             width=optimal_width,
-            state='disabled'
+            state='normal'  # Set to normal so it's not greyed out after launch
         )
         self.stop_button.bind('<Button-1>', on_stop_press)
         self.stop_button.bind('<ButtonRelease-1>', on_stop_release)
@@ -43,8 +43,10 @@ class ControlsStatsPanel(ttk.Frame):
         self.songs_label.grid(row=3, column=0, sticky="w", pady=(5, 0))
         self.new_songs_label = ttk.Label(self.stats_frame, text="New Songs: Loading...")
         self.new_songs_label.grid(row=4, column=0, sticky="w")
-        self.searches_label = ttk.Label(self.stats_frame, text="Song Searches: 0")
-        self.searches_label.grid(row=5, column=0, sticky="w")
+        self.session_searches_label = ttk.Label(self.stats_frame, text="Song Searches (Session): 0")
+        self.session_searches_label.grid(row=5, column=0, sticky="w")
+        self.total_searches_label = ttk.Label(self.stats_frame, text="Total Song Searches: 0")
+        self.total_searches_label.grid(row=6, column=0, sticky="w")
         # Clear log button
         self.clear_button = ttk.Button(
             self,
@@ -53,14 +55,28 @@ class ControlsStatsPanel(ttk.Frame):
             width=optimal_width
         )
         self.clear_button.grid(row=5, column=0, pady=(15, 8))
-        # Refresh collection button
+        # Refresh session stats button
         self.refresh_button = ttk.Button(
             self,
-            text=button_texts[2],
+            text="🔄 Refresh Session Stats",
             command=refresh_collection_cmd,
             width=optimal_width
         )
         self.refresh_button.grid(row=6, column=0, pady=8)
+        # Reset global stats button
+        self.reset_global_button = ttk.Button(
+            self,
+            text="🧹 Reset Global Stats",
+            command=reset_global_stats_cmd,
+            width=optimal_width
+        )
+        try:
+            self.reset_global_button.configure(
+                style="Red.TButton"
+            )
+        except Exception:
+            pass
+        self.reset_global_button.grid(row=7, column=0, pady=8)
         # Clear NP track info button (only if NowPlaying is enabled)
         if nowplaying_enabled:
             self.clear_history_button = ttk.Button(
@@ -69,7 +85,7 @@ class ControlsStatsPanel(ttk.Frame):
                 command=clear_track_history_cmd,
                 width=optimal_width
             )
-            self.clear_history_button.grid(row=7, column=0, pady=8)
+            self.clear_history_button.grid(row=8, column=0, pady=8)
 
     @staticmethod
     def calculate_optimal_button_width(button_texts):
@@ -108,3 +124,11 @@ class ControlsStatsPanel(ttk.Frame):
         except Exception as e:
             from utils.logger import error
             error(f"Error updating controls frame sizing: {e}")
+
+# Add a custom style for Red.TButton
+from tkinter import ttk
+style = ttk.Style()
+try:
+    style.configure("Red.TButton", foreground="#b22222")  # Firebrick red text
+except Exception:
+    pass
