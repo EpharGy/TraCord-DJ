@@ -85,3 +85,6 @@ stats.json
 
 # Extra Cogs
 extra_cogs/*
+!extra_cogs/.gitignore
+!extra_cogs/README.md
+extra_cogs/__init__.py
