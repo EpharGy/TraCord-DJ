@@ -77,6 +77,7 @@ song_requests.json
 search_counter.txt
 collection.nml
 collection.json
+stats.json
 
 # Temporary files
 *.tmp

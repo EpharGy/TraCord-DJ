@@ -32,22 +32,35 @@ class DJBot(commands.Bot):
             application_id=Settings.APPLICATION_ID        )
     
     async def setup_hook(self):
-        """Dynamically load all cogs in the cogs/ directory when the bot starts."""
+        """Load internal cogs (always), then dynamically load external cogs if present."""
         import os
+        import importlib
+        # Load internal cogs from _internal_cogs.py
+        try:
+            from cogs._internal_cogs import INTERNAL_COGS
+            loaded_cogs = set()
+            for cog in INTERNAL_COGS:
+                try:
+                    await self.load_extension(cog)
+                    info(f"✅ Loaded internal {cog}")
+                    loaded_cogs.add(cog)
+                except Exception as e:
+                    error(f"❌ Failed to load internal {cog}: {e}")
+        except Exception as e:
+            warning(f"Could not import internal cogs list: {e}")
+            loaded_cogs = set()
+        # Dynamically load external cogs (skip any already loaded)
         cogs_dir = "cogs"
-        cogs_to_load = []
         if os.path.isdir(cogs_dir):
             for filename in os.listdir(cogs_dir):
                 if filename.endswith(".py") and not filename.startswith("_") and filename != "__init__.py":
-                    cogs_to_load.append(filename)
-            info(f"Loading {len(cogs_to_load)} cogs files...")
-            for filename in cogs_to_load:
-                cog = f"cogs.{filename[:-3]}"
-                try:
-                    await self.load_extension(cog)
-                    info(f"✅ Loaded {cog}")
-                except Exception as e:
-                    error(f"❌ Failed to load {cog}: {e}")
+                    cog = f"cogs.{filename[:-3]}"
+                    if cog not in loaded_cogs:
+                        try:
+                            await self.load_extension(cog)
+                            info(f"✅ Loaded external {cog}")
+                        except Exception as e:
+                            error(f"❌ Failed to load external {cog}: {e}")
         else:
             info("No external cogs directory found. Skipping extra cogs loading.")
         # Sync slash commands

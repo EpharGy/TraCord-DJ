@@ -289,7 +289,8 @@ class BotGUI:
             optimal_width,
             self.nowplaying_enabled,
             self.clear_log,
-            self.refresh_collection,
+            self.refresh_session_stats,
+            self.reset_global_stats,
             self.clear_track_history,
             self.on_stop_button_press,
             self.on_stop_button_release
@@ -306,7 +307,8 @@ class BotGUI:
         self.import_time_label = self.controls_stats_panel.import_time_label
         self.songs_label = self.controls_stats_panel.songs_label
         self.new_songs_label = self.controls_stats_panel.new_songs_label
-        self.searches_label = self.controls_stats_panel.searches_label
+        self.session_searches_label = self.controls_stats_panel.session_searches_label
+        self.total_searches_label = self.controls_stats_panel.total_searches_label
         
         # Console/NowPlaying Panel (was right_panel)
         console_panel = ttk.Frame(main_frame)
@@ -474,7 +476,6 @@ class BotGUI:
             try:
                 from config.settings import Settings
                 from utils.traktor import initialize_collection
-                # Use the new utility function for all logic
                 result = initialize_collection(
                     Settings.TRAKTOR_PATH,
                     Settings.COLLECTION_JSON_FILE,
@@ -485,14 +486,7 @@ class BotGUI:
                 )
                 if result["success"]:
                     info(f"✅ Collection refreshed successfully - {result['total_songs']:,} songs processed")
-                    # Reset search counter on refresh
-                    self.search_count = 0
-                    search_counter_file = Settings.SEARCH_COUNTER_FILE
-                    with open(search_counter_file, "w") as f:
-                        f.write("0")
-                    self.root.after(0, lambda: self.searches_label.config(text=f"Song Searches: {self.search_count}"))
-                    debug("Search counter reset to 0")
-                    # Update UI on main thread
+                    self.update_search_count_display()
                     self.root.after(0, lambda: self.songs_label.config(text=f"Songs: {result['total_songs']:,}"))
                     self.root.after(0, lambda: self.new_songs_label.config(text=f"New Songs: {result['total_new_songs']:,}"))
                     self.root.after(0, lambda: self.import_date_label.config(text=result['date_str']))
@@ -505,7 +499,6 @@ class BotGUI:
             except Exception as e:
                 error_msg = f"Error refreshing collection: {e}"
                 error(error_msg)
-        # Run in background thread to avoid blocking UI
         threading.Thread(target=_refresh, daemon=True).start()
 
     def load_collection_stats(self):
@@ -548,20 +541,14 @@ class BotGUI:
                 self.root.after(0, lambda: self.import_time_label.config(text=""))
         threading.Thread(target=_load_stats, daemon=True).start()
 
-    def load_search_count(self):
-        """Load the search count from the file using helpers.py."""
-        from config.settings import Settings
-        from utils.helpers import load_search_count
-        self.search_count = load_search_count(Settings.SEARCH_COUNTER_FILE)
-
     def update_search_count_display(self):
-        """Update the search count label in the GUI using helpers.py."""
-        from config.settings import Settings
-        from utils.helpers import update_search_count_display
-        def update_label(new_count):
-            self.search_count = new_count
-            self.root.after(0, lambda: self.searches_label.config(text=f"Song Searches: {self.search_count}"))
-        update_search_count_display(Settings.SEARCH_COUNTER_FILE, self.search_count, update_label)
+        """Update the search count labels in the GUI using stats.json."""
+        from utils.stats import load_stats
+        stats = load_stats()
+        session_count = stats.get("session_song_searches", 0)
+        total_count = stats.get("total_song_searches", 0)
+        self.root.after(0, lambda: self.session_searches_label.config(text=f"Song Searches (Session): {session_count}"))
+        self.root.after(0, lambda: self.total_searches_label.config(text=f"Total Song Searches: {total_count}"))
 
     def on_discord_bot_ready(self, bot):
         """Update bot information in the UI when the Discord bot is ready."""
@@ -586,6 +573,38 @@ class BotGUI:
         self.commands_label.config(text="Commands: Not loaded")
         self.songs_label.config(text="Songs: Not loaded")
         self.new_songs_label.config(text="New Songs: Not loaded")
+        self.reset_global_button.config(command=self.reset_global_stats)
+
+        # Expose refresh button for session stats
+        self.refresh_button = self.controls_stats_panel.refresh_button
+        self.reset_global_button = self.controls_stats_panel.reset_global_button
+        # Set the correct command for the buttons
+        self.refresh_button.config(command=self.refresh_session_stats)
+        self.reset_global_button.config(command=self.reset_global_stats)
+
+    def refresh_session_stats(self):
+        """Refresh Traktor collection, then reset session stats."""
+        from utils.stats import reset_session_stats
+        info(f"🔄 Refresh Session Stats button pressed.")
+        reset_session_stats()
+        info("🔄 Refresh Session Stats - refreshing Traktor collection...")
+        self.refresh_collection()
+        self.update_search_count_display()
+
+    def reset_global_stats(self):
+        """Reset all global stats (persistent) with confirmation dialog."""
+        from utils.stats import reset_global_stats
+        info(f"🔄 Reset of Global Stats button pressed.")
+        result = messagebox.askyesno(
+            "Confirm Global Stats Reset",
+            "Are you sure you want to reset ALL global stats?\n\nThis cannot be undone!"
+        )
+        if result:
+            info(f"🧹 Reset Global Stats button pressed.")
+            reset_global_stats()
+            self.update_search_count_display()
+        else:
+            info("Reset Global Stats cancelled by user.")
 
 # Start the GUI application
 def run_gui():
