@@ -6,12 +6,13 @@ class ControlsStatsPanel(ttk.Frame):
         super().__init__(parent)
         self.columnconfigure(0, weight=0)
         self.grid_columnconfigure(0, minsize=200)
-        # Stop & Close button
+        # Stop & Close button (now with red text)
         self.stop_button = ttk.Button(
             self,
             text=button_texts[0],
             width=optimal_width,
-            state='normal'  # Set to normal so it's not greyed out after launch
+            state='normal',
+            style="Red.TButton"
         )
         self.stop_button.bind('<Button-1>', on_stop_press)
         self.stop_button.bind('<ButtonRelease-1>', on_stop_release)

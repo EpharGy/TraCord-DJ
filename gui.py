@@ -268,7 +268,7 @@ class BotGUI:
         # Removed the large title label to save space
         
         # Left panel - Controls
-        from gui.gui_controls_stats import ControlsStatsPanel
+        from gui_components.gui_controls_stats import ControlsStatsPanel
         # Check if NowPlaying is enabled
         from config.settings import Settings
         self.nowplaying_enabled = Settings.is_nowplaying_enabled()
@@ -281,7 +281,7 @@ class BotGUI:
         if self.nowplaying_enabled:
             button_texts.append("🧹 Clear NP Track Info")
         # Use the class method for initial calculation before panel exists
-        from gui.gui_controls_stats import ControlsStatsPanel
+        from gui_components.gui_controls_stats import ControlsStatsPanel
         optimal_width = ControlsStatsPanel.calculate_optimal_button_width(button_texts)
         self.controls_stats_panel = ControlsStatsPanel(
             main_frame,
@@ -318,18 +318,18 @@ class BotGUI:
         console_panel.rowconfigure(1, weight=1)  # Log (bottom half)
 
         # Now Playing Panel (top half of console_panel)
-        from gui.gui_nowplaying import NowPlayingPanel
+        from gui_components.gui_nowplaying import NowPlayingPanel
         self.nowplaying_panel = NowPlayingPanel(console_panel)
         self.nowplaying_panel.grid(row=0, column=0, sticky="nsew")
 
         # Log Panel (bottom half of console_panel)
-        from gui.gui_logconsole import LogConsolePanel
+        from gui_components.gui_logconsole import LogConsolePanel
         self.log_console_panel = LogConsolePanel(console_panel)
         self.log_console_panel.grid(row=1, column=0, sticky="nsew")
         self.output_text = self.log_console_panel.output_text
 
         # Song Requests Panel (new, right of console/log)
-        from gui.gui_songrequests import SongRequestsPanel
+        from gui_components.gui_songrequests import SongRequestsPanel
         self.song_requests_panel = SongRequestsPanel(main_frame)
         self.song_requests_panel.grid(row=1, column=2, sticky="nsew", padx=(15, 0))  # Add left padding
         self.song_requests_placeholder = ttk.Label(self.song_requests_panel, text="No song requests loaded yet.", anchor="center")
@@ -552,7 +552,7 @@ class BotGUI:
 
     def on_discord_bot_ready(self, bot):
         """Update bot information in the UI when the Discord bot is ready."""
-        self.status_label.config(text="🟢 Bot Online", foreground="green")
+        self.status_label.config(text="🟢 Discord Bot Online", foreground="green")
         self.bot_name_label.config(text=f"Name: {bot.user}")
         self.bot_id_label.config(text=f"ID: {bot.user.id}")
         command_count = len([cmd for cmd in bot.tree.walk_commands()])
@@ -561,12 +561,12 @@ class BotGUI:
 
     def on_discord_bot_error(self, error_msg):
         """Handle Discord bot errors."""
-        self.status_label.config(text="🔴 Bot Error", foreground="red")
+        self.status_label.config(text="🔴 Discord  Bot Error", foreground="red")
         messagebox.showerror("Bot Error", f"Bot encountered an error:\n{error_msg}")
 
     def on_discord_bot_stopped(self):
         """Handle Discord bot stopping."""
-        self.status_label.config(text="⚪ Bot Stopped", foreground="gray")
+        self.status_label.config(text="⚪ Discord  Bot Stopped", foreground="gray")
         self.stop_button.config(state='disabled')
         self.bot_name_label.config(text="Name: Not connected")
         self.bot_id_label.config(text="ID: Not connected")
@@ -606,12 +606,16 @@ class BotGUI:
         else:
             info("Reset Global Stats cancelled by user.")
 
+    def run(self):
+        """Run the Tkinter GUI loop"""
+        self.root.mainloop()
+
 # Start the GUI application
 def run_gui():
     """Run the Tkinter GUI loop"""
     try:
         app = BotGUI()
-        app.root.mainloop()
+        app.run()
     except Exception as e:
         # Handle any uncaught exceptions in the GUI
         error_msg = f"Unexpected error in GUI: {e}"
