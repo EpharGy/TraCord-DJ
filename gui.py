@@ -192,16 +192,16 @@ class BotGUI:
                 png_icon_path = 'icon.png'
             if os.path.exists(icon_path):
                 self.root.iconbitmap(icon_path)
-                print(f"✅ Using custom icon: {icon_path}")
+                info(f"✅ Using custom icon: {icon_path}")
             elif os.path.exists(png_icon_path):
                 icon_image = tk.PhotoImage(file=png_icon_path)
                 self.root.iconphoto(True, icon_image)
-                print(f"✅ Using PNG icon: {png_icon_path}")
+                info(f"✅ Using PNG icon: {png_icon_path}")
             else:
                 self.root.wm_iconbitmap('')
-                print("ℹ️  Removed default icon - no custom icon found")
+                info("ℹ️  Removed default icon - no custom icon found")
         except Exception as e:
-            print(f"⚠️  Could not set custom icon: {e}")
+            warning(f"⚠️  Could not set custom icon: {e}")
             try:
                 self.root.wm_iconbitmap('')
             except:
@@ -275,13 +275,9 @@ class BotGUI:
         
         # Left panel - Controls
         from gui.gui_controls_stats import ControlsStatsPanel
-        self.controls_stats_panel = ControlsStatsPanel(main_frame)
-        self.controls_stats_panel.grid(row=1, column=0, sticky="nsew", padx=(0, 15))
-        
         # Check if NowPlaying is enabled
         from config.settings import Settings
         self.nowplaying_enabled = Settings.is_nowplaying_enabled()
-        
         # Define button texts for dynamic sizing (conditionally include NowPlaying button)
         button_texts = [
             "🛑 Stop & Close",
@@ -289,89 +285,34 @@ class BotGUI:
             "🔄 Refresh Collection & Stats"
         ]
         if self.nowplaying_enabled:
-            button_texts.append("🧹 Clear NP Track Info")        # Calculate optimal button width
-        optimal_width = self.calculate_optimal_button_width(button_texts)
-# Configure controls frame - no expansion, let content determine size
-        self.controls_stats_panel.columnconfigure(0, weight=0)  # Don't expand
-        # Set a reasonable fixed width based on button content
-        self.controls_stats_panel.grid_columnconfigure(0, minsize=200)  # Conservative fixed width
-          # Control buttons (Start Bot removed - now auto-starts)
-        self.stop_button = ttk.Button(
-            self.controls_stats_panel,
-            text=button_texts[0],
-            width=optimal_width,
-            state='disabled'
+            button_texts.append("🧹 Clear NP Track Info")
+        # Use the class method for initial calculation before panel exists
+        from gui.gui_controls_stats import ControlsStatsPanel
+        optimal_width = ControlsStatsPanel.calculate_optimal_button_width(button_texts)
+        self.controls_stats_panel = ControlsStatsPanel(
+            main_frame,
+            button_texts,
+            optimal_width,
+            self.nowplaying_enabled,
+            self.clear_log,
+            self.refresh_collection,
+            self.clear_track_history,
+            self.on_stop_button_press,
+            self.on_stop_button_release
         )
-        # Bind separate events for press and release
-        self.stop_button.bind('<Button-1>', self.on_stop_button_press)
-        self.stop_button.bind('<ButtonRelease-1>', self.on_stop_button_release)
-        self.stop_button.grid(row=0, column=0, pady=8)
-        
-        # Status section
-        status_frame = ttk.LabelFrame(self.controls_stats_panel, text="Status", padding="10")
-        status_frame.grid(row=2, column=0, pady=(15, 10), sticky="ew")
-        
-        self.status_label = ttk.Label(status_frame, text="⚪ Bot Stopped")
-        self.status_label.grid(row=0, column=0, sticky="w")
-        
-        # Bot info section
-        info_frame = ttk.LabelFrame(self.controls_stats_panel, text="Bot Information", padding="10")
-        info_frame.grid(row=3, column=0, pady=10, sticky="ew")
-        
-        self.bot_name_label = ttk.Label(info_frame, text="Name: Not connected")
-        self.bot_name_label.grid(row=0, column=0, sticky="w")
-        
-        self.bot_id_label = ttk.Label(info_frame, text="ID: Not connected")
-        self.bot_id_label.grid(row=1, column=0, sticky="w")
-        
-        self.commands_label = ttk.Label(info_frame, text="Commands: Not loaded")
-        self.commands_label.grid(row=2, column=0, sticky="w")        # Statistics section
-        stats_frame = ttk.LabelFrame(self.controls_stats_panel, text="Collection Stats", padding="10")
-        stats_frame.grid(row=4, column=0, pady=10, sticky="ew")
-        
-        # Traktor Import (first item, special formatting)
-        self.import_title_label = ttk.Label(stats_frame, text="Traktor Import:", font=("Arial", 9, "bold"))
-        self.import_title_label.grid(row=0, column=0, sticky="w")
-        
-        self.import_date_label = ttk.Label(stats_frame, text="Loading...", font=("Arial", 8))
-        self.import_date_label.grid(row=1, column=0, sticky="w", padx=(10, 0))
-        
-        self.import_time_label = ttk.Label(stats_frame, text="", font=("Arial", 8))
-        self.import_time_label.grid(row=2, column=0, sticky="w", padx=(10, 0))
-        
-        # Other stats
-        self.songs_label = ttk.Label(stats_frame, text="Songs: Loading...")
-        self.songs_label.grid(row=3, column=0, sticky="w", pady=(5, 0))
-        
-        self.new_songs_label = ttk.Label(stats_frame, text="New Songs: Loading...")
-        self.new_songs_label.grid(row=4, column=0, sticky="w")
-        
-        self.searches_label = ttk.Label(stats_frame, text="Song Searches: 0")
-        self.searches_label.grid(row=5, column=0, sticky="w")
-        
-        # Clear log button
-        clear_button = ttk.Button(
-            self.controls_stats_panel,
-            text=button_texts[1],
-            command=self.clear_log,
-            width=optimal_width
-        )
-        clear_button.grid(row=5, column=0, pady=(15, 8))        # Refresh collection button with better styling
-        refresh_button = ttk.Button(
-            self.controls_stats_panel,
-            text=button_texts[2],
-            command=self.refresh_collection,
-            width=optimal_width
-        )
-        refresh_button.grid(row=6, column=0, pady=8)        # Clear NP track info button (only if NowPlaying is enabled)
-        if self.nowplaying_enabled:
-            clear_history_button = ttk.Button(
-                self.controls_stats_panel,
-                text=button_texts[3],
-                command=self.clear_track_history,
-                width=optimal_width
-            )
-            clear_history_button.grid(row=7, column=0, pady=8)
+        self.controls_stats_panel.grid(row=1, column=0, sticky="nsew", padx=(0, 15))
+        # Expose key widgets for BotGUI
+        self.stop_button = self.controls_stats_panel.stop_button
+        self.status_label = self.controls_stats_panel.status_label
+        self.bot_name_label = self.controls_stats_panel.bot_name_label
+        self.bot_id_label = self.controls_stats_panel.bot_id_label
+        self.commands_label = self.controls_stats_panel.commands_label
+        self.import_title_label = self.controls_stats_panel.import_title_label
+        self.import_date_label = self.controls_stats_panel.import_date_label
+        self.import_time_label = self.controls_stats_panel.import_time_label
+        self.songs_label = self.controls_stats_panel.songs_label
+        self.new_songs_label = self.controls_stats_panel.new_songs_label
+        self.searches_label = self.controls_stats_panel.searches_label
         
         # Console/NowPlaying Panel (was right_panel)
         console_panel = ttk.Frame(main_frame)
@@ -586,9 +527,9 @@ class BotGUI:
                     
                     # Close the loop
                     loop.close()
-                    print("✅ Bot event loop closed properly")
+                    info("✅ Bot event loop closed properly")
                 except Exception as cleanup_error:
-                    print(f"⚠️ Error during event loop cleanup: {cleanup_error}")
+                    warning(f"⚠️ Error during event loop cleanup: {cleanup_error}")
             
             self.root.after(0, self._bot_stopped)
     
@@ -820,19 +761,19 @@ class BotGUI:
                 import shutil
                 
                 if not Settings.is_nowplaying_enabled():
-                    print("❌ NowPlaying integration is not enabled")
+                    warning("❌ NowPlaying integration is not enabled")
                     return
                 
                 if not Settings.NOWPLAYING_CONFIG_JSON_PATH:
-                    print("❌ Config file path not set in environment variable NOWPLAYING_CONFIG_JSON_PATH")
+                    warning("❌ Config file path not set in environment variable NOWPLAYING_CONFIG_JSON_PATH")
                     return
 
-                print("🗑️ Clearing track history...")
+                info("🗑️ Clearing track history...")
                 
                 # Backup config.json
                 backup_path = Settings.NOWPLAYING_CONFIG_JSON_PATH + ".bak"
                 shutil.copyfile(Settings.NOWPLAYING_CONFIG_JSON_PATH, backup_path)
-                print(f"📁 Backup saved as {backup_path}")
+                info(f"📁 Backup saved as {backup_path}")
 
                 # Load config.json
                 with open(Settings.NOWPLAYING_CONFIG_JSON_PATH, "r", encoding="utf-8") as file:
@@ -851,11 +792,11 @@ class BotGUI:
                 with open(Settings.NOWPLAYING_CONFIG_JSON_PATH, "w", encoding="utf-8") as file:
                     json.dump(config, file, indent=4)
 
-                print("✅ Track history cleared successfully")
+                info("✅ Track history cleared successfully")
                 
             except Exception as e:
                 error_msg = f"Error clearing track history: {e}"
-                print(f"❌ {error_msg}")        # Run in background thread to avoid blocking UI
+                error(f"❌ {error_msg}")        # Run in background thread to avoid blocking UI
         threading.Thread(target=_clear_history, daemon=True).start()
 
     def show_test_message(self):
@@ -872,7 +813,7 @@ class BotGUI:
             except (FileNotFoundError, ValueError):
                 self.search_count = 0
         except Exception as e:
-            print(f"Error loading search count: {e}")
+            error(f"Error loading search count: {e}")
             self.search_count = 0
     
     def update_search_count_display(self):
@@ -962,53 +903,13 @@ class BotGUI:
             self.root.destroy()
     
     def calculate_optimal_button_width(self, button_texts):
-        """Calculate optimal button width based on the longest text"""
-        max_length = 0
-        for text in button_texts:            # Simple character count with some accommodation for emojis
-            text_length = len(text)
-            max_length = max(max_length, text_length)        # Minimal padding to prevent text cutoff while keeping buttons compact
-        optimal_width = max_length  # No extra padding - just the text length
-        return max(optimal_width, 12)  # Further reduced minimum from 16 to 12
-    
+        return self.controls_stats_panel.calculate_optimal_button_width(button_texts)
+
     def calculate_controls_frame_width(self):
-        """Calculate optimal width for controls frame based on content"""
-        max_width = 0
-        
-        # Check button widths (this should be the controlling factor)
-        button_texts = [
-            "🛑 Stop & Close",
-            "🗑️ Clear Log", 
-            "🔄 Refresh Collection & Stats"
-        ]
-        if self.nowplaying_enabled:
-            button_texts.append("🧹 Clear NP Track Info")
-        
-        button_width = self.calculate_optimal_button_width(button_texts)
-        max_width = max(max_width, button_width)
-        
-        # Check typical stats content (be more conservative)
-        stats_texts = [
-            "Songs: 999,999",  # Reasonable max
-            "New Songs: 9,999"
-        ]
-        
-        for text in stats_texts:
-            max_width = max(max_width, len(text))
-          # Much more conservative padding
-        return max_width + 2  # Minimal padding only
-    
+        return self.controls_stats_panel.calculate_controls_frame_width(self.nowplaying_enabled)
+
     def update_controls_frame_sizing(self):
-        """Update controls frame sizing after content changes"""
-        try:
-            optimal_width = self.calculate_controls_frame_width()
-            # Convert character width to approximate pixel width (more conservative)
-            pixel_width = optimal_width * 7  # Reduced from 8 to 7 pixels per character
-              # Set minimum size but allow expansion if needed
-            controls_frame = self.stop_button.master  # Get the controls frame
-            controls_frame.grid_columnconfigure(0, minsize=pixel_width)
-            
-        except Exception as e:
-            print(f"Error updating controls frame sizing: {e}")
+        self.controls_stats_panel.update_controls_frame_sizing(self.nowplaying_enabled)
     
     def run(self):
         """Run the GUI application"""
