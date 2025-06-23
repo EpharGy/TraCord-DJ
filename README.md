@@ -102,6 +102,17 @@ Output: `dist/Traktor-DJ-NowPlaying-Discord-Bot-GUI.exe`
 - No Python installation required for end users
 - Can be run from any directory
 
+## 🧩 Extending with Discord Cogs (Plugins)
+
+This bot uses a dynamic cog loader! To add new features or commands, simply drop a `.py` file into the `cogs/` folder (if using EXE, create one where the exe is launched from). The bot will automatically load all cogs in this folder at startup—no need to edit the main code!
+
+- **To add a new cog:**
+  1. Place your `my_cool_feature.py` in the `cogs/` folder.
+  2. Restart the bot. That's it! Your cog will be loaded automatically.
+- **To remove a cog:**
+  1. Delete or move the `.py` file from `cogs/`.
+  2. Restart the bot.
+
 ## Project Structure
 
 The bot uses a modular Discord.py Cogs architecture for better organization:
@@ -110,48 +121,59 @@ The bot uses a modular Discord.py Cogs architecture for better organization:
 Traktor-DJ-NowPlaying-Discord-Bot/
 ├── 🚀 Entry Points
 │   ├── gui.py                      # Main GUI application (recommended)
-│   ├── main.py                     # Command-line entry point
+│   ├── main.py                     # Command-line entry point (dynamic cog loader)
 │   ├── run_bot.py                  # Cross-platform launcher
 │   └── start_bot.bat               # Windows batch launcher
 ├── 📁 Core Application
-│   ├── cogs/
-│   │   ├── admin.py                # Administrative commands
-│   │   ├── collection.py           # Collection management commands
-│   │   ├── music.py                # Music search and song request commands
-│   │   └── music_requests.py       # Song request list management
+│   ├── cogs/                       # All bot features as plugins (just drop in .py files!)
+│   │   ├── admin.py
+│   │   ├── collection.py
+│   │   ├── music.py
+│   │   └── music_requests.py
 │   ├── config/
-│   │   └── settings.py             # Environment variables and configuration
+│   │   └── settings.py
+│   ├── gui/                        # GUI submodules (panels, controls, etc.)
+│   │   ├── gui_controls_stats.py
+│   │   ├── gui_logconsole.py
+│   │   ├── gui_nowplaying.py
+│   │   ├── gui_songrequests.py
+│   │   └── __init__.py
+│   ├── services/
+│   │   └── discord_bot.py          # Discord bot lifecycle/controller logic
 │   ├── utils/
 │   │   ├── helpers.py              # Utility functions and permission checks
-|   |   ├── logger.py               # Logging setup
+│   │   ├── logger.py               # Logging setup and output capture
+│   │   ├── nowplaying.py           # NowPlaying integration helpers
 │   │   └── traktor.py              # Traktor collection parsing and management
 │   └── version.py                  # Version information
 ├── 🎨 Assets
-│   ├── app_icon.ico                # Application icon (Windows)
-│   └── icon.png                    # Application icon (PNG fallback)
+│   ├── app_icon.ico
+│   └── icon.png
 ├── 🔧 Build & Development
-│   ├── .env.example                # Environment configuration template
-│   ├── build.bat                   # Windows build script
-│   ├── build.py                    # Executable build script
-│   ├── requirements-dev.txt        # Development dependencies
-│   └── requirements.txt            # Runtime dependencies
+│   ├── .env.example
+│   ├── build.bat
+│   ├── build.py
+│   ├── requirements-dev.txt
+│   └── requirements.txt
 ├── 📖 Documentation
-│   ├── LICENSE                     # MIT License
-│   ├── README.md                   # Project documentation
-│   └── RELEASE.md                  # Release workflow guide
+│   ├── LICENSE
+│   ├── README.md
+│   └── RELEASE.md
 ├── ⚙️ Configuration
-│   ├── .gitignore                  # Git ignore rules
-│   └── Traktor DJ NowPlaying Discord Bot.code-workspace  # VS Code workspace
+│   ├── .gitignore
+│   └── Traktor DJ NowPlaying Discord Bot.code-workspace
 └── 📝 Generated Files (git-ignored)
-    ├── .env                        # Your personal environment file
-    ├── *.spec                      # PyInstaller spec files
-    ├── build/                      # Build artifacts
-    ├── dist/                       # Built executables
-    ├── collection.json             # Traktor collection cache
-    ├── collection.nml              # Traktor collection file
-    ├── search_counter.txt          # Search statistics
-    └── song_requests.json          # Song request database
+    ├── .env
+    ├── *.spec
+    ├── build/
+    ├── dist/
+    ├── collection.json
+    ├── collection.nml
+    ├── search_counter.txt
+    └── song_requests.json
 ```
+
+> **Note:** The `gui/` folder contains all modular GUI panels and controls. The `services/` folder contains bot lifecycle logic. The `utils/` folder contains helpers, logging, and Traktor/NowPlaying utilities.
 
 ## License
 

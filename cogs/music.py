@@ -61,7 +61,7 @@ class MusicCog(commands.Cog, name="Music"):
             return
               # Dynamically fit as many results as possible within Discord's 2000 character limit
         base_message = "Search Results:\n"
-        instruction_message = "\nTo request a song, immediately REPLY with the # of the song, e.g. 6."        # Calculate message endings dynamically        # Format: "\n� Showing XXX results.\nTo request a song..." (when no truncation needed)
+        instruction_message = "\nTo request a song, immediately REPLY with the # of the song, e.g. 6."        # Calculate message endings dynamically
         no_truncation_ending = f"\n� Showing {len(results)} results.{instruction_message}"
         
         # Format: "\n🎶 Showing XXX of YYY results.\nTo request a song..." (when truncation needed)  

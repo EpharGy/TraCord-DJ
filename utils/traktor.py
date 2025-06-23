@@ -507,3 +507,69 @@ def get_new_songs_json(songs: List[Dict[str, Any]], days: int, max_songs: int, d
         debug(f"Sorted results: {sorted_results}")
     
     return sorted_results, total_new_songs
+
+
+def get_collection_import_date(collection_file: str):
+    """Get the modification date and time of the collection.json file."""
+    try:
+        if os.path.exists(collection_file):
+            mod_time = os.path.getmtime(collection_file)
+            dt = datetime.fromtimestamp(mod_time)
+            date_str = dt.strftime("%Y-%m-%d")
+            time_str = dt.strftime("%H:%M:%S")
+            return date_str, time_str
+        else:
+            return "Not available", ""
+    except Exception as e:
+        error(f"Error getting collection import date: {e}")
+        return "Error", ""
+
+
+def initialize_collection(traktor_path, collection_json_file, excluded_items, new_songs_days, max_songs, debug_mode=False):
+    """
+    Initialize the Traktor collection: refresh from .nml, load stats, and return results.
+    Returns a dict with keys: success, total_songs, total_new_songs, date_str, time_str, error_msg
+    """
+    try:
+        info("🔄 Importing collection from Traktor...")
+        info("📁 Converting XML to optimized JSON format...")
+        song_count = refresh_collection_json(
+            traktor_path,
+            collection_json_file,
+            excluded_items,
+            debug_mode=debug_mode
+        )
+        info(f"✅ Collection imported successfully - {song_count:,} songs processed")
+        songs = load_collection_json(collection_json_file)
+        if songs:
+            total_songs = count_songs_in_collection_json(songs)
+            _, total_new_songs = get_new_songs_json(songs, new_songs_days, max_songs, debug_mode)
+            date_str, time_str = get_collection_import_date(collection_json_file)
+            return {
+                "success": True,
+                "total_songs": total_songs,
+                "total_new_songs": total_new_songs,
+                "date_str": date_str,
+                "time_str": time_str,
+                "error_msg": None
+            }
+        else:
+            return {
+                "success": False,
+                "error_msg": "Collection JSON is empty or could not be loaded",
+                "total_songs": 0,
+                "total_new_songs": 0,
+                "date_str": "Not available",
+                "time_str": ""
+            }
+    except Exception as e:
+        error_msg = f"Error initializing collection: {e}"
+        error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error_msg": error_msg,
+            "total_songs": 0,
+            "total_new_songs": 0,
+            "date_str": "Error",
+            "time_str": ""
+        }

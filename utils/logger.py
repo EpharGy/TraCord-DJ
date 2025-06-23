@@ -143,6 +143,28 @@ class BotLogger:
         return self._debug_enabled
 
 
+class OutputCapture:
+    """
+    Captures output from stdout/stderr and routes it to both the original stream and a queue or callback (e.g., for GUI log panel).
+    """
+    def __init__(self, queue_obj, tag, original, gui_instance=None):
+        self.queue = queue_obj
+        self.tag = tag
+        self.original = original
+        self.gui = gui_instance
+
+    def write(self, text):
+        # Always write to original first (terminal)
+        self.original.write(text)
+        self.original.flush()
+        # Then capture for GUI (only non-empty lines)
+        if text.strip():
+            self.queue.put((self.tag, text.strip()))
+
+    def flush(self):
+        self.original.flush()
+
+
 # Create the global logger instance
 logger = BotLogger()
 
