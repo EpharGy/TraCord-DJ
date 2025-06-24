@@ -45,7 +45,7 @@ class ControlsStatsPanel(ttk.LabelFrame):
         self.commands_label = ttk.Label(self.info_frame, text="Commands: Not loaded")
         self.commands_label.grid(row=2, column=0, sticky="w")
         # Statistics section
-        self.stats_frame = ttk.LabelFrame(self, text="Collection Stats", padding="10")
+        self.stats_frame = ttk.LabelFrame(self, text="Stats", padding="10")
         self.stats_frame.grid(row=4, column=0, pady=10, sticky="ew")
         self.import_title_label = ttk.Label(self.stats_frame, text="Traktor Import:", font=("Arial", 9, "bold"))
         self.import_title_label.grid(row=0, column=0, sticky="w")
@@ -64,13 +64,17 @@ class ControlsStatsPanel(ttk.LabelFrame):
         self.session_searches_label.grid(row=6, column=0, sticky="w")
         self.session_requests_label = ttk.Label(self.stats_frame, text="Song Requests: 0")
         self.session_requests_label.grid(row=7, column=0, sticky="w")
+        self.session_plays_label = ttk.Label(self.stats_frame, text="Songs Played: 0")
+        self.session_plays_label.grid(row=8, column=0, sticky="w")
         # Space before total stats
         self.total_stats_heading = ttk.Label(self.stats_frame, text="Total Stats", font=("Arial", 9, "bold"))
-        self.total_stats_heading.grid(row=8, column=0, sticky="w", pady=(10, 0))
+        self.total_stats_heading.grid(row=9, column=0, sticky="w", pady=(10, 0))
         self.total_searches_label = ttk.Label(self.stats_frame, text="Song Searches: 0")
-        self.total_searches_label.grid(row=9, column=0, sticky="w")
+        self.total_searches_label.grid(row=10, column=0, sticky="w")
         self.total_requests_label = ttk.Label(self.stats_frame, text="Song Requests: 0")
-        self.total_requests_label.grid(row=10, column=0, sticky="w")
+        self.total_requests_label.grid(row=11, column=0, sticky="w")
+        self.total_plays_label = ttk.Label(self.stats_frame, text="Songs Played: 0")
+        self.total_plays_label.grid(row=12, column=0, sticky="w")
         # Clear log button
         self.clear_button = ttk.Button(
             self,
