@@ -10,17 +10,17 @@ from typing import List, Optional
 from utils.logger import debug, info, warning, error
 
 def get_executable_dir():
-    """Get the directory where the executable is running from"""
+    """Get the directory where the executable or script is running from"""
     if getattr(sys, 'frozen', False):
         # Running as PyInstaller executable
         return os.path.dirname(sys.executable)
     else:
         # Running as Python script
-        return os.getcwd()
+        return os.path.dirname(os.path.abspath(__file__))
 
-# Load environment variables from the executable directory if frozen
-if getattr(sys, 'frozen', False):
-    env_path = os.path.join(get_executable_dir(), '.env')
+# Load environment variables from the script/executable directory
+env_path = os.path.join(get_executable_dir(), '.env')
+if os.path.exists(env_path):
     load_dotenv(env_path)
 else:
     load_dotenv()
@@ -40,13 +40,6 @@ class Settings:
     TRAKTOR_COLLECTION_FILENAME: Optional[str] = os.getenv('TRAKTOR_COLLECTION_FILENAME')
     
     # File Paths - Use executable directory for file paths when frozen
-    NOWPLAYING_CONFIG_JSON_PATH: Optional[str] = os.getenv('NOWPLAYING_CONFIG_JSON_PATH')
-    
-    @classmethod
-    def is_nowplaying_enabled(cls) -> bool:
-        """Check if NowPlaying integration is enabled"""
-        return bool(cls.NOWPLAYING_CONFIG_JSON_PATH and cls.NOWPLAYING_CONFIG_JSON_PATH.strip())
-    
     @staticmethod
     def get_song_requests_file():
         """Get the song requests file path, handling both development and executable modes"""
@@ -106,7 +99,7 @@ class Settings:
         # Validate required environment variables
         required_vars = [
             cls.TOKEN, cls.TRAKTOR_LOCATION, cls.TRAKTOR_COLLECTION_FILENAME, 
-            cls.APPLICATION_ID, cls.NOWPLAYING_CONFIG_JSON_PATH
+            cls.APPLICATION_ID
         ]        
         if any(var is None for var in required_vars):
             raise ValueError("One or more required environment variables are missing.")

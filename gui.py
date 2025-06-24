@@ -11,6 +11,7 @@ import os
 from datetime import datetime
 import asyncio
 import io
+from services.traktor_listener import TraktorBroadcastListener
 
 # Import the centralized logger
 from utils.logger import set_gui_callback, set_debug_mode, info, debug, warning, error
@@ -28,7 +29,8 @@ if getattr(sys, 'frozen', False):
 
 def check_and_create_env_file():
     """Check for .env file and create from template if missing"""
-    env_path = '.env'
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    env_path = os.path.join(base_dir, '.env')
     
     if not os.path.exists(env_path):
         # Default .env template content
@@ -50,7 +52,7 @@ DISCORD_LIVE_NOTIFICATION_ROLES=Tunes,DJ Friends,Music Lovers
 TRAKTOR_LOCATION=C:\\Users\\YourUser\\Documents\\Native Instruments\\
 TRAKTOR_COLLECTION_FILENAME=collection.nml
 
-#Location of Traktor Broadcast port to
+#Location of Traktor Broadcast port to listen to
 TRAKTOR_BROADCAST_PORT=8000
 
 #Location of Song Requests file (optional - auto creates a song_requests.json in current directory)
@@ -235,6 +237,10 @@ class BotGUI:
         self.bot_thread = None
         self.search_count = 0
         self.output_queue = queue.Queue()
+        self.traktor_listener = None
+        self.traktor_listener_running = False
+        self.traktor_listener_status = '🔴 Traktor Listener Offline'
+        self.traktor_listener_port = int(os.getenv('TRAKTOR_BROADCAST_PORT', '8001'))
         self.setup_gui()
         self.setup_output_capture()
         set_gui_callback(self.add_log)
@@ -276,9 +282,6 @@ class BotGUI:
         
         # Left panel - Controls
         from gui_components.gui_controls_stats import ControlsStatsPanel
-        # Check if NowPlaying is enabled
-        from config.settings import Settings
-        self.nowplaying_enabled = Settings.is_nowplaying_enabled()
         # Define button texts for dynamic sizing (conditionally include NowPlaying button)
         button_texts = [
             "🛑 Stop & Close",
@@ -292,14 +295,15 @@ class BotGUI:
             main_frame,
             button_texts,
             optimal_width,
-            self.nowplaying_enabled,
             self.clear_log,
             self.refresh_session_stats,
             self.reset_global_stats,
             None,  # Remove clear_track_history
             self.on_stop_button_press,
-            self.on_stop_button_release
+            self.on_stop_button_release,
+            self.toggle_traktor_listener
         )
+        self.controls_stats_panel.set_traktor_toggle_button(False)  # Start in Turn On state
         self.controls_stats_panel.grid(row=1, column=0, sticky="nsew", padx=(0, 15))
         # Expose key widgets for BotGUI
         self.stop_button = self.controls_stats_panel.stop_button
@@ -428,6 +432,9 @@ class BotGUI:
 
     def on_stop_button_release(self, event=None):
         """Execute stop and close when button is released"""
+        # Stop Traktor listener first if running
+        if self.traktor_listener_running:
+            self.stop_traktor_listener()
         self._shutdown_application()
 
     def on_x_button_clicked(self):
@@ -444,7 +451,7 @@ class BotGUI:
 
     def update_controls_frame_sizing(self):
         if hasattr(self, 'controls_stats_panel'):
-            self.controls_stats_panel.update_controls_frame_sizing(self.nowplaying_enabled)
+            self.controls_stats_panel.update_controls_frame_sizing()
 
     def _shutdown_application(self):
         """Common shutdown logic for both Stop button and X button"""
@@ -600,6 +607,59 @@ class BotGUI:
             self.update_search_count_display()
         else:
             info("Reset Global Stats cancelled by user.")
+
+    def toggle_traktor_listener(self):
+        if self.traktor_listener_running:
+            self.stop_traktor_listener()
+        else:
+            self.start_traktor_listener()
+
+    def start_traktor_listener(self):
+        def _start():
+            info(f"[Traktor Listener] Starting Traktor Broadcast Listener on Port {self.traktor_listener_port}, if this doesn't connect try toggling Broadcast in Traktor.")
+            self.traktor_listener_status = '🟡 Traktor Listener Connecting'
+            self.controls_stats_panel.set_traktor_listener_status(self.traktor_listener_status, foreground='orange')
+            self.controls_stats_panel.set_traktor_toggle_button(True)
+            if not self.traktor_listener:
+                self.traktor_listener = TraktorBroadcastListener(
+                    port=self.traktor_listener_port,
+                    status_callback=self.on_traktor_listener_status
+                )
+            self.traktor_listener.start()
+            self.traktor_listener_running = True
+            self.root.after(500, self.poll_traktor_listener_status)
+        threading.Thread(target=_start, daemon=True).start()
+
+    def stop_traktor_listener(self):
+        def _stop():
+            info("[Traktor Listener] Stopping Traktor Broadcast Listener")
+            if self.traktor_listener:
+                self.traktor_listener.stop()
+            self.traktor_listener_running = False
+            self.traktor_listener_status = '🔴 Traktor Listener Offline'
+            self.controls_stats_panel.set_traktor_listener_status(self.traktor_listener_status, foreground='gray')
+            self.controls_stats_panel.set_traktor_toggle_button(False)
+        threading.Thread(target=_stop, daemon=True).start()
+
+    def on_traktor_listener_status(self, status):
+        # Discord status colors: online green, idle orange, dnd red, offline gray
+        if status == 'starting':
+            self.traktor_listener_status = '🟡 Traktor Listener Connecting'
+            color = 'orange'  # idle
+        elif status == 'listening':
+            self.traktor_listener_status = '🟢 Traktor Listener Listening'
+            color = 'green'  # online
+        elif status == 'offline':
+            self.traktor_listener_status = '🔴 Traktor Listener Offline'
+            color = 'gray'  # offline
+        else:
+            color = 'gray'
+        self.controls_stats_panel.set_traktor_listener_status(self.traktor_listener_status, foreground=color)
+
+    def poll_traktor_listener_status(self):
+        if self.traktor_listener and self.traktor_listener_running:
+            self.traktor_listener.poll_status()
+            self.root.after(500, self.poll_traktor_listener_status)
 
     def bring_to_front(self):
         try:
