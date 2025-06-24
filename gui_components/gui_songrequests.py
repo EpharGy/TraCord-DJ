@@ -218,7 +218,7 @@ class SongRequestsPanel(ttk.LabelFrame):
                 self.clean_list_window.iconbitmap(icon_path)
             except Exception:
                 pass
-        self.clean_list_window.geometry("500x600")
+        self.clean_list_window.geometry("600x600")
         self.clean_list_window.resizable(True, True)
         self.clean_list_window.attributes("-topmost", True)
         frame = ttk.Frame(self.clean_list_window, padding=20)
