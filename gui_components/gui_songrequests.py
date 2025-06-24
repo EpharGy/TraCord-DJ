@@ -6,6 +6,7 @@ from copy import deepcopy
 from utils.events import subscribe
 from utils.song_request_highlight import highlighter
 from utils.helpers import update_request_numbers
+from utils.logger import info
 
 SONG_REQUESTS_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'song_requests.json')
 
@@ -139,6 +140,7 @@ class SongRequestsPanel(ttk.LabelFrame):
 
     def remove_request(self, idx):
         if 0 <= idx < len(self.requests):
+            removed = self.requests[idx]
             del self.requests[idx]
             update_request_numbers(self.requests)
             try:
@@ -146,6 +148,7 @@ class SongRequestsPanel(ttk.LabelFrame):
                     json.dump(self.requests, f, indent=4, ensure_ascii=False)
             except Exception:
                 pass
+            info(f"{removed.get('Song','')} removed from Song Requests")
             self.load_requests()
 
     def refresh_requests_panel(self):
