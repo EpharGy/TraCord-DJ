@@ -60,6 +60,7 @@ venv.bak/
 *.swp
 *.swo
 *~
+.github/
 
 # OS generated files
 .DS_Store
@@ -74,7 +75,6 @@ Thumbs.db
 *.log
 logs/
 song_requests.json
-search_counter.txt
 collection.nml
 collection.json
 stats.json

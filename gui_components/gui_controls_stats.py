@@ -1,9 +1,9 @@
 import tkinter as tk
 from tkinter import ttk
 
-class ControlsStatsPanel(ttk.Frame):
+class ControlsStatsPanel(ttk.LabelFrame):
     def __init__(self, parent, button_texts, optimal_width, nowplaying_enabled, clear_log_cmd, refresh_collection_cmd, reset_global_stats_cmd, clear_track_history_cmd, on_stop_press, on_stop_release):
-        super().__init__(parent)
+        super().__init__(parent, text="Controls & Stats", padding="8")
         self.columnconfigure(0, weight=0)
         self.grid_columnconfigure(0, minsize=200)
         # Stop & Close button (now with red text)
