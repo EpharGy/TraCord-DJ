@@ -1,5 +1,5 @@
 """
-Configuration settings for Traktor DJ NowPlaying Discord Bot
+Configuration settings for TraCord DJ
 Handles environment variables, constants, and validation
 """
 import os

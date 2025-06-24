@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Build script for creating standalone Traktor DJ NowPlaying Discord Bot executable
+Build script for creating standalone TraCord DJ executable
 """
 
 import subprocess
@@ -15,8 +15,8 @@ except ImportError:
     __version__ = "dev"
 
 # === Build configuration variables ===
-APP_NAME = "Traktor DJ NowPlaying Discord Bot"
-EXE_NAME = "Traktor-DJ-NowPlaying-Discord-Bot-GUI"
+APP_NAME = "TraCord DJ"
+EXE_NAME = "TraCord-DJ-GUI"
 ENTRY_POINT = "gui.py"
 BUILD_FILENAME = "build.py"
 

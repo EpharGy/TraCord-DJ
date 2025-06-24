@@ -78,24 +78,17 @@ class ControlsStatsPanel(ttk.LabelFrame):
         except Exception:
             pass
         self.reset_global_button.grid(row=7, column=0, pady=8)
-        # Clear NP track info button (only if NowPlaying is enabled)
-        if nowplaying_enabled:
-            self.clear_history_button = ttk.Button(
-                self,
-                text=button_texts[3],
-                command=clear_track_history_cmd,
-                width=optimal_width
-            )
-            self.clear_history_button.grid(row=8, column=0, pady=8)
 
     @staticmethod
     def calculate_optimal_button_width(button_texts):
+        # Remove Clear NP Track Info from width calculation
+        filtered = [t for t in button_texts if t != "🧹 Clear NP Track Info"]
         max_length = 0
-        for text in button_texts:
+        for text in filtered:
             text_length = len(text)
             max_length = max(max_length, text_length)
-        optimal_width = max_length
-        return max(optimal_width, 12)
+        optimal_width = max(max_length, 12)
+        return optimal_width
 
     @staticmethod
     def calculate_controls_frame_width(nowplaying_enabled):
@@ -105,8 +98,6 @@ class ControlsStatsPanel(ttk.LabelFrame):
             "🗑️ Clear Log", 
             "🔄 Refresh Collection & Stats"
         ]
-        if nowplaying_enabled:
-            button_texts.append("🧹 Clear NP Track Info")
         button_width = ControlsStatsPanel.calculate_optimal_button_width(button_texts)
         max_width = max(max_width, button_width)
         stats_texts = [

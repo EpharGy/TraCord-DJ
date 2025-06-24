@@ -1,5 +1,5 @@
 @echo off
-echo Traktor DJ NowPlaying Discord Bot - Build GUI Executable for Distribution
+echo TraCord - Build GUI Executable for Distribution
 echo =========================================================================
 echo.
 
@@ -17,7 +17,7 @@ python build.py
 
 echo.
 echo Build process completed!
-echo Check the 'dist' folder for Traktor-DJ-NowPlaying-Discord-Bot-GUI.exe
+echo Check the 'dist' folder for TraCord-DJ-GUI.exe
 echo This file can be distributed to users without Python installed.
 echo.
 pause

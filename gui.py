@@ -1,6 +1,6 @@
 """
-Traktor DJ NowPlaying Discord Bot - Standalone GUI Application
-A standalone GUI application for running the Traktor DJ NowPlaying Discord Bot with real-time monitoring.
+TraCord DJ - Standalone GUI Application
+A standalone GUI application for running the TraCord DJ bot with real-time monitoring.
 """
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
@@ -32,7 +32,7 @@ def check_and_create_env_file():
     
     if not os.path.exists(env_path):
         # Default .env template content
-        example_content = """# Example environment file for Traktor DJ NowPlaying Discord Bot
+        example_content = """# Example environment file for TraCord DJ
 # Copy this to .env and fill in your actual values
 
 # Discord Bot Configuration
@@ -50,10 +50,10 @@ DISCORD_LIVE_NOTIFICATION_ROLES=Tunes,DJ Friends,Music Lovers
 TRAKTOR_LOCATION=C:\\Users\\YourUser\\Documents\\Native Instruments\\
 TRAKTOR_COLLECTION_FILENAME=collection.nml
 
-#Location of Now Playing configuration file
-NOWPLAYING_CONFIG_JSON_PATH=C:\\Users\\YourUser\\.nowplaying\\config.json
+#Location of Traktor Broadcast port to
+TRAKTOR_BROADCAST_PORT=8000
 
-#Location of Song Requests file (optional - defaults to song_requests.json in current directory)
+#Location of Song Requests file (optional - auto creates a song_requests.json in current directory)
 #SONG_REQUESTS_FILE=song_requests.json
 """
         
@@ -171,7 +171,7 @@ except ImportError as e:
 
 
 class BotGUI:
-    """GUI application for the Traktor DJ NowPlaying Discord Bot"""
+    """GUI application for the TraCord DJ bot"""
     
     def __init__(self, title=None):
         from utils.stats import reset_session_stats
@@ -191,7 +191,7 @@ class BotGUI:
         )
         self.debug_mode = '--debug' in sys.argv
         self.root = tk.Tk()
-        app_title = title or f"Traktor DJ NowPlaying Discord Bot v{__version__} - Control Panel"
+        app_title = title or f"TraCord DJ v{__version__} - Control Panel"
         self.root.title(app_title)
         self.root.geometry("1200x700")  # Widened for new layout
         self.root.minsize(1000, 500)
@@ -285,8 +285,6 @@ class BotGUI:
             "🗑️ Clear Log", 
             "🔄 Refresh Collection & Stats"
         ]
-        if self.nowplaying_enabled:
-            button_texts.append("🧹 Clear NP Track Info")
         # Use the class method for initial calculation before panel exists
         from gui_components.gui_controls_stats import ControlsStatsPanel
         optimal_width = ControlsStatsPanel.calculate_optimal_button_width(button_texts)
@@ -298,7 +296,7 @@ class BotGUI:
             self.clear_log,
             self.refresh_session_stats,
             self.reset_global_stats,
-            self.clear_track_history,
+            None,  # Remove clear_track_history
             self.on_stop_button_press,
             self.on_stop_button_release
         )
@@ -325,7 +323,7 @@ class BotGUI:
         console_panel.rowconfigure(1, weight=1)  # Log (bottom half)
 
         # Now Playing Panel (top half of console_panel)
-        from gui_components.gui_nowplaying import NowPlayingPanel
+        from gui_components.gui_now_playing import NowPlayingPanel
         self.nowplaying_panel = NowPlayingPanel(console_panel)
         self.nowplaying_panel.grid(row=0, column=0, sticky="nsew")
 
@@ -345,7 +343,7 @@ class BotGUI:
         subscribe("song_request_deleted", lambda _: self.bring_to_front())
 
         # Add initial message
-        info("🎛️ Traktor DJ NowPlaying Discord Bot Control Panel initialized")
+        info("🎛️ TraCord DJ Control Panel initialized")
         info("⏱️ Auto-startup scheduled in 1 second...")
         
         # Show GUI
@@ -465,19 +463,7 @@ class BotGUI:
             self.log_console_panel.clear_log()
 
     def clear_track_history(self):
-        """Clear track history in NowPlaying config.json using the utility function."""
-        from config.settings import Settings
-        from utils.nowplaying import clear_nowplaying_track_history
-        if not Settings.is_nowplaying_enabled():
-            warning("❌ NowPlaying integration is not enabled")
-            return
-        if not Settings.NOWPLAYING_CONFIG_JSON_PATH:
-            warning("❌ Config file path not set in environment variable NOWPLAYING_CONFIG_JSON_PATH")
-            return
-        success = clear_nowplaying_track_history(Settings.NOWPLAYING_CONFIG_JSON_PATH)
-        if not success:
-            error("❌ Failed to clear NowPlaying track history.")
-        # Optionally, update the GUI or show a messagebox if you want user feedback
+        pass  # Function no longer needed, can be removed in future cleanup
 
     def refresh_collection(self):
         """Refresh the Traktor collection by copying the latest file and reloading stats"""

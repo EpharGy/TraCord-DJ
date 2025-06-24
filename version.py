@@ -1,15 +1,15 @@
 """
-Version information for Traktor DJ NowPlaying Discord Bot
+Version information for TraCord DJ
 """
 
-__version__ = "1.3.0"
-__version_info__ = (1, 3, 0)
+__version__ = "1.3.1"
+__version_info__ = (1, 3, 1)
 
 # For detailed changelog and release history, see:
-# - GitHub Releases: https://github.com/EpharGy/Traktor-DJ-NowPlaying-Discord-Bot/releases
+# - GitHub Releases: https://github.com/EpharGy/TraCord-DJ/releases
 # - Git history: git log --oneline
 #
 # Versioning follows Semantic Versioning (SemVer):
 # - Major: Breaking changes, architectural overhauls
-# - Minor: New features, backwards-compatible additions  
+# - Minor: New features, backwards-compatible additions
 

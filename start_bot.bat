@@ -1,10 +1,10 @@
 @echo off
-title Traktor DJ NowPlaying Discord Bot
+title TraCord DJ
 cd /d "%~dp0"
 
 echo.
 echo ========================================
-echo    Traktor DJ NowPlaying Discord Bot - Windows Launcher
+echo    TraCord DJ - Windows Launcher
 echo ========================================
 echo.
 
@@ -21,7 +21,7 @@ if errorlevel 1 (
 REM Check if required files exist
 if not exist "gui.py" (
     echo ERROR: gui.py not found!
-    echo Please ensure you're in the Traktor DJ NowPlaying Discord Bot directory.
+    echo Please ensure you're in the TraCord DJ directory.
     echo.
     pause
     exit /b 1
@@ -36,7 +36,7 @@ if not exist ".env" (
     exit /b 1
 )
 
-echo Starting Traktor DJ NowPlaying Discord Bot GUI...
+echo Starting TraCord DJ GUI...
 echo.
 
 REM Start the GUI application

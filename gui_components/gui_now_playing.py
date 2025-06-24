@@ -1,6 +1,3 @@
-# This file has been renamed to gui_now_playing.py for consistency.
-# Please update your imports to use gui_now_playing.
-
 import tkinter as tk
 from tkinter import ttk
 
