@@ -30,13 +30,16 @@ class SongRequestsPanel(ttk.LabelFrame):
         self.remove_all_btn.grid(row=0, column=0, padx=(0, 10), sticky="w")
         # Toggle Clean List button
         self.clean_list_btn = ttk.Button(
-            topbar, text="🪄 Toggle Clean Song List", command=self.toggle_clean_list_window
+            topbar, text="⤴ Pop up song list", command=self.toggle_clean_list_window
         )
         self.clean_list_btn.grid(row=0, column=1, sticky="w")
         # --- End top button bar ---
         self.requests_frame = ttk.Frame(self)
         self.requests_frame.grid(row=1, column=0, sticky="nsew")
         self.requests_frame.columnconfigure(1, weight=1)
+        # Ensure the main panel expands vertically, but buttons stay at the top
+        self.rowconfigure(0, weight=0)  # Topbar (buttons) does not expand
+        self.rowconfigure(1, weight=1)  # requests_frame (list) expands
         self.requests = []
         self._row_widgets = {}  # Track row widgets by request id
         self._pending_highlights = set()
@@ -203,6 +206,7 @@ class SongRequestsPanel(ttk.LabelFrame):
         if self.clean_list_window and tk.Toplevel.winfo_exists(self.clean_list_window):
             self.clean_list_window.destroy()
             self.clean_list_window = None
+            self.clean_list_btn.config(text="⤴ Pop up song list")
             return
         self.clean_list_window = tk.Toplevel(self)
         self.clean_list_window.title("Song Requests")
@@ -213,7 +217,7 @@ class SongRequestsPanel(ttk.LabelFrame):
                 self.clean_list_window.iconbitmap(icon_path)
             except Exception:
                 pass
-        self.clean_list_window.geometry("400x600")
+        self.clean_list_window.geometry("500x600")
         self.clean_list_window.resizable(True, True)
         self.clean_list_window.attributes("-topmost", True)
         frame = ttk.Frame(self.clean_list_window, padding=20)
@@ -226,3 +230,4 @@ class SongRequestsPanel(ttk.LabelFrame):
             for song in song_titles:
                 label = ttk.Label(frame, text=song, anchor="w", font=("Segoe UI", 14))
                 label.pack(fill="x", pady=2, anchor="w")
+        self.clean_list_btn.config(text="⤵ Close pop up")
