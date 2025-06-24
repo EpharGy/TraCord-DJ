@@ -1,8 +1,8 @@
 # TODO & Feature Ideas
 
 ## Song Requests GUI Integration
-- [ ] Display current song requests in the GUI (popup window or main panel)
-- [ ] Show who requested each song
+- [X] Display current song requests in the GUI (popup window or main panel)
+- [X] Show who requested each song
 - [ ] Option to toggle song requests display for a cleaner view (for OBS)
 - [ ] Management controls: remove individual requests, clear all requests
 
