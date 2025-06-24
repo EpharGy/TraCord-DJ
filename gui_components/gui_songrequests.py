@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import messagebox
 import json
 import os
 from copy import deepcopy
@@ -15,14 +16,33 @@ class SongRequestsPanel(ttk.LabelFrame):
         super().__init__(parent, text="Song Requests", padding="8", *args, **kwargs)
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
+        # --- Top button bar ---
+        topbar = ttk.Frame(self)
+        topbar.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        topbar.columnconfigure(0, weight=0)
+        topbar.columnconfigure(1, weight=0)
+        # Remove All button
+        style = ttk.Style()
+        style.configure("Danger.TButton", foreground="#b22222")  # Use same Firebrick red as Stop & Close
+        self.remove_all_btn = ttk.Button(
+            topbar, text="❌ Remove All Song Requests", command=self.remove_all_requests, style="Danger.TButton"
+        )
+        self.remove_all_btn.grid(row=0, column=0, padx=(0, 10), sticky="w")
+        # Toggle Clean List button
+        self.clean_list_btn = ttk.Button(
+            topbar, text="🪄 Toggle Clean Song List", command=self.toggle_clean_list_window
+        )
+        self.clean_list_btn.grid(row=0, column=1, sticky="w")
+        # --- End top button bar ---
         self.requests_frame = ttk.Frame(self)
-        self.requests_frame.grid(row=0, column=0, sticky="nsew")
+        self.requests_frame.grid(row=1, column=0, sticky="nsew")
         self.requests_frame.columnconfigure(1, weight=1)
         self.requests = []
         self._row_widgets = {}  # Track row widgets by request id
         self._pending_highlights = set()
         self._last_requests = []
         self._deleted_rows = {}  # Track deleted rows and their timers by ID
+        self.clean_list_window = None
         self.load_requests()
         subscribe("song_request_added", self.handle_song_added)
         subscribe("song_request_deleted", self.handle_song_deleted)
@@ -164,3 +184,45 @@ class SongRequestsPanel(ttk.LabelFrame):
         # Only reload if no more deleted rows are pending
         if not self._deleted_rows:
             self.load_requests()
+
+    def remove_all_requests(self):
+        if not self.requests:
+            return
+        if not messagebox.askyesno("Confirm Remove All", "Are you sure you want to remove ALL song requests? This cannot be undone."):
+            return
+        self.requests.clear()
+        try:
+            with open(SONG_REQUESTS_FILE, 'w', encoding='utf-8') as f:
+                json.dump([], f, indent=4, ensure_ascii=False)
+        except Exception:
+            pass
+        info("All song requests removed")
+        self.load_requests()
+
+    def toggle_clean_list_window(self):
+        if self.clean_list_window and tk.Toplevel.winfo_exists(self.clean_list_window):
+            self.clean_list_window.destroy()
+            self.clean_list_window = None
+            return
+        self.clean_list_window = tk.Toplevel(self)
+        self.clean_list_window.title("Song Requests")
+        # Set custom icon for the popup window
+        icon_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'app_icon.ico')
+        if os.path.exists(icon_path):
+            try:
+                self.clean_list_window.iconbitmap(icon_path)
+            except Exception:
+                pass
+        self.clean_list_window.geometry("400x600")
+        self.clean_list_window.resizable(True, True)
+        self.clean_list_window.attributes("-topmost", True)
+        frame = ttk.Frame(self.clean_list_window, padding=20)
+        frame.pack(fill="both", expand=True)
+        song_titles = [req.get('Song', '') for req in self.requests]
+        if not song_titles:
+            label = ttk.Label(frame, text="No songs in the list.", anchor="center")
+            label.pack(fill="both", expand=True)
+        else:
+            for song in song_titles:
+                label = ttk.Label(frame, text=song, anchor="w", font=("Segoe UI", 14))
+                label.pack(fill="x", pady=2, anchor="w")
