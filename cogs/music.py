@@ -15,6 +15,7 @@ from utils.traktor import parse_traktor_collection, load_collection_json, search
 from utils.helpers import check_channel_permissions, truncate_response
 from utils.logger import debug, info, warning, error
 from utils.stats import increment_stat
+from utils.events import emit
 
 
 class MusicCog(commands.Cog, name="Music"):
@@ -171,6 +172,7 @@ class MusicCog(commands.Cog, name="Music"):
 
                     info(f"{interaction.user} selected and saved the song: {selected_song}")
                     await interaction.followup.send(f"Added the song to the Song Request List: {selected_song}")
+                    emit("song_request_added", new_request)  # Emit event for new song request
                     
                 except Exception as e:
                     error(f"❌ Error saving song request: {e}")

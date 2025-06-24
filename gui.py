@@ -332,6 +332,10 @@ class BotGUI:
         from gui_components.gui_songrequests import SongRequestsPanel
         self.song_requests_panel = SongRequestsPanel(main_frame)
         self.song_requests_panel.grid(row=1, column=2, sticky="nsew", padx=(15, 0))  # Add left padding
+        # Bring window to front on song request add/delete
+        from utils.events import subscribe
+        subscribe("song_request_added", lambda _: self.bring_to_front())
+        subscribe("song_request_deleted", lambda _: self.bring_to_front())
 
         # Add initial message
         info("🎛️ Traktor DJ NowPlaying Discord Bot Control Panel initialized")
@@ -603,6 +607,14 @@ class BotGUI:
             self.update_search_count_display()
         else:
             info("Reset Global Stats cancelled by user.")
+
+    def bring_to_front(self):
+        try:
+            self.root.lift()
+            self.root.attributes('-topmost', True)
+            self.root.after(200, lambda: self.root.attributes('-topmost', False))
+        except Exception:
+            pass
 
     def run(self):
         """Run the Tkinter GUI loop"""

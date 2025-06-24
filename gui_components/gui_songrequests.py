@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 import json
 import os
+from utils.events import subscribe
 
 SONG_REQUESTS_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'song_requests.json')
 
@@ -15,6 +16,8 @@ class SongRequestsPanel(ttk.LabelFrame):
         self.requests_frame.columnconfigure(1, weight=1)
         self.requests = []
         self.load_requests()
+        subscribe("song_request_added", lambda _: self.load_requests())
+        subscribe("song_request_deleted", lambda _: self.load_requests())
 
     def load_requests(self):
         self.clear_requests()
