@@ -332,8 +332,6 @@ class BotGUI:
         from gui_components.gui_songrequests import SongRequestsPanel
         self.song_requests_panel = SongRequestsPanel(main_frame)
         self.song_requests_panel.grid(row=1, column=2, sticky="nsew", padx=(15, 0))  # Add left padding
-        self.song_requests_placeholder = ttk.Label(self.song_requests_panel, text="No song requests loaded yet.", anchor="center")
-        self.song_requests_placeholder.grid(row=0, column=0, sticky="nsew")
 
         # Add initial message
         info("🎛️ Traktor DJ NowPlaying Discord Bot Control Panel initialized")
