@@ -263,6 +263,9 @@ class BotGUI:
         reset_session_stats()
         info("Session stats reset on startup.")
 
+        from utils.events import subscribe
+        subscribe("stats_updated", lambda _: self.update_search_count_display())
+
     def setup_gui(self):
         """Set up the GUI elements"""
         # Configure the root grid
