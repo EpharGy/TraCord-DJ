@@ -170,7 +170,7 @@ class MusicCog(commands.Cog, name="Music"):
                     with open(song_requests_file, "w", encoding="utf-8") as file:
                         json.dump(song_requests, file, indent=4)
 
-                    info(f"{interaction.user} selected and saved the song: {selected_song}")
+                    info(f"{interaction.user} selected and requested the song: {selected_song}")
                     await interaction.followup.send(f"Added the song to the Song Request List: {selected_song}")
                     emit("song_request_added", new_request)  # Emit event for new song request
                     

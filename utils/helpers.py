@@ -44,3 +44,9 @@ def truncate_response(response: str, max_length: int = 2000) -> str:
     if len(response) > max_length:
         return response[:max_length - 3] + "..."
     return response
+
+
+def update_request_numbers(song_requests):
+    """Update the request numbers in the song requests list"""
+    for i, req in enumerate(song_requests):
+        req["RequestNumber"] = i + 1
