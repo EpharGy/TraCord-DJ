@@ -8,12 +8,18 @@ from utils.logger import warning
 STATS_FILE = "stats.json"
 DEFAULT_GLOBAL_STATS = {
     "total_song_searches": 0,
-    "session_song_searches": 0,  # Tracks Song Searches (Session)
+    "session_song_searches": 0,
+    "total_song_plays": 0,
+    "session_song_plays": 0,
+    "total_song_requests": 0,
+    "session_song_requests": 0,
     # Add new stats here to have them auto-included in global reset
 }
 DEFAULT_SESSION_STATS = {
-    "session_song_searches": 0,  # Tracks Song Searches (Session)
-    # Add new session stats here
+    "session_song_searches": 0,
+    "session_song_plays": 0,
+    "session_song_requests": 0,
+    # Add new session stats here to have them auto-included in session reset
 }
 
 def load_stats(stats_file=STATS_FILE):

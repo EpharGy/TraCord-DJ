@@ -54,9 +54,6 @@ TRAKTOR_COLLECTION_FILENAME=collection.nml
 
 #Location of Traktor Broadcast port to listen to
 TRAKTOR_BROADCAST_PORT=8000
-
-#Location of Song Requests file (optional - auto creates a song_requests.json in current directory)
-#SONG_REQUESTS_FILE=song_requests.json
 """
         
         try:
@@ -73,7 +70,7 @@ TRAKTOR_BROADCAST_PORT=8000
                 "• CHANNEL_IDS - Channel IDs (numbers, comma-separated)\n"
                 "• ALLOWED_USER_IDS - User IDs (numbers, comma-separated)\n"
                 "• TRAKTOR_LOCATION - Path to your Traktor folder\n"
-                "• NOWPLAYING_CONFIG_JSON_PATH - Path to Now Playing config\n\n"
+                "• TRAKTOR_BROADCAST_PORT - Traktor DJ Port\n"
                 "💡 Once configured, relaunch this application to start the bot.\n\n"
                 "Click OK to close this application."
             )
@@ -318,6 +315,8 @@ class BotGUI:
         self.new_songs_label = self.controls_stats_panel.new_songs_label
         self.session_searches_label = self.controls_stats_panel.session_searches_label
         self.total_searches_label = self.controls_stats_panel.total_searches_label
+        self.session_requests_label = self.controls_stats_panel.session_requests_label
+        self.total_requests_label = self.controls_stats_panel.total_requests_label
         
         # Console/NowPlaying Panel (was right_panel)
         console_panel = ttk.Frame(main_frame)
@@ -544,13 +543,17 @@ class BotGUI:
         threading.Thread(target=_load_stats, daemon=True).start()
 
     def update_search_count_display(self):
-        """Update the search count labels in the GUI using stats.json."""
+        """Update the search and request count labels in the GUI using stats.json."""
         from utils.stats import load_stats
         stats = load_stats()
         session_count = stats.get("session_song_searches", 0)
         total_count = stats.get("total_song_searches", 0)
-        self.root.after(0, lambda: self.session_searches_label.config(text=f"Song Searches (Session): {session_count}"))
-        self.root.after(0, lambda: self.total_searches_label.config(text=f"Total Song Searches: {total_count}"))
+        session_requests = stats.get("session_song_requests", 0)
+        total_requests = stats.get("total_song_requests", 0)
+        self.root.after(0, lambda: self.session_searches_label.config(text=f"Song Searches: {session_count}"))
+        self.root.after(0, lambda: self.total_searches_label.config(text=f"Song Searches: {total_count}"))
+        self.root.after(0, lambda: self.session_requests_label.config(text=f"Song Requests: {session_requests}"))
+        self.root.after(0, lambda: self.total_requests_label.config(text=f"Song Requests: {total_requests}"))
 
     def on_discord_bot_ready(self, bot):
         """Update bot information in the UI when the Discord bot is ready."""
@@ -616,7 +619,7 @@ class BotGUI:
 
     def start_traktor_listener(self):
         def _start():
-            info(f"[Traktor Listener] Starting Traktor Broadcast Listener on Port {self.traktor_listener_port}, if this doesn't connect try toggling Broadcast in Traktor.")
+            info(f"[Traktor] Starting Traktor Broadcast Listener on Port {self.traktor_listener_port}, if this doesn't connect try toggling Broadcast in Traktor.")
             self.traktor_listener_status = '🟡 Traktor Listener Connecting'
             self.controls_stats_panel.set_traktor_listener_status(self.traktor_listener_status, foreground='orange')
             self.controls_stats_panel.set_traktor_toggle_button(True)
@@ -632,7 +635,7 @@ class BotGUI:
 
     def stop_traktor_listener(self):
         def _stop():
-            info("[Traktor Listener] Stopping Traktor Broadcast Listener")
+            info("[Traktor] Stopping Traktor Broadcast Listener")
             if self.traktor_listener:
                 self.traktor_listener.stop()
             self.traktor_listener_running = False

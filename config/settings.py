@@ -42,10 +42,15 @@ class Settings:
     # File Paths - Use executable directory for file paths when frozen
     @staticmethod
     def get_song_requests_file():
-        """Get the song requests file path, handling both development and executable modes"""
-        filename = os.getenv('SONG_REQUESTS_FILE', 'song_requests.json')
-        base_dir = get_executable_dir()
-        return os.path.join(base_dir, filename)
+        """Get the song requests file path, always in config directory."""
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        return os.path.join(base_dir, 'song_requests.json')
+    
+    @staticmethod
+    def get_stats_file():
+        """Get the stats file path, always in config directory."""
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        return os.path.join(base_dir, 'stats.json')
     
     @staticmethod
     def get_search_counter_file():
@@ -60,6 +65,7 @@ class Settings:
         return os.path.join(base_dir, 'collection.json')
     
     SONG_REQUESTS_FILE: str = get_song_requests_file()
+    STATS_FILE: str = get_stats_file()
     SEARCH_COUNTER_FILE: str = get_search_counter_file()
     COLLECTION_JSON_FILE: str = get_collection_json_file()
     

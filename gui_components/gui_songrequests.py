@@ -8,8 +8,9 @@ from utils.events import subscribe
 from utils.song_request_highlight import highlighter
 from utils.helpers import update_request_numbers
 from utils.logger import info
+from config.settings import Settings
 
-SONG_REQUESTS_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'song_requests.json')
+SONG_REQUESTS_FILE = Settings.SONG_REQUESTS_FILE
 
 class SongRequestsPanel(ttk.LabelFrame):
     def __init__(self, parent, *args, **kwargs):

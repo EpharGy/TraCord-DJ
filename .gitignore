@@ -71,17 +71,18 @@ venv.bak/
 ehthumbs.db
 Thumbs.db
 
-# Discord bot specific
-*.log
-logs/
+# TraCord DJ bot specific
 song_requests.json
 collection.nml
 collection.json
 stats.json
+Debug_unmatched_songs.txt
 
 # Temporary files
 *.tmp
 *.temp
+*.log
+logs/
 
 # Extra Cogs
 extra_cogs/*

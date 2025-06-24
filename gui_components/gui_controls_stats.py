@@ -57,10 +57,20 @@ class ControlsStatsPanel(ttk.LabelFrame):
         self.songs_label.grid(row=3, column=0, sticky="w", pady=(5, 0))
         self.new_songs_label = ttk.Label(self.stats_frame, text="New Songs: Loading...")
         self.new_songs_label.grid(row=4, column=0, sticky="w")
-        self.session_searches_label = ttk.Label(self.stats_frame, text="Song Searches (Session): 0")
-        self.session_searches_label.grid(row=5, column=0, sticky="w")
-        self.total_searches_label = ttk.Label(self.stats_frame, text="Total Song Searches: 0")
-        self.total_searches_label.grid(row=6, column=0, sticky="w")
+        # Session Stats heading
+        self.session_stats_heading = ttk.Label(self.stats_frame, text="Session Stats", font=("Arial", 9, "bold"))
+        self.session_stats_heading.grid(row=5, column=0, sticky="w", pady=(10, 0))
+        self.session_searches_label = ttk.Label(self.stats_frame, text="Song Searches: 0")
+        self.session_searches_label.grid(row=6, column=0, sticky="w")
+        self.session_requests_label = ttk.Label(self.stats_frame, text="Song Requests: 0")
+        self.session_requests_label.grid(row=7, column=0, sticky="w")
+        # Space before total stats
+        self.total_stats_heading = ttk.Label(self.stats_frame, text="Total Stats", font=("Arial", 9, "bold"))
+        self.total_stats_heading.grid(row=8, column=0, sticky="w", pady=(10, 0))
+        self.total_searches_label = ttk.Label(self.stats_frame, text="Song Searches: 0")
+        self.total_searches_label.grid(row=9, column=0, sticky="w")
+        self.total_requests_label = ttk.Label(self.stats_frame, text="Song Requests: 0")
+        self.total_requests_label.grid(row=10, column=0, sticky="w")
         # Clear log button
         self.clear_button = ttk.Button(
             self,
