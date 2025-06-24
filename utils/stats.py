@@ -4,8 +4,9 @@ Stats management utilities for Traktor DJ NowPlaying Discord Bot
 import json
 import os
 from utils.logger import warning
+from config.settings import Settings
 
-STATS_FILE = "stats.json"
+STATS_FILE = Settings.STATS_FILE
 DEFAULT_GLOBAL_STATS = {
     "total_song_searches": 0,
     "session_song_searches": 0,
