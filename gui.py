@@ -8,12 +8,21 @@ import threading
 import sys
 import queue
 import os
-from datetime import datetime
-import asyncio
-import io
+
 from services.traktor_listener import TraktorBroadcastListener
 
-CONSOLE_PANEL_WIDTH = 500  # Set the fixed width for Console/NowPlaying area here
+CONSOLE_PANEL_WIDTH=500
+
+def log_debug(msg):
+    with open('debug_env_log.txt', 'a', encoding='utf-8') as log:
+        log.write(msg + '\n')
+
+try:
+    log_debug(f"STARTUP: cwd={os.getcwd()} __file__={__file__}")
+    log_debug(f"STARTUP: .env exists? {os.path.exists('.env')}")
+except Exception as e:
+    with open('debug_env_log.txt', 'a', encoding='utf-8') as log:
+        log.write(f"ERROR during startup debug: {e}\n")
 
 # Import the centralized logger
 from utils.logger import set_gui_callback, set_debug_mode, info, debug, warning, error
@@ -29,39 +38,29 @@ if getattr(sys, 'frozen', False):
     if bundle_dir not in sys.path:
         sys.path.insert(0, bundle_dir)
 
+    # Force a console window for debugging
+    if os.name == 'nt':
+        import ctypes
+        ctypes.windll.kernel32.AllocConsole()
+        sys.stdout = open('debug_env_log.txt', 'w', encoding='utf-8')
+        sys.stderr = sys.stdout
+
 def check_and_create_env_file():
     """Check for .env file and create from template if missing"""
-    base_dir = os.path.dirname(os.path.abspath(__file__))
+    if getattr(sys, 'frozen', False):
+        base_dir = os.path.dirname(sys.executable)
+    else:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
     env_path = os.path.join(base_dir, '.env')
-    
+    log_debug(f"check_and_create_env_file: Checking {env_path}")
     if not os.path.exists(env_path):
+        log_debug(".env does not exist, attempting to create it.")
         # Default .env template content
-        example_content = """# Example environment file for TraCord DJ
-# Copy this to .env and fill in your actual values
-
-# Discord Bot Configuration
-DISCORD_TOKEN=your_discord_bot_token_here
-APPLICATION_ID=your_application_id_here
-
-# Discord Channel and User Permissions (comma-separated)
-CHANNEL_IDS=channel_id_1,channel_id_2
-ALLOWED_USER_IDS=user_id_1,user_id_2
-
-# Live Notification Roles (optional, comma-separated role names)
-DISCORD_LIVE_NOTIFICATION_ROLES=Tunes,DJ Friends,Music Lovers
-
-#Location of root Traktor folder (ie without the version number)
-TRAKTOR_LOCATION=C:\\Users\\YourUser\\Documents\\Native Instruments\\
-TRAKTOR_COLLECTION_FILENAME=collection.nml
-
-#Location of Traktor Broadcast port to listen to
-TRAKTOR_BROADCAST_PORT=8000
-"""
-        
+        example_content = """# Example environment file for TraCord DJ\n# Copy this to .env and fill in your actual values\n\n# Discord Bot Configuration\nDISCORD_TOKEN=your_discord_bot_token_here\nAPPLICATION_ID=your_application_id_here\n\n# Discord Channel and User Permissions (comma-separated)\nCHANNEL_IDS=channel_id_1,channel_id_2\nALLOWED_USER_IDS=user_id_1,user_id_2\n\n# Live Notification Roles (optional, comma-separated role names)\nDISCORD_LIVE_NOTIFICATION_ROLES=Tunes,DJ Friends,Music Lovers\n\n#Location of root Traktor folder (ie without the version number)\nTRAKTOR_LOCATION=C:\\Users\\YourUser\\Documents\\Native Instruments\\\nTRAKTOR_COLLECTION_FILENAME=collection.nml\n\n#Location of Traktor Broadcast port to listen to\nTRAKTOR_BROADCAST_PORT=8000\n"""
         try:
             with open(env_path, 'w', encoding='utf-8') as f:
                 f.write(example_content)
-            
+            log_debug(".env file created successfully.")
             # Show user-friendly message and exit
             messagebox.showinfo(
                 "Setup Required - .env File Created",
@@ -76,22 +75,27 @@ TRAKTOR_BROADCAST_PORT=8000
                 "💡 Once configured, relaunch this application to start the bot.\n\n"
                 "Click OK to close this application."
             )
-            
+            log_debug("Displayed .env created info popup.")
             return False  # Signal to exit application
         except Exception as e:
+            log_debug(f"ERROR: Could not create .env file: {e}")
             messagebox.showerror("Error", f"Could not create .env file: {e}")
             return None
-    
+    else:
+        log_debug(".env already exists.")
     return True  # File exists
 
 def check_env_file_configured():
     """Check if .env file has been properly configured (not using template values)"""
     try:
         from dotenv import load_dotenv
-        import os
-        
         # Reload environment variables
         load_dotenv(override=True)
+        # Print loaded environment variables for debugging
+        print("DEBUG: DISCORD_TOKEN:", os.getenv('DISCORD_TOKEN'))
+        print("DEBUG: APPLICATION_ID:", os.getenv('APPLICATION_ID'))
+        print("DEBUG: CHANNEL_IDS:", os.getenv('CHANNEL_IDS'))
+        print("DEBUG: ALLOWED_USER_IDS:", os.getenv('ALLOWED_USER_IDS'))
         
         # Check for template values that indicate unconfigured .env
         token = os.getenv('DISCORD_TOKEN', '').strip()
@@ -200,11 +204,11 @@ class BotGUI:
             # Use PyInstaller's _MEIPASS for bundled resources
             if getattr(sys, 'frozen', False):
                 bundle_dir = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
-                icon_path = os.path.join(bundle_dir, 'app_icon.ico')
-                png_icon_path = os.path.join(bundle_dir, 'icon.png')
+                icon_path = os.path.join(bundle_dir, 'assets', 'app_icon.ico')
+                png_icon_path = os.path.join(bundle_dir, 'assets', 'icon.png')
             else:
-                icon_path = 'app_icon.ico'
-                png_icon_path = 'icon.png'
+                icon_path = os.path.join('assets', 'app_icon.ico')
+                png_icon_path = os.path.join('assets', 'icon.png')
             if os.path.exists(icon_path):
                 self.root.iconbitmap(icon_path)
                 info(f"✅ Using custom icon: {icon_path}")
@@ -698,4 +702,13 @@ def run_gui():
             pass  # Ignore errors in the error handler itself
 
 if __name__ == "__main__":
+    import os
+    print("DEBUG: Current working directory:", os.getcwd())
+    print("DEBUG: .env exists?", os.path.exists('.env'))
+    if os.path.exists('.env'):
+        with open('.env', 'r', encoding='utf-8') as f:
+            print("DEBUG: .env contents:")
+            print(f.read())
+    else:
+        print("DEBUG: .env file not found at startup!")
     run_gui()
