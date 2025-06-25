@@ -702,13 +702,4 @@ def run_gui():
             pass  # Ignore errors in the error handler itself
 
 if __name__ == "__main__":
-    import os
-    print("DEBUG: Current working directory:", os.getcwd())
-    print("DEBUG: .env exists?", os.path.exists('.env'))
-    if os.path.exists('.env'):
-        with open('.env', 'r', encoding='utf-8') as f:
-            print("DEBUG: .env contents:")
-            print(f.read())
-    else:
-        print("DEBUG: .env file not found at startup!")
     run_gui()
