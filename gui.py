@@ -90,11 +90,6 @@ def check_env_file_configured():
         from dotenv import load_dotenv
         # Reload environment variables
         load_dotenv(override=True)
-        # Print loaded environment variables for debugging
-        print("DEBUG: DISCORD_TOKEN:", os.getenv('DISCORD_TOKEN'))
-        print("DEBUG: APPLICATION_ID:", os.getenv('APPLICATION_ID'))
-        print("DEBUG: CHANNEL_IDS:", os.getenv('CHANNEL_IDS'))
-        print("DEBUG: ALLOWED_USER_IDS:", os.getenv('ALLOWED_USER_IDS'))
         
         # Check for template values that indicate unconfigured .env
         token = os.getenv('DISCORD_TOKEN', '').strip()

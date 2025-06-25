@@ -43,20 +43,15 @@ class Settings:
     @staticmethod
     def get_song_requests_file():
         """Get the song requests file path, always in config directory."""
-        base_dir = os.path.dirname(os.path.abspath(__file__))
+        base_dir = get_executable_dir()
         return os.path.join(base_dir, 'song_requests.json')
     
     @staticmethod
     def get_stats_file():
         """Get the stats file path, always in config directory."""
-        base_dir = os.path.dirname(os.path.abspath(__file__))
+        base_dir = get_executable_dir()
         return os.path.join(base_dir, 'stats.json')
     
-    @staticmethod
-    def get_search_counter_file():
-        """Get the search counter file path, handling both development and executable modes"""
-        base_dir = get_executable_dir()
-        return os.path.join(base_dir, 'search_counter.txt')
     
     @staticmethod
     def get_collection_json_file():
@@ -66,29 +61,27 @@ class Settings:
     
     SONG_REQUESTS_FILE: str = get_song_requests_file()
     STATS_FILE: str = get_stats_file()
-    SEARCH_COUNTER_FILE: str = get_search_counter_file()
     COLLECTION_JSON_FILE: str = get_collection_json_file()
     
     # Live Notification Roles
     DISCORD_LIVE_NOTIFICATION_ROLES_ENV: Optional[str] = os.getenv('DISCORD_LIVE_NOTIFICATION_ROLES')
-    
-    # Bot Constants
-    MAX_SONGS: int = 20
-    NEW_SONGS_DAYS: int = 7
-    DEBUG: bool = False
-    TIMEOUT: float = 45.0
-    
-    # Exclusion Patterns
-    EXCLUDED_ITEMS = {
-        'FILE': ['.stem.'],
-        'DIR': [':ContentImport/', ':Samples/']
-    }
     
     # Processed Lists
     CHANNEL_IDS: List[int] = []
     ALLOWED_USER_IDS: List[int] = []
     DISCORD_LIVE_NOTIFICATION_ROLES: List[str] = []
     TRAKTOR_PATH: str = ""
+    DEBUG: bool = False
+    # Bot Constants
+    MAX_SONGS: int = 20
+    NEW_SONGS_DAYS: int = 7
+    DEBUG: bool = False
+    TIMEOUT: float = 45.0
+    # Exclusion Patterns
+    EXCLUDED_ITEMS = {
+        'FILE': ['.stem.'],
+        'DIR': [':ContentImport/', ':Samples/']
+    }
     
     @classmethod
     def initialize(cls) -> None:
