@@ -135,9 +135,7 @@ TraCord-DJ/
 │   │   ├── music.py
 │   │   ├── music_requests.py
 │   │   └── _internal_cogs.py      # Auto-managed: always-up-to-date list of internal cogs
-│   ├── extra_cogs/                # (gitignored) Personal/dev-only cogs, launchers, and persona files
-│   │   ├── my_anime_cog.py        # Example: not included in EXE unless added to build
-│   │   ├── _persona.txt           # Example: personal character/persona data
+│   ├── extra_cogs/                # (gitignored) Personal/dev-only cogs, launchers, and 
 │   │   └── ...                    # Any .py files here are loaded as cogs in dev, but not in packaged EXE
 │   ├── config/
 |   |   ├── collection.json

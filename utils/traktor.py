@@ -277,12 +277,27 @@ def convert_collection_xml_to_json(xml_file_path: str, json_file_path: str, excl
             album_element = entry.find(".//ALBUM")
             album_title = album_element.get("TITLE", "").strip() if album_element is not None else ""
             
-            # Get cover art ID
-            cover_art_id = entry.get("COVERARTID", "").strip()
-            
-            # Get import date for potential future use
+            # Get cover art ID, genre, and import date from INFO
             info = entry.find(".//INFO")
+            cover_art_id = info.get("COVERARTID", "").strip() if info is not None else ""
+            genre = info.get("GENRE", "").strip() if info is not None else ""
             import_date = info.get("IMPORT_DATE", "") if info is not None else ""
+            
+            # Get BPM from TEMPO (as int)
+            tempo = entry.find(".//TEMPO")
+            bpm_str = tempo.get("BPM", "") if tempo is not None else ""
+            try:
+                bpm = int(float(bpm_str)) if bpm_str else None
+            except ValueError:
+                bpm = None
+            
+            # Get musical key from MUSICAL_KEY
+            musical_key = entry.find(".//MUSICAL_KEY")
+            key_value = musical_key.get("VALUE", "") if musical_key is not None else ""
+            try:
+                key = int(key_value) if key_value else None
+            except ValueError:
+                key = None
             
             # Create song record
             song_record = {
@@ -290,7 +305,10 @@ def convert_collection_xml_to_json(xml_file_path: str, json_file_path: str, excl
                 "title": title or "Unknown Title", 
                 "album": album_title,
                 "cover_art_id": cover_art_id,
-                "import_date": import_date
+                "import_date": import_date,
+                "genre": genre,
+                "bpm": bpm,
+                "musical_key": key
             }
             
             songs.append(song_record)

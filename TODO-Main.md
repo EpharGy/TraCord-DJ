@@ -1,14 +1,8 @@
 # TODO & Feature Ideas
 
-## Song Requests GUI Integration
-- [X] Display current song requests in the GUI (popup window or main panel)
-- [X] Show who requested each song
-- [X] Option to toggle song requests display for a cleaner view (for OBS)
-- [X] Management controls: remove individual requests, clear all requests
-
 ## NowPlaying Replacement
 - [ ] Replicate NowPlaying functionality within the bot/GUI
-    - [ ] Listen to Traktor output/port for song data
+    - [X] Listen to Traktor output/port for song data
     - [ ] Display current playing track, artist, album, cover art, etc.
     - [ ] Generate a styled webpage (with CSS/animations) for OBS integration
     - [ ] Slide in/out animation for song changes
@@ -31,3 +25,47 @@
 - **Separation of Concerns:** Keep logic for data management, Discord integration, and GUI display modular and well-separated.
 - **Cross-Platform:** Ensure file paths and GUI features work on both Windows and other OSes if needed.
 - **Testing:** Consider how to test GUI features and data sync without breaking the bot or Discord integration.
+
+---
+
+## Traktor Cover Art Extraction & Display Plan
+
+1. **File Path Construction**
+   - Use the stored coverart string (e.g., `039/HNQ02OBHLMIWDCIJDEG0AVRGRPMB`) to build the full file path:
+     `{TRAKTOR_LOCATION}\{latest_version}\Coverart\{folder}\{filename}000`
+   - Use existing logic to find the latest Traktor version folder.
+
+2. **File Format**
+   - Traktor cover art files are Zstandard (Zstd) compressed, usually containing a JPEG or PNG image.
+   - The `000` suffix is the largest version; `001`, `002`, etc. are smaller thumbnails.
+
+3. **Decompression & Image Extraction**
+   - Use the `zstandard` Python library to decompress the file.
+   - Extract the image data (likely JPEG/PNG) from the decompressed bytes.
+   - Use `Pillow` (PIL) to load/display the image from bytes.
+
+4. **Display in GUI**
+   - Show the cover art in the GUI near the current/selected song details.
+   - If direct display isn’t possible, write the decompressed image to a temp file and load it.
+   - Optionally cache decompressed images for performance.
+
+5. **Fallbacks & Error Handling**
+   - If the file isn’t Zstd or is corrupt, show a default "no cover art" image.
+   - If the image format inside isn’t supported, try to detect and convert it.
+   - Fallback to template image? 
+
+6. **Python Tools Needed**
+   - `zstandard` for decompression (`pip install zstandard`)
+   - `Pillow` for image handling (`pip install pillow`)
+
+7. **Next Steps**
+   - Implement a utility function:
+     - Input: coverart string, TRAKTOR_LOCATION
+     - Output: PIL Image object (or path to temp image file)
+   - Integrate with GUI for cover art display.
+
+---
+
+**(Plan added by Suzuya & Kumano, so you don’t forget, Admiral! Sleep tight~)**
+
+
