@@ -15,7 +15,10 @@ A comprehensive Discord bot for managing music requests, interacting with Trakto
 - **🔒 Permission System**: Granular access control for different user roles
 - **🧹 Admin Controls**: Collection refresh and track history via GUI buttons
 - **📊 Search Analytics**: Track and display search statistics
-- **🎧 Now Playing**: Traktor Broadcast Listening for Song/Artist details, integrated with collection details for advanced meta data display.
+- **🎧 WIP Now Playing**: Traktor Broadcast Listening for Song/Artist details, integrated with collection details for advanced meta data display.
+
+## Screenshots
+![TraCord DJ GUI](https://raw.githubusercontent.com/EpharGy/TraCord-DJ/main/assets/gui_screenshot.png)
 
 ## Quick Start
 
@@ -52,7 +55,7 @@ A comprehensive Discord bot for managing music requests, interacting with Trakto
 | `DISCORD_LIVE_NOTIFICATION_ROLES` | Comma-separated list of role names to mention for live notifications (optional) |
 | `TRAKTOR_LOCATION` | Path to your Traktor installation folder |
 | `TRAKTOR_COLLECTION_FILENAME` | Name of the Traktor collection file |
-| `SONG_REQUESTS_FILE` | Path to song requests JSON file (optional - defaults to song_requests.json in current directory) |
+| `TRAKTOR_BROADCAST_PORT` | Port for Traktor Broadcast (default: 8000) |
 
 ### 🛠️ For Developers
 
@@ -137,6 +140,9 @@ TraCord-DJ/
 │   │   ├── _persona.txt           # Example: personal character/persona data
 │   │   └── ...                    # Any .py files here are loaded as cogs in dev, but not in packaged EXE
 │   ├── config/
+|   |   ├── collection.json
+|   |   ├── song_requests.json
+|   |   ├── stats.json              # Search and usage statistics (auto-created)
 │   │   └── settings.py
 │   ├── gui/                        # GUI submodules (panels, controls, etc.)
 │   │   ├── gui_controls_stats.py
@@ -172,12 +178,7 @@ TraCord-DJ/
     ├── .env
     ├── *.spec
     ├── build/
-    ├── dist/
-    ├── collection.json
-    ├── collection.nml
-    ├── search_counter.txt
-    ├── song_requests.json
-    ├── stats.json              # Search and usage statistics (auto-created)
+    └── dist/
 ```
 
 > **Note:** The `gui/` folder contains all modular GUI panels and controls. The `services/` folder contains bot lifecycle logic. The `utils/` folder contains helpers, logging, and Traktor, Now Playing utilities.
