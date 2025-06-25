@@ -50,6 +50,9 @@ class SongRequestsPanel(ttk.LabelFrame):
         self.load_requests()
         subscribe("song_request_added", self.handle_song_added)
         subscribe("song_request_deleted", self.handle_song_deleted)
+        # Subscribe popout refresh to events
+        subscribe("song_request_added", lambda _: self.refresh_clean_list_window())
+        subscribe("song_request_deleted", lambda _: self.refresh_clean_list_window())
 
     def get_request_id(self, req):
         # Use User, Song, Date for unique ID (not RequestNumber)
@@ -232,3 +235,31 @@ class SongRequestsPanel(ttk.LabelFrame):
                 label = ttk.Label(frame, text=song, anchor="w", font=("Segoe UI", 14))
                 label.pack(fill="x", pady=2, anchor="w")
         self.clean_list_btn.config(text="⤵ Close pop up")
+
+    def refresh_clean_list_window(self):
+        if self.clean_list_window and tk.Toplevel.winfo_exists(self.clean_list_window):
+            self.render_clean_list_window()
+
+    def render_clean_list_window(self):
+        if not self.clean_list_window:
+            return
+        for widget in self.clean_list_window.winfo_children():
+            widget.destroy()
+        frame = ttk.Frame(self.clean_list_window, padding=20)
+        frame.pack(fill="both", expand=True)
+        if not self.requests:
+            label = ttk.Label(frame, text="No songs in the list.", anchor="center")
+            label.pack(fill="both", expand=True)
+        else:
+            for idx, req in enumerate(self.requests):
+                song = req.get('Song', '')
+                req_id = self.get_request_id(req)
+                label = ttk.Label(frame, text=song, anchor="w", font=("Segoe UI", 14))
+                # Color coding: green for new, red for deleted, black otherwise
+                if (req_id, 'add') in self._pending_highlights:
+                    label.configure(foreground='green')
+                elif req_id in self._deleted_rows:
+                    label.configure(foreground='red')
+                else:
+                    label.configure(foreground='black')
+                label.pack(fill="x", pady=2, anchor="w")
