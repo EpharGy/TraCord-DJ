@@ -13,6 +13,8 @@ import asyncio
 import io
 from services.traktor_listener import TraktorBroadcastListener
 
+CONSOLE_PANEL_WIDTH = 500  # Set the fixed width for Console/NowPlaying area here
+
 # Import the centralized logger
 from utils.logger import set_gui_callback, set_debug_mode, info, debug, warning, error
 
@@ -168,13 +170,12 @@ except ImportError as e:
         print("Please ensure you're running from the correct directory.")
     sys.exit(1)
 
-
 class BotGUI:
     """GUI application for the TraCord DJ bot"""
     
     def __init__(self, title=None):
-        from utils.stats import reset_session_stats
-        reset_session_stats()
+        #from utils.stats import reset_session_stats
+        #reset_session_stats()
         from services.discord_bot import DiscordBotController
         from main import DJBot
         from config.settings import Settings
@@ -261,6 +262,7 @@ class BotGUI:
         # Reset session stats on startup (but not global stats)
         from utils.stats import reset_session_stats
         reset_session_stats()
+        self.update_search_count_display()
         info("Session stats reset on startup.")
 
         from utils.events import subscribe
@@ -274,8 +276,8 @@ class BotGUI:
         # Main frame
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky="nsew")
-        main_frame.columnconfigure(1, weight=3)  # Console/NowPlaying area
-        main_frame.columnconfigure(2, weight=2)  # Song Requests area
+        main_frame.columnconfigure(1, weight=0, minsize=CONSOLE_PANEL_WIDTH)  # Console/NowPlaying area fixed width
+        main_frame.columnconfigure(2, weight=1)  # Song Requests area resizes
         main_frame.columnconfigure(0, weight=0)  # Controls don't expand
         main_frame.rowconfigure(1, weight=1)
         # Removed the large title label to save space
@@ -322,8 +324,9 @@ class BotGUI:
         self.total_requests_label = self.controls_stats_panel.total_requests_label
         
         # Console/NowPlaying Panel (was right_panel)
-        console_panel = ttk.Frame(main_frame)
+        console_panel = ttk.Frame(main_frame, width=CONSOLE_PANEL_WIDTH)
         console_panel.grid(row=1, column=1, sticky="nsew")
+        console_panel.grid_propagate(False)  # Prevent resizing beyond fixed width
         console_panel.columnconfigure(0, weight=1)
         console_panel.rowconfigure(0, weight=1)  # Now Playing (top half)
         console_panel.rowconfigure(1, weight=1)  # Log (bottom half)
