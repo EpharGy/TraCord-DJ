@@ -4,16 +4,24 @@ Stats management utilities for Traktor DJ NowPlaying Discord Bot
 import json
 import os
 from utils.logger import warning
+from config.settings import Settings
+from utils.events import emit
 
-STATS_FILE = "stats.json"
+STATS_FILE = Settings.STATS_FILE
 DEFAULT_GLOBAL_STATS = {
     "total_song_searches": 0,
-    "session_song_searches": 0,  # Tracks Song Searches (Session)
+    "session_song_searches": 0,
+    "total_song_plays": 0,
+    "session_song_plays": 0,
+    "total_song_requests": 0,
+    "session_song_requests": 0,
     # Add new stats here to have them auto-included in global reset
 }
 DEFAULT_SESSION_STATS = {
-    "session_song_searches": 0,  # Tracks Song Searches (Session)
-    # Add new session stats here
+    "session_song_searches": 0,
+    "session_song_plays": 0,
+    "session_song_requests": 0,
+    # Add new session stats here to have them auto-included in session reset
 }
 
 def load_stats(stats_file=STATS_FILE):
@@ -43,6 +51,7 @@ def increment_stat(stat_name, amount=1, stats_file=STATS_FILE):
     stats = load_stats(stats_file)
     stats[stat_name] = stats.get(stat_name, 0) + amount
     save_stats(stats, stats_file)
+    emit("stats_updated")
     return stats[stat_name]
 
 def reset_session_stats(stats_file=STATS_FILE):
@@ -55,6 +64,7 @@ def reset_session_stats(stats_file=STATS_FILE):
             stats[k] = 0
             info(f"{k}: Reset to 0 (was {old})")
     save_stats(stats, stats_file)
+    emit("stats_updated")
     return stats
 
 def reset_global_stats(stats_file=STATS_FILE):
@@ -66,4 +76,5 @@ def reset_global_stats(stats_file=STATS_FILE):
     for k, v in DEFAULT_GLOBAL_STATS.items():
         if k in before:
             info(f"{k}: Reset to 0 (was {before[k]})")
+    emit("stats_updated")
     return after

@@ -1,5 +1,5 @@
 """
-Traktor DJ NowPlaying Discord Bot - Simple Launcher
+TraCord DJ - Simple Launcher
 A simple launcher script for the GUI application
 """
 import sys
@@ -13,16 +13,19 @@ def check_requirements():
     """Check if all requirements are met"""
     issues = []
     
+    # Use script directory for all checks
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    
     # Check if we're in the right directory
-    if not os.path.exists('config/settings.py'):
-        issues.append("❌ Bot files not found! Please ensure you're in the Traktor DJ NowPlaying Discord Bot directory.")
+    if not os.path.exists(os.path.join(base_dir, 'config', 'settings.py')):
+        issues.append("❌ Bot files not found! Please ensure you're in the TraCord DJ directory.")
     
     # Check if .env file exists
-    if not os.path.exists('.env'):
+    if not os.path.exists(os.path.join(base_dir, '.env')):
         issues.append("❌ .env file not found! Please create a .env file with your Discord bot token.")
     
     # Check if GUI file exists
-    if not os.path.exists('gui.py'):
+    if not os.path.exists(os.path.join(base_dir, 'gui.py')):
         issues.append("❌ gui.py not found! The GUI application file is missing.")
     
     return issues
@@ -33,7 +36,7 @@ def main():
     root = tk.Tk()
     root.withdraw()  # Hide the main window
     
-    info("🚀 Traktor DJ NowPlaying Discord Bot Launcher")
+    info("🚀 TraCord DJ Launcher")
     info("=" * 40)
     
     # Check requirements

@@ -1,5 +1,5 @@
 """
-Configuration settings for Traktor DJ NowPlaying Discord Bot
+Configuration settings for TraCord DJ
 Handles environment variables, constants, and validation
 """
 import os
@@ -10,17 +10,17 @@ from typing import List, Optional
 from utils.logger import debug, info, warning, error
 
 def get_executable_dir():
-    """Get the directory where the executable is running from"""
+    """Get the directory where the executable or script is running from"""
     if getattr(sys, 'frozen', False):
         # Running as PyInstaller executable
         return os.path.dirname(sys.executable)
     else:
         # Running as Python script
-        return os.getcwd()
+        return os.path.dirname(os.path.abspath(__file__))
 
-# Load environment variables from the executable directory if frozen
-if getattr(sys, 'frozen', False):
-    env_path = os.path.join(get_executable_dir(), '.env')
+# Load environment variables from the script/executable directory
+env_path = os.path.join(get_executable_dir(), '.env')
+if os.path.exists(env_path):
     load_dotenv(env_path)
 else:
     load_dotenv()
@@ -40,25 +40,18 @@ class Settings:
     TRAKTOR_COLLECTION_FILENAME: Optional[str] = os.getenv('TRAKTOR_COLLECTION_FILENAME')
     
     # File Paths - Use executable directory for file paths when frozen
-    NOWPLAYING_CONFIG_JSON_PATH: Optional[str] = os.getenv('NOWPLAYING_CONFIG_JSON_PATH')
-    
-    @classmethod
-    def is_nowplaying_enabled(cls) -> bool:
-        """Check if NowPlaying integration is enabled"""
-        return bool(cls.NOWPLAYING_CONFIG_JSON_PATH and cls.NOWPLAYING_CONFIG_JSON_PATH.strip())
-    
     @staticmethod
     def get_song_requests_file():
-        """Get the song requests file path, handling both development and executable modes"""
-        filename = os.getenv('SONG_REQUESTS_FILE', 'song_requests.json')
+        """Get the song requests file path, always in config directory."""
         base_dir = get_executable_dir()
-        return os.path.join(base_dir, filename)
+        return os.path.join(base_dir, 'song_requests.json')
     
     @staticmethod
-    def get_search_counter_file():
-        """Get the search counter file path, handling both development and executable modes"""
+    def get_stats_file():
+        """Get the stats file path, always in config directory."""
         base_dir = get_executable_dir()
-        return os.path.join(base_dir, 'search_counter.txt')
+        return os.path.join(base_dir, 'stats.json')
+    
     
     @staticmethod
     def get_collection_json_file():
@@ -67,29 +60,28 @@ class Settings:
         return os.path.join(base_dir, 'collection.json')
     
     SONG_REQUESTS_FILE: str = get_song_requests_file()
-    SEARCH_COUNTER_FILE: str = get_search_counter_file()
+    STATS_FILE: str = get_stats_file()
     COLLECTION_JSON_FILE: str = get_collection_json_file()
     
     # Live Notification Roles
     DISCORD_LIVE_NOTIFICATION_ROLES_ENV: Optional[str] = os.getenv('DISCORD_LIVE_NOTIFICATION_ROLES')
-    
-    # Bot Constants
-    MAX_SONGS: int = 20
-    NEW_SONGS_DAYS: int = 7
-    DEBUG: bool = False
-    TIMEOUT: float = 45.0
-    
-    # Exclusion Patterns
-    EXCLUDED_ITEMS = {
-        'FILE': ['.stem.'],
-        'DIR': [':ContentImport/', ':Samples/']
-    }
     
     # Processed Lists
     CHANNEL_IDS: List[int] = []
     ALLOWED_USER_IDS: List[int] = []
     DISCORD_LIVE_NOTIFICATION_ROLES: List[str] = []
     TRAKTOR_PATH: str = ""
+    DEBUG: bool = False
+    # Bot Constants
+    MAX_SONGS: int = 20
+    NEW_SONGS_DAYS: int = 7
+    DEBUG: bool = False
+    TIMEOUT: float = 45.0
+    # Exclusion Patterns
+    EXCLUDED_ITEMS = {
+        'FILE': ['.stem.'],
+        'DIR': [':ContentImport/', ':Samples/']
+    }
     
     @classmethod
     def initialize(cls) -> None:
@@ -106,7 +98,7 @@ class Settings:
         # Validate required environment variables
         required_vars = [
             cls.TOKEN, cls.TRAKTOR_LOCATION, cls.TRAKTOR_COLLECTION_FILENAME, 
-            cls.APPLICATION_ID, cls.NOWPLAYING_CONFIG_JSON_PATH
+            cls.APPLICATION_ID
         ]        
         if any(var is None for var in required_vars):
             raise ValueError("One or more required environment variables are missing.")

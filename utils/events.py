@@ -1,5 +1,5 @@
 """
-Event system for Traktor DJ NowPlaying Discord Bot
+Event system for TraCord DJ
 Allows different components to communicate without direct dependencies
 """
 from typing import Callable, Dict, List, Any

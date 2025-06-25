@@ -1,6 +1,6 @@
 """
-Traktor DJ NowPlaying Discord Bot - Standalone GUI Application
-A standalone GUI application for running the Traktor DJ NowPlaying Discord Bot with real-time monitoring.
+TraCord DJ - Standalone GUI Application
+A standalone GUI application for running the TraCord DJ bot with real-time monitoring.
 """
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
@@ -8,9 +8,10 @@ import threading
 import sys
 import queue
 import os
-from datetime import datetime
-import asyncio
-import io
+
+from services.traktor_listener import TraktorBroadcastListener
+
+CONSOLE_PANEL_WIDTH=500
 
 # Import the centralized logger
 from utils.logger import set_gui_callback, set_debug_mode, info, debug, warning, error
@@ -26,13 +27,19 @@ if getattr(sys, 'frozen', False):
     if bundle_dir not in sys.path:
         sys.path.insert(0, bundle_dir)
 
+
+
 def check_and_create_env_file():
     """Check for .env file and create from template if missing"""
-    env_path = '.env'
-    
+    if getattr(sys, 'frozen', False):
+        base_dir = os.path.dirname(sys.executable)
+    else:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+    env_path = os.path.join(base_dir, '.env')
     if not os.path.exists(env_path):
         # Default .env template content
-        example_content = """# Example environment file for Traktor DJ NowPlaying Discord Bot
+        example_content = """
+# Example environment file for Traktor DJ NowPlaying Discord Bot
 # Copy this to .env and fill in your actual values
 
 # Discord Bot Configuration
@@ -50,17 +57,13 @@ DISCORD_LIVE_NOTIFICATION_ROLES=Tunes,DJ Friends,Music Lovers
 TRAKTOR_LOCATION=C:\\Users\\YourUser\\Documents\\Native Instruments\\
 TRAKTOR_COLLECTION_FILENAME=collection.nml
 
-#Location of Now Playing configuration file
-NOWPLAYING_CONFIG_JSON_PATH=C:\\Users\\YourUser\\.nowplaying\\config.json
+#Traktor Broadcast port to listen to
+TRAKTOR_BROADCAST_PORT=8000
 
-#Location of Song Requests file (optional - defaults to song_requests.json in current directory)
-#SONG_REQUESTS_FILE=song_requests.json
 """
-        
         try:
             with open(env_path, 'w', encoding='utf-8') as f:
                 f.write(example_content)
-            
             # Show user-friendly message and exit
             messagebox.showinfo(
                 "Setup Required - .env File Created",
@@ -71,24 +74,20 @@ NOWPLAYING_CONFIG_JSON_PATH=C:\\Users\\YourUser\\.nowplaying\\config.json
                 "• CHANNEL_IDS - Channel IDs (numbers, comma-separated)\n"
                 "• ALLOWED_USER_IDS - User IDs (numbers, comma-separated)\n"
                 "• TRAKTOR_LOCATION - Path to your Traktor folder\n"
-                "• NOWPLAYING_CONFIG_JSON_PATH - Path to Now Playing config\n\n"
+                "• TRAKTOR_BROADCAST_PORT - Traktor DJ Port\n"
                 "💡 Once configured, relaunch this application to start the bot.\n\n"
                 "Click OK to close this application."
             )
-            
             return False  # Signal to exit application
         except Exception as e:
             messagebox.showerror("Error", f"Could not create .env file: {e}")
             return None
-    
     return True  # File exists
 
 def check_env_file_configured():
     """Check if .env file has been properly configured (not using template values)"""
     try:
         from dotenv import load_dotenv
-        import os
-        
         # Reload environment variables
         load_dotenv(override=True)
         
@@ -169,13 +168,12 @@ except ImportError as e:
         print("Please ensure you're running from the correct directory.")
     sys.exit(1)
 
-
 class BotGUI:
-    """GUI application for the Traktor DJ NowPlaying Discord Bot"""
+    """GUI application for the TraCord DJ bot"""
     
     def __init__(self, title=None):
-        from utils.stats import reset_session_stats
-        reset_session_stats()
+        #from utils.stats import reset_session_stats
+        #reset_session_stats()
         from services.discord_bot import DiscordBotController
         from main import DJBot
         from config.settings import Settings
@@ -191,20 +189,20 @@ class BotGUI:
         )
         self.debug_mode = '--debug' in sys.argv
         self.root = tk.Tk()
-        app_title = title or f"Traktor DJ NowPlaying Discord Bot v{__version__} - Control Panel"
+        app_title = title or f"TraCord DJ v{__version__} - Control Panel"
         self.root.title(app_title)
-        self.root.geometry("1200x700")  # Widened for new layout
-        self.root.minsize(1000, 500)
+        self.root.geometry("1200x800")  # Widened for new layout
+        self.root.minsize(1000, 600)
         # Set window icon - remove the janky black diamond/question mark icon
         try:
             # Use PyInstaller's _MEIPASS for bundled resources
             if getattr(sys, 'frozen', False):
                 bundle_dir = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
-                icon_path = os.path.join(bundle_dir, 'app_icon.ico')
-                png_icon_path = os.path.join(bundle_dir, 'icon.png')
+                icon_path = os.path.join(bundle_dir, 'assets', 'app_icon.ico')
+                png_icon_path = os.path.join(bundle_dir, 'assets', 'icon.png')
             else:
-                icon_path = 'app_icon.ico'
-                png_icon_path = 'icon.png'
+                icon_path = os.path.join('assets', 'app_icon.ico')
+                png_icon_path = os.path.join('assets', 'icon.png')
             if os.path.exists(icon_path):
                 self.root.iconbitmap(icon_path)
                 info(f"✅ Using custom icon: {icon_path}")
@@ -235,6 +233,10 @@ class BotGUI:
         self.bot_thread = None
         self.search_count = 0
         self.output_queue = queue.Queue()
+        self.traktor_listener = None
+        self.traktor_listener_running = False
+        self.traktor_listener_status = '🔴 Traktor Listener Offline'
+        self.traktor_listener_port = int(os.getenv('TRAKTOR_BROADCAST_PORT', '8001'))
         self.setup_gui()
         self.setup_output_capture()
         set_gui_callback(self.add_log)
@@ -258,7 +260,11 @@ class BotGUI:
         # Reset session stats on startup (but not global stats)
         from utils.stats import reset_session_stats
         reset_session_stats()
+        self.update_search_count_display()
         info("Session stats reset on startup.")
+
+        from utils.events import subscribe
+        subscribe("stats_updated", lambda _: self.update_search_count_display())
 
     def setup_gui(self):
         """Set up the GUI elements"""
@@ -268,25 +274,20 @@ class BotGUI:
         # Main frame
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky="nsew")
-        main_frame.columnconfigure(1, weight=3)  # Console/NowPlaying area
-        main_frame.columnconfigure(2, weight=2)  # Song Requests area
+        main_frame.columnconfigure(1, weight=0, minsize=CONSOLE_PANEL_WIDTH)  # Console/NowPlaying area fixed width
+        main_frame.columnconfigure(2, weight=1)  # Song Requests area resizes
         main_frame.columnconfigure(0, weight=0)  # Controls don't expand
         main_frame.rowconfigure(1, weight=1)
         # Removed the large title label to save space
         
         # Left panel - Controls
         from gui_components.gui_controls_stats import ControlsStatsPanel
-        # Check if NowPlaying is enabled
-        from config.settings import Settings
-        self.nowplaying_enabled = Settings.is_nowplaying_enabled()
         # Define button texts for dynamic sizing (conditionally include NowPlaying button)
         button_texts = [
             "🛑 Stop & Close",
             "🗑️ Clear Log", 
             "🔄 Refresh Collection & Stats"
         ]
-        if self.nowplaying_enabled:
-            button_texts.append("🧹 Clear NP Track Info")
         # Use the class method for initial calculation before panel exists
         from gui_components.gui_controls_stats import ControlsStatsPanel
         optimal_width = ControlsStatsPanel.calculate_optimal_button_width(button_texts)
@@ -294,14 +295,15 @@ class BotGUI:
             main_frame,
             button_texts,
             optimal_width,
-            self.nowplaying_enabled,
             self.clear_log,
             self.refresh_session_stats,
             self.reset_global_stats,
-            self.clear_track_history,
+            None,  # Remove clear_track_history
             self.on_stop_button_press,
-            self.on_stop_button_release
+            self.on_stop_button_release,
+            self.toggle_traktor_listener
         )
+        self.controls_stats_panel.set_traktor_toggle_button(False)  # Start in Turn On state
         self.controls_stats_panel.grid(row=1, column=0, sticky="nsew", padx=(0, 15))
         # Expose key widgets for BotGUI
         self.stop_button = self.controls_stats_panel.stop_button
@@ -316,16 +318,19 @@ class BotGUI:
         self.new_songs_label = self.controls_stats_panel.new_songs_label
         self.session_searches_label = self.controls_stats_panel.session_searches_label
         self.total_searches_label = self.controls_stats_panel.total_searches_label
+        self.session_requests_label = self.controls_stats_panel.session_requests_label
+        self.total_requests_label = self.controls_stats_panel.total_requests_label
         
         # Console/NowPlaying Panel (was right_panel)
-        console_panel = ttk.Frame(main_frame)
+        console_panel = ttk.Frame(main_frame, width=CONSOLE_PANEL_WIDTH)
         console_panel.grid(row=1, column=1, sticky="nsew")
+        console_panel.grid_propagate(False)  # Prevent resizing beyond fixed width
         console_panel.columnconfigure(0, weight=1)
         console_panel.rowconfigure(0, weight=1)  # Now Playing (top half)
         console_panel.rowconfigure(1, weight=1)  # Log (bottom half)
 
         # Now Playing Panel (top half of console_panel)
-        from gui_components.gui_nowplaying import NowPlayingPanel
+        from gui_components.gui_now_playing import NowPlayingPanel
         self.nowplaying_panel = NowPlayingPanel(console_panel)
         self.nowplaying_panel.grid(row=0, column=0, sticky="nsew")
 
@@ -345,7 +350,7 @@ class BotGUI:
         subscribe("song_request_deleted", lambda _: self.bring_to_front())
 
         # Add initial message
-        info("🎛️ Traktor DJ NowPlaying Discord Bot Control Panel initialized")
+        info("🎛️ TraCord DJ Control Panel initialized")
         info("⏱️ Auto-startup scheduled in 1 second...")
         
         # Show GUI
@@ -430,6 +435,9 @@ class BotGUI:
 
     def on_stop_button_release(self, event=None):
         """Execute stop and close when button is released"""
+        # Stop Traktor listener first if running
+        if self.traktor_listener_running:
+            self.stop_traktor_listener()
         self._shutdown_application()
 
     def on_x_button_clicked(self):
@@ -446,7 +454,7 @@ class BotGUI:
 
     def update_controls_frame_sizing(self):
         if hasattr(self, 'controls_stats_panel'):
-            self.controls_stats_panel.update_controls_frame_sizing(self.nowplaying_enabled)
+            self.controls_stats_panel.update_controls_frame_sizing()
 
     def _shutdown_application(self):
         """Common shutdown logic for both Stop button and X button"""
@@ -465,19 +473,7 @@ class BotGUI:
             self.log_console_panel.clear_log()
 
     def clear_track_history(self):
-        """Clear track history in NowPlaying config.json using the utility function."""
-        from config.settings import Settings
-        from utils.nowplaying import clear_nowplaying_track_history
-        if not Settings.is_nowplaying_enabled():
-            warning("❌ NowPlaying integration is not enabled")
-            return
-        if not Settings.NOWPLAYING_CONFIG_JSON_PATH:
-            warning("❌ Config file path not set in environment variable NOWPLAYING_CONFIG_JSON_PATH")
-            return
-        success = clear_nowplaying_track_history(Settings.NOWPLAYING_CONFIG_JSON_PATH)
-        if not success:
-            error("❌ Failed to clear NowPlaying track history.")
-        # Optionally, update the GUI or show a messagebox if you want user feedback
+        pass  # Function no longer needed, can be removed in future cleanup
 
     def refresh_collection(self):
         """Refresh the Traktor collection by copying the latest file and reloading stats"""
@@ -551,13 +547,17 @@ class BotGUI:
         threading.Thread(target=_load_stats, daemon=True).start()
 
     def update_search_count_display(self):
-        """Update the search count labels in the GUI using stats.json."""
+        """Update the search and request count labels in the GUI using stats.json."""
         from utils.stats import load_stats
         stats = load_stats()
         session_count = stats.get("session_song_searches", 0)
         total_count = stats.get("total_song_searches", 0)
-        self.root.after(0, lambda: self.session_searches_label.config(text=f"Song Searches (Session): {session_count}"))
-        self.root.after(0, lambda: self.total_searches_label.config(text=f"Total Song Searches: {total_count}"))
+        session_requests = stats.get("session_song_requests", 0)
+        total_requests = stats.get("total_song_requests", 0)
+        self.root.after(0, lambda: self.session_searches_label.config(text=f"Song Searches: {session_count}"))
+        self.root.after(0, lambda: self.total_searches_label.config(text=f"Song Searches: {total_count}"))
+        self.root.after(0, lambda: self.session_requests_label.config(text=f"Song Requests: {session_requests}"))
+        self.root.after(0, lambda: self.total_requests_label.config(text=f"Song Requests: {total_requests}"))
 
     def on_discord_bot_ready(self, bot):
         """Update bot information in the UI when the Discord bot is ready."""
@@ -614,6 +614,59 @@ class BotGUI:
             self.update_search_count_display()
         else:
             info("Reset Global Stats cancelled by user.")
+
+    def toggle_traktor_listener(self):
+        if self.traktor_listener_running:
+            self.stop_traktor_listener()
+        else:
+            self.start_traktor_listener()
+
+    def start_traktor_listener(self):
+        def _start():
+            info(f"[Traktor] Starting Traktor Broadcast Listener on Port {self.traktor_listener_port}, if this doesn't connect try toggling Broadcast in Traktor.")
+            self.traktor_listener_status = '🟡 Traktor Listener Connecting'
+            self.controls_stats_panel.set_traktor_listener_status(self.traktor_listener_status, foreground='orange')
+            self.controls_stats_panel.set_traktor_toggle_button(True)
+            if not self.traktor_listener:
+                self.traktor_listener = TraktorBroadcastListener(
+                    port=self.traktor_listener_port,
+                    status_callback=self.on_traktor_listener_status
+                )
+            self.traktor_listener.start()
+            self.traktor_listener_running = True
+            self.root.after(500, self.poll_traktor_listener_status)
+        threading.Thread(target=_start, daemon=True).start()
+
+    def stop_traktor_listener(self):
+        def _stop():
+            info("[Traktor] Stopping Traktor Broadcast Listener")
+            if self.traktor_listener:
+                self.traktor_listener.stop()
+            self.traktor_listener_running = False
+            self.traktor_listener_status = '🔴 Traktor Listener Offline'
+            self.controls_stats_panel.set_traktor_listener_status(self.traktor_listener_status, foreground='gray')
+            self.controls_stats_panel.set_traktor_toggle_button(False)
+        threading.Thread(target=_stop, daemon=True).start()
+
+    def on_traktor_listener_status(self, status):
+        # Discord status colors: online green, idle orange, dnd red, offline gray
+        if status == 'starting':
+            self.traktor_listener_status = '🟡 Traktor Listener Connecting'
+            color = 'orange'  # idle
+        elif status == 'listening':
+            self.traktor_listener_status = '🟢 Traktor Listener Listening'
+            color = 'green'  # online
+        elif status == 'offline':
+            self.traktor_listener_status = '🔴 Traktor Listener Offline'
+            color = 'gray'  # offline
+        else:
+            color = 'gray'
+        self.controls_stats_panel.set_traktor_listener_status(self.traktor_listener_status, foreground=color)
+
+    def poll_traktor_listener_status(self):
+        if self.traktor_listener and self.traktor_listener_running:
+            self.traktor_listener.poll_status()
+            self.root.after(500, self.poll_traktor_listener_status)
 
     def bring_to_front(self):
         try:

@@ -8,8 +8,9 @@ from utils.events import subscribe
 from utils.song_request_highlight import highlighter
 from utils.helpers import update_request_numbers
 from utils.logger import info
+from config.settings import Settings
 
-SONG_REQUESTS_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'song_requests.json')
+SONG_REQUESTS_FILE = Settings.SONG_REQUESTS_FILE
 
 class SongRequestsPanel(ttk.LabelFrame):
     def __init__(self, parent, *args, **kwargs):
@@ -49,6 +50,9 @@ class SongRequestsPanel(ttk.LabelFrame):
         self.load_requests()
         subscribe("song_request_added", self.handle_song_added)
         subscribe("song_request_deleted", self.handle_song_deleted)
+        # Subscribe popout refresh to events
+        subscribe("song_request_added", lambda _: self.refresh_clean_list_window())
+        subscribe("song_request_deleted", lambda _: self.refresh_clean_list_window())
 
     def get_request_id(self, req):
         # Use User, Song, Date for unique ID (not RequestNumber)
@@ -217,7 +221,7 @@ class SongRequestsPanel(ttk.LabelFrame):
                 self.clean_list_window.iconbitmap(icon_path)
             except Exception:
                 pass
-        self.clean_list_window.geometry("500x600")
+        self.clean_list_window.geometry("600x600")
         self.clean_list_window.resizable(True, True)
         self.clean_list_window.attributes("-topmost", True)
         frame = ttk.Frame(self.clean_list_window, padding=20)
@@ -231,3 +235,23 @@ class SongRequestsPanel(ttk.LabelFrame):
                 label = ttk.Label(frame, text=song, anchor="w", font=("Segoe UI", 14))
                 label.pack(fill="x", pady=2, anchor="w")
         self.clean_list_btn.config(text="⤵ Close pop up")
+
+    def refresh_clean_list_window(self):
+        if self.clean_list_window and tk.Toplevel.winfo_exists(self.clean_list_window):
+            self.render_clean_list_window()
+
+    def render_clean_list_window(self):
+        if not self.clean_list_window:
+            return
+        for widget in self.clean_list_window.winfo_children():
+            widget.destroy()
+        frame = ttk.Frame(self.clean_list_window, padding=20)
+        frame.pack(fill="both", expand=True)
+        if not self.requests:
+            label = ttk.Label(frame, text="No songs in the list.", anchor="center")
+            label.pack(fill="both", expand=True)
+        else:
+            for idx, req in enumerate(self.requests):
+                song = req.get('Song', '')
+                label = ttk.Label(frame, text=song, anchor="w", font=("Segoe UI", 14))
+                label.pack(fill="x", pady=2, anchor="w")

@@ -1,8 +1,8 @@
-# Traktor DJ NowPlaying Discord Bot
+# TraCord DJ
 
 A comprehensive Discord bot for managing music requests, interacting with Traktor DJ software collections, and enhancing DJ workflow automation. This is a standalone GUI application suitable for personal DJ environments.
 
-> **📝 Version & Releases**: Current version in [`version.py`](version.py) | Release history at [GitHub Releases](https://github.com/EpharGy/Traktor-DJ-NowPlaying-Discord-Bot/releases)
+> **📝 Version & Releases**: Current version in [`version.py`](version.py) | Release history at [GitHub Releases](https://github.com/EpharGy/TraCord-DJ/releases)
 
 ## Features
 
@@ -15,13 +15,16 @@ A comprehensive Discord bot for managing music requests, interacting with Trakto
 - **🔒 Permission System**: Granular access control for different user roles
 - **🧹 Admin Controls**: Collection refresh and track history via GUI buttons
 - **📊 Search Analytics**: Track and display search statistics
-- **🎧 NowPlaying Integration**: (Optional) Clear recent playing history for seamless workflow - [NowPlaying App](https://www.nowplayingapp.com/)
+- **🎧 WIP Now Playing**: Traktor Broadcast Listening for Song/Artist details, integrated with collection details for advanced meta data display.
+
+## Screenshots
+![TraCord DJ GUI](https://raw.githubusercontent.com/EpharGy/TraCord-DJ/main/assets/gui_screenshot.png)
 
 ## Quick Start
 
 ### 🎯 For End Users (No Python Required)
 
-1. **Download** the latest `Traktor-DJ-NowPlaying-Discord-Bot-GUI.exe` from [Releases](https://github.com/your-repo/releases)
+1. **Download** the latest `TraCord-DJ-GUI.exe` from [Releases](https://github.com/your-repo/releases)
 2. **Run** the executable - it will create a `.env` configuration file
 3. **Edit** the `.env` file with your Discord bot token and settings
 4. **Run** the executable again to start the bot
@@ -52,8 +55,7 @@ A comprehensive Discord bot for managing music requests, interacting with Trakto
 | `DISCORD_LIVE_NOTIFICATION_ROLES` | Comma-separated list of role names to mention for live notifications (optional) |
 | `TRAKTOR_LOCATION` | Path to your Traktor installation folder |
 | `TRAKTOR_COLLECTION_FILENAME` | Name of the Traktor collection file |
-| `NOWPLAYING_CONFIG_JSON_PATH` | Path to the now playing configuration file (optional - leave blank if not using NowPlaying integration) |
-| `SONG_REQUESTS_FILE` | Path to song requests JSON file (optional - defaults to song_requests.json in current directory) |
+| `TRAKTOR_BROADCAST_PORT` | Port for Traktor Broadcast (default: 8000) |
 
 ### 🛠️ For Developers
 
@@ -94,7 +96,7 @@ pip install -r requirements-dev.txt
 python build.py
 ```
 
-Output: `dist/Traktor-DJ-NowPlaying-Discord-Bot-GUI.exe`
+Output: `dist/TraCord-DJ-GUI.exe`
 
 ### 📦 Distribution Notes
 - Executable is fully portable and self-contained
@@ -120,7 +122,7 @@ This bot uses a dynamic cog loader! To add new features or commands, simply drop
 The bot uses a modular Discord.py Cogs architecture for better organization:
 
 ```
-Traktor-DJ-NowPlaying-Discord-Bot/
+TraCord-DJ/
 ├── 🚀 Entry Points
 │   ├── gui.py                      # Main GUI application (recommended)
 │   ├── main.py                     # Command-line entry point (dynamic cog loader)
@@ -138,11 +140,14 @@ Traktor-DJ-NowPlaying-Discord-Bot/
 │   │   ├── _persona.txt           # Example: personal character/persona data
 │   │   └── ...                    # Any .py files here are loaded as cogs in dev, but not in packaged EXE
 │   ├── config/
+|   |   ├── collection.json
+|   |   ├── song_requests.json
+|   |   ├── stats.json              # Search and usage statistics (auto-created)
 │   │   └── settings.py
 │   ├── gui/                        # GUI submodules (panels, controls, etc.)
 │   │   ├── gui_controls_stats.py
 │   │   ├── gui_logconsole.py
-│   │   ├── gui_nowplaying.py
+│   │   ├── gui_now_playing.py
 │   │   ├── gui_songrequests.py
 │   │   └── __init__.py
 │   ├── services/
@@ -150,7 +155,7 @@ Traktor-DJ-NowPlaying-Discord-Bot/
 │   ├── utils/
 │   │   ├── helpers.py              # Utility functions and permission checks
 │   │   ├── logger.py               # Logging setup and output capture
-│   │   ├── nowplaying.py           # NowPlaying integration helpers
+│   │   ├── now_playing.py          # NowPlaying integration helpers
 │   │   └── traktor.py              # Traktor collection parsing and management
 │   └── version.py                  # Version information
 ├── 🎨 Assets
@@ -168,20 +173,15 @@ Traktor-DJ-NowPlaying-Discord-Bot/
 │   └── RELEASE.md
 ├── ⚙️ Configuration
 │   ├── .gitignore
-│   └── Traktor DJ NowPlaying Discord Bot.code-workspace
+│   └── TraCord DJ.code-workspace
 └── 📝 Generated Files (git-ignored)
     ├── .env
     ├── *.spec
     ├── build/
-    ├── dist/
-    ├── collection.json
-    ├── collection.nml
-    ├── search_counter.txt
-    ├── song_requests.json
-    ├── stats.json              # Search and usage statistics (auto-created)
+    └── dist/
 ```
 
-> **Note:** The `gui/` folder contains all modular GUI panels and controls. The `services/` folder contains bot lifecycle logic. The `utils/` folder contains helpers, logging, and Traktor/NowPlaying utilities.
+> **Note:** The `gui/` folder contains all modular GUI panels and controls. The `services/` folder contains bot lifecycle logic. The `utils/` folder contains helpers, logging, and Traktor, Now Playing utilities.
 
 ## ⚙️ Cog Loading Behavior
 

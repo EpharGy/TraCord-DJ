@@ -1,5 +1,5 @@
 """
-Traktor DJ NowPlaying Discord Bot - Main Entry Point
+TraCord DJ - Main Entry Point
 
 Comprehensive Discord bot for managing music requests, interacting with Traktor DJ software collections,
 and enhancing DJ workflow automation.
@@ -78,7 +78,7 @@ class DJBot(commands.Bot):
     async def on_ready(self):
         """Event fired when bot is ready"""
         info('━' * 50)
-        info(f'🎵 Traktor DJ NowPlaying Discord Bot Loaded')
+        info(f'🎵 TraCord DJ Loaded')
         info(f'🤖 Logged in as {self.user} (ID: {self.user.id if self.user else "Unknown"})')
         info(f'🗄️ Using Cogs architecture')
         info('━' * 50)
@@ -125,7 +125,7 @@ async def main():
         print("Please check your .env file and ensure DISCORD_TOKEN is set.")
         return
     
-    print("🚀 Starting Traktor DJ NowPlaying Discord Bot...")
+    print("🚀 Starting TraCord DJ...")
     
     # Create and start the bot
     bot = DJBot()

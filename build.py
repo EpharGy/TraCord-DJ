@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Build script for creating standalone Traktor DJ NowPlaying Discord Bot executable
+Build script for creating standalone TraCord DJ executable
 """
 
 import subprocess
@@ -15,8 +15,8 @@ except ImportError:
     __version__ = "dev"
 
 # === Build configuration variables ===
-APP_NAME = "Traktor DJ NowPlaying Discord Bot"
-EXE_NAME = "Traktor-DJ-NowPlaying-Discord-Bot-GUI"
+APP_NAME = "TraCord DJ"
+EXE_NAME = "TraCord-DJ-GUI"
 ENTRY_POINT = "gui.py"
 BUILD_FILENAME = "build.py"
 
@@ -33,7 +33,7 @@ def build_gui_executable():
         "--onefile",                # Single executable file
         "--windowed",              # No console window (GUI app)
         f"--name={EXE_NAME}",
-        "--icon=app_icon.ico",      # Add icon if available
+        "--icon=assets/app_icon.ico",      # Add icon if available
         "--add-data=config;config",
         "--add-data=utils;utils",
         "--add-data=cogs;cogs",
@@ -42,8 +42,8 @@ def build_gui_executable():
         "--add-data=main.py;.",  # Explicitly include main.py
         "--add-data=version.py;.",
         "--add-data=.env.example;.",
-        "--add-data=app_icon.ico;.",  # Include icon file in bundle
-        "--add-data=icon.png;.",      # Include PNG icon as fallback
+        "--add-data=assets/app_icon.ico;assets",  # Include icon file in bundle
+        "--add-data=assets/icon.png;assets",      # Include PNG icon as fallback
         "--hidden-import=discord",
         "--hidden-import=discord.ext.commands",
         "--hidden-import=tkinter",
@@ -54,7 +54,7 @@ def build_gui_executable():
         ENTRY_POINT
     ]
     # Remove icon parameter if icon file doesn't exist
-    if not os.path.exists("app_icon.ico"):
+    if not os.path.exists(os.path.join("assets", "app_icon.ico")):
         cmd = [arg for arg in cmd if not arg.startswith("--icon")]  # Remove icon argument
     
     subprocess.run(cmd, check=True)

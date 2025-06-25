@@ -24,22 +24,6 @@ class MusicCog(commands.Cog, name="Music"):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
     
-    def _increment_search_counter(self):
-        """Increment the search counter in a file for GUI tracking"""
-        try:
-            search_counter_file = Settings.SEARCH_COUNTER_FILE
-            try:
-                with open(search_counter_file, "r") as f:
-                    count = int(f.read().strip())
-            except (FileNotFoundError, ValueError):
-                count = 0
-            
-            count += 1
-            with open(search_counter_file, "w") as f:
-                f.write(str(count))
-        except Exception as e:
-            error(f"Error updating search counter: {e}")
-    
     @app_commands.command(name="song", description="Search for a song in the Traktor collection and optionally select one by replying.")
     @app_commands.describe(search="search query")
     async def song(self, interaction: discord.Interaction, search: str):
@@ -51,6 +35,10 @@ class MusicCog(commands.Cog, name="Music"):
             )
             return        # Load collection JSON for fast searching
         songs = load_collection_json(Settings.COLLECTION_JSON_FILE)
+        # Increment search counter for GUI tracking
+        increment_stat("total_song_searches", 1)
+        increment_stat("session_song_searches", 1)
+
         if not songs:
             await interaction.response.send_message("Collection not available. Please refresh the collection.", ephemeral=True)
             warning(f"Collection JSON not found or empty for {interaction.user}'s search")
@@ -110,7 +98,7 @@ class MusicCog(commands.Cog, name="Music"):
             results_message = base_message + results_text + truncation_ending
         else:
             # No truncation needed
-            no_truncation_ending = f"\n� Showing {len(fitted_results)} results.{instruction_message}"
+            no_truncation_ending = f"\n🎶 Showing {len(fitted_results)} results.{instruction_message}"
             results_message = base_message + results_text + no_truncation_ending
         
         debug(f"Message length: {len(results_message)}/2000 characters")
@@ -119,10 +107,6 @@ class MusicCog(commands.Cog, name="Music"):
         await interaction.response.send_message(results_message)
         info(f"{interaction.user}'s search '{search}' matched {total_matches} songs")
         
-        # Increment search counter for GUI tracking
-        increment_stat("total_song_searches", 1)
-        increment_stat("session_song_searches", 1)
-
         # Store only the fitted results in the result_dict
         result_dict = {str(i + 1): result.split(" | ", 1)[1] for i, result in enumerate(fitted_results)}
 
@@ -173,6 +157,10 @@ class MusicCog(commands.Cog, name="Music"):
                     info(f"{interaction.user} selected and requested the song: {selected_song}")
                     await interaction.followup.send(f"Added the song to the Song Request List: {selected_song}")
                     emit("song_request_added", new_request)  # Emit event for new song request
+                    # Increment search counter for GUI tracking
+                    increment_stat("total_song_requests", 1)
+                    increment_stat("session_song_requests", 1)
+
                     
                 except Exception as e:
                     error(f"❌ Error saving song request: {e}")
