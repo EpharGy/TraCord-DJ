@@ -35,6 +35,10 @@ class MusicCog(commands.Cog, name="Music"):
             )
             return        # Load collection JSON for fast searching
         songs = load_collection_json(Settings.COLLECTION_JSON_FILE)
+        # Increment search counter for GUI tracking
+        increment_stat("total_song_searches", 1)
+        increment_stat("session_song_searches", 1)
+
         if not songs:
             await interaction.response.send_message("Collection not available. Please refresh the collection.", ephemeral=True)
             warning(f"Collection JSON not found or empty for {interaction.user}'s search")
@@ -103,10 +107,6 @@ class MusicCog(commands.Cog, name="Music"):
         await interaction.response.send_message(results_message)
         info(f"{interaction.user}'s search '{search}' matched {total_matches} songs")
         
-        # Increment search counter for GUI tracking
-        increment_stat("total_song_searches", 1)
-        increment_stat("session_song_searches", 1)
-
         # Store only the fitted results in the result_dict
         result_dict = {str(i + 1): result.split(" | ", 1)[1] for i, result in enumerate(fitted_results)}
 

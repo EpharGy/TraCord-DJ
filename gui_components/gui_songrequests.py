@@ -253,13 +253,5 @@ class SongRequestsPanel(ttk.LabelFrame):
         else:
             for idx, req in enumerate(self.requests):
                 song = req.get('Song', '')
-                req_id = self.get_request_id(req)
                 label = ttk.Label(frame, text=song, anchor="w", font=("Segoe UI", 14))
-                # Color coding: green for new, red for deleted, black otherwise
-                if (req_id, 'add') in self._pending_highlights:
-                    label.configure(foreground='green')
-                elif req_id in self._deleted_rows:
-                    label.configure(foreground='red')
-                else:
-                    label.configure(foreground='black')
                 label.pack(fill="x", pady=2, anchor="w")
