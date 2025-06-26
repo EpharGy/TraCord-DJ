@@ -15,7 +15,7 @@ A comprehensive Discord bot for managing music requests, interacting with Trakto
 - **🔒 Permission System**: Granular access control for different user roles
 - **🧹 Admin Controls**: Collection refresh and track history via GUI buttons
 - **📊 Search Analytics**: Track and display search statistics
-- **🎧 WIP Now Playing**: Traktor Broadcast Listening for Song/Artist details, integrated with collection details for advanced meta data display.
+- **🎧 Now Playing Song**: Traktor Broadcast Listening for Song/Artist details, integrated with collection details for advanced meta data (coverart, BPM, Key)
 
 ## Screenshots
 ![TraCord DJ GUI](https://raw.githubusercontent.com/EpharGy/TraCord-DJ/main/assets/gui_screenshot.png)
@@ -45,17 +45,7 @@ A comprehensive Discord bot for managing music requests, interacting with Trakto
 ## Configuration
 
 ### Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `DISCORD_TOKEN` | Your Discord bot token |
-| `APPLICATION_ID` | Your Discord application ID |
-| `CHANNEL_IDS` | Comma-separated list of channel IDs where the bot can be used |
-| `ALLOWED_USER_IDS` | Comma-separated list of user IDs allowed to use admin commands |
-| `DISCORD_LIVE_NOTIFICATION_ROLES` | Comma-separated list of role names to mention for live notifications (optional) |
-| `TRAKTOR_LOCATION` | Path to your Traktor installation folder |
-| `TRAKTOR_COLLECTION_FILENAME` | Name of the Traktor collection file |
-| `TRAKTOR_BROADCAST_PORT` | Port for Traktor Broadcast (default: 8000) |
+- Update environment variables in the `.env` file, run application before use to generate one or copy from `.env.example` (non EXE) 
 
 ### 🛠️ For Developers
 
@@ -124,6 +114,7 @@ The bot uses a modular Discord.py Cogs architecture for better organization:
 ```
 TraCord-DJ/
 ├── 🚀 Entry Points
+│   ├── debug_gui.py                # Debug GUI for development (optional)
 │   ├── gui.py                      # Main GUI application (recommended)
 │   ├── main.py                     # Command-line entry point (dynamic cog loader)
 │   ├── run_bot.py                  # Cross-platform launcher
@@ -149,11 +140,17 @@ TraCord-DJ/
 │   │   ├── gui_songrequests.py
 │   │   └── __init__.py
 │   ├── services/
-│   │   └── discord_bot.py          # Discord bot lifecycle/controller logic
+│   │   ├── discord_bot.py          # Discord bot lifecycle/controller logic
+│   │   └── traktor_listener.py     # Traktor Broadcast listener for Now Playing songs
 │   ├── utils/
+|   │   |── coverart.py             # Cover art extraction and caching
+│   │   ├── events.py               # Event handling and custom events
+│   │   ├── harmonic_keys.py        # Harmonic key detection and management
 │   │   ├── helpers.py              # Utility functions and permission checks
 │   │   ├── logger.py               # Logging setup and output capture
-│   │   ├── now_playing.py          # NowPlaying integration helpers
+│   │   ├── song_matcher.py         # Song matching and search utilities
+│   │   ├── song_request_highlight.py # Highlighting song requests
+│   │   ├── stats.py                # Search and usage statistics management
 │   │   └── traktor.py              # Traktor collection parsing and management
 │   └── version.py                  # Version information
 ├── 🎨 Assets
