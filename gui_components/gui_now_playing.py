@@ -73,12 +73,9 @@ class NowPlayingPanel(ttk.LabelFrame):
         self.label.config(text=display)
         # Update cover art
         coverart_id = song_info.get('cover_art_id') or song_info.get('cover_art') or song_info.get('coverart_id') or song_info.get('coverart')
-        debug(f"Cover art id used: {coverart_id}")
         traktor_location = getattr(Settings, 'TRAKTOR_LOCATION', None)
-        collection_filename = getattr(Settings, 'TRAKTOR_COLLECTION_FILENAME', None)
-        version_folder = None
-        if collection_filename:
-            version_folder = os.path.basename(collection_filename).replace('collection.nml', '').strip('\\/')
+        version_folder = getattr(Settings, 'TRAKTOR_VERSION_FOLDER', None)
+        info(f"[NowPlayingPanel] coverart_id: {coverart_id}, version_folder: {version_folder}, traktor_location: {traktor_location}")
         if coverart_id and version_folder and traktor_location:
             img = get_coverart_image(traktor_location, version_folder, coverart_id)
             if img:

@@ -140,6 +140,8 @@ class Settings:
                 # Get the path of the newest version
                 latest_traktor_folder = str(version_paths[0][1])
                 
+                cls.TRAKTOR_VERSION_FOLDER = os.path.basename(latest_traktor_folder)
+                
             except Exception as e:
                 raise ValueError(f"Error finding latest Traktor folder: {e}")
             
