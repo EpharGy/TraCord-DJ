@@ -9,10 +9,18 @@ from utils.coverart import get_coverart_image
 import os
 from PIL import ImageTk
 from utils.logger import debug, info, warning, error
+import threading
+from mutagen.flac import FLAC
+from mutagen.mp3 import MP3
+from mutagen.id3 import ID3
+from mutagen.id3._frames import APIC
+from mutagen._file import File as MutagenFile
+from PIL import Image, ImageTk
+import io
 
 info("[NowPlayingPanel] File loaded and logger is active.")
 
-COVER_SIZE = 150  # px, square cover art dimension (move to .env later)
+COVER_SIZE = int(os.getenv('COVER_SIZE', 150))  # px, square cover art dimension (move to .env later)
 
 class NowPlayingPanel(ttk.LabelFrame):
     def __init__(self, parent, *args, **kwargs):
@@ -71,17 +79,54 @@ class NowPlayingPanel(ttk.LabelFrame):
         if bpm or key_str:
             display += f"\nBPM: {bpm} | Key: {key_str}"
         self.label.config(text=display)
-        # Update cover art
-        coverart_id = song_info.get('cover_art_id') or song_info.get('cover_art') or song_info.get('coverart_id') or song_info.get('coverart')
-        traktor_location = getattr(Settings, 'TRAKTOR_LOCATION', None)
-        version_folder = getattr(Settings, 'TRAKTOR_VERSION_FOLDER', None)
-        info(f"[NowPlayingPanel] coverart_id: {coverart_id}, version_folder: {version_folder}, traktor_location: {traktor_location}")
-        if coverart_id and version_folder and traktor_location:
-            img = get_coverart_image(traktor_location, version_folder, coverart_id)
-            if img:
-                img = img.resize((COVER_SIZE, COVER_SIZE), resample=3)
-                self._coverart_img = ImageTk.PhotoImage(img)
-                self.coverart_label.config(image=self._coverart_img, bg="#111")
-                return
-        # No cover art found
-        self.coverart_label.config(image='', bg="#222")
+        # Update cover art from audio file in a background thread
+        audio_file_path = song_info.get('audio_file_path')
+        if audio_file_path and os.path.exists(audio_file_path):
+            def load_cover_art():
+                try:
+                    img_data = None
+                    ext = os.path.splitext(audio_file_path)[1].lower()
+                    if ext == '.flac':
+                        audio = FLAC(audio_file_path)
+                        if audio.pictures:
+                            img_data = audio.pictures[0].data
+                    elif ext in ('.mp3', '.m4a', '.aac', '.ogg'):
+                        audio = MutagenFile(audio_file_path)
+                        if audio is not None and hasattr(audio, 'tags') and audio.tags:
+                            # For MP3 with ID3 tags
+                            if isinstance(audio, MP3) and isinstance(audio.tags, ID3):
+                                for tag in audio.tags.values():
+                                    if isinstance(tag, APIC):
+                                        img_data = getattr(tag, 'data', None)
+                                        break
+                            else:
+                                # For other formats, try to find a tag with 'data'
+                                for tag in audio.tags.values():
+                                    if hasattr(tag, 'data'):
+                                        img_data = tag.data
+                                        break
+                                    elif isinstance(tag, bytes):
+                                        img_data = tag
+                                        break
+                    else:
+                        # Fallback for other formats
+                        audio = MutagenFile(audio_file_path)
+                        if audio is not None and hasattr(audio, 'pictures') and audio.pictures:
+                            img_data = audio.pictures[0].data
+                    if img_data:
+                        img = Image.open(io.BytesIO(img_data))
+                        img = img.resize((COVER_SIZE, COVER_SIZE), resample=3)
+                        cover_img = ImageTk.PhotoImage(img)
+                        def update_gui():
+                            self._coverart_img = cover_img
+                            self.coverart_label.config(image=self._coverart_img, bg="#111")
+                        self.coverart_label.after(0, update_gui)
+                        return
+                except Exception as e:
+                    warning(f"Failed to extract cover art: {e}")
+                def clear_gui():
+                    self.coverart_label.config(image='', bg="#222")
+                self.coverart_label.after(0, clear_gui)
+            threading.Thread(target=load_cover_art, daemon=True).start()
+        else:
+            self.coverart_label.config(image='', bg="#222")
