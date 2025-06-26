@@ -73,10 +73,10 @@ class Settings:
     TRAKTOR_PATH: str = ""
     DEBUG: bool = False
     # Bot Constants
-    MAX_SONGS: int = 20
-    NEW_SONGS_DAYS: int = 7
+    NEW_SONGS_DAYS: int = int(os.getenv('NEW_SONGS_DAYS', 7))
+    MAX_SONGS: int = int(os.getenv('MAX_SONGS', 20))
+    TIMEOUT: float = float(os.getenv('TIMEOUT', 45.0))
     DEBUG: bool = False
-    TIMEOUT: float = 45.0
     # Exclusion Patterns
     EXCLUDED_ITEMS = {
         'FILE': ['.stem.'],
@@ -139,6 +139,8 @@ class Settings:
                 
                 # Get the path of the newest version
                 latest_traktor_folder = str(version_paths[0][1])
+                
+                cls.TRAKTOR_VERSION_FOLDER = os.path.basename(latest_traktor_folder)
                 
             except Exception as e:
                 raise ValueError(f"Error finding latest Traktor folder: {e}")

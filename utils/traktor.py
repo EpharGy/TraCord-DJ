@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Tuple, Optional, Dict, Any
 from utils.logger import debug, info, warning, error
+from config.settings import Settings
 
 # Import our centralized logger
 from utils.logger import debug, info, warning, error
@@ -238,14 +239,15 @@ def get_new_songs(collection_file_path: str, days: int, excluded_items: dict,
     return sorted_results, total_new_songs
 
 
-def convert_collection_xml_to_json(xml_file_path: str, json_file_path: str, excluded_items: dict, debug_mode: bool = False) -> int:
+def convert_collection_xml_to_json(xml_file_path: str, json_file_path: str, excluded_items: Optional[dict] = None, debug_mode: bool = False) -> int:
     """
     Convert Traktor XML collection to optimized JSON format for faster searching.
     Returns the number of songs processed.
     """
     if not os.path.exists(xml_file_path):
         raise FileNotFoundError(f"XML file not found: {xml_file_path}")
-    
+    if excluded_items is None:
+        excluded_items = Settings.EXCLUDED_ITEMS
     try:
         if debug_mode:
             debug(f"🔄 Parsing XML file: {xml_file_path}")
@@ -260,16 +262,17 @@ def convert_collection_xml_to_json(xml_file_path: str, json_file_path: str, excl
             location = entry.find(".//LOCATION")
             if location is None:
                 continue
-                
             file_path = location.get("FILE", "")
             dir_path = location.get("DIR", "")
-            
-            # Skip excluded items
+            volume = location.get("VOLUME", "")
+            # Exclude samples and unwanted items
             if (any(pattern in file_path for pattern in excluded_items['FILE']) or
                 any(pattern in dir_path for pattern in excluded_items['DIR'])):
                 continue
+            # Compose full audio file path
+            dir_clean = dir_path.replace(":", os.sep).replace("/", os.sep).replace("\\", os.sep).strip(os.sep)
+            audio_file_path = os.path.join(volume + os.sep, dir_clean, file_path) if volume and dir_clean and file_path else ""
             
-            # Extract the fields we need
             artist = entry.get("ARTIST", "").strip()
             title = entry.get("TITLE", "").strip()
             
@@ -277,20 +280,37 @@ def convert_collection_xml_to_json(xml_file_path: str, json_file_path: str, excl
             album_element = entry.find(".//ALBUM")
             album_title = album_element.get("TITLE", "").strip() if album_element is not None else ""
             
-            # Get cover art ID
-            cover_art_id = entry.get("COVERARTID", "").strip()
-            
-            # Get import date for potential future use
+            # Get cover art ID, genre, and import date from INFO
             info = entry.find(".//INFO")
+            genre = info.get("GENRE", "").strip() if info is not None else ""
             import_date = info.get("IMPORT_DATE", "") if info is not None else ""
             
-            # Create song record
+            # Get BPM from TEMPO (as int)
+            tempo = entry.find(".//TEMPO")
+            bpm_str = tempo.get("BPM", "") if tempo is not None else ""
+            try:
+                bpm = int(float(bpm_str)) if bpm_str else None
+            except ValueError:
+                bpm = None
+            
+            # Get musical key from MUSICAL_KEY
+            musical_key = entry.find(".//MUSICAL_KEY")
+            key_value = musical_key.get("VALUE", "") if musical_key is not None else ""
+            try:
+                key = int(key_value) if key_value else None
+            except ValueError:
+                key = None
+            
+            # Create song record (no cover_art_id, no cover art path)
             song_record = {
                 "artist": artist or "Unknown Artist",
-                "title": title or "Unknown Title", 
+                "title": title or "Unknown Title",
                 "album": album_title,
-                "cover_art_id": cover_art_id,
-                "import_date": import_date
+                "import_date": import_date,
+                "genre": genre,
+                "bpm": bpm,
+                "musical_key": key,
+                "audio_file_path": audio_file_path
             }
             
             songs.append(song_record)

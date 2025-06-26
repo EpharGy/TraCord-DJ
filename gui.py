@@ -11,7 +11,7 @@ import os
 
 from services.traktor_listener import TraktorBroadcastListener
 
-CONSOLE_PANEL_WIDTH=500
+CONSOLE_PANEL_WIDTH = int(os.getenv('CONSOLE_PANEL_WIDTH', 500))
 
 # Import the centralized logger
 from utils.logger import set_gui_callback, set_debug_mode, info, debug, warning, error
@@ -30,51 +30,27 @@ if getattr(sys, 'frozen', False):
 
 
 def check_and_create_env_file():
-    """Check for .env file and create from template if missing"""
+    """Check for .env file and create from .env.example if missing"""
     if getattr(sys, 'frozen', False):
         base_dir = os.path.dirname(sys.executable)
     else:
         base_dir = os.path.dirname(os.path.abspath(__file__))
     env_path = os.path.join(base_dir, '.env')
+    example_path = os.path.join(base_dir, '.env.example')
     if not os.path.exists(env_path):
-        # Default .env template content
-        example_content = """
-# Example environment file for Traktor DJ NowPlaying Discord Bot
-# Copy this to .env and fill in your actual values
-
-# Discord Bot Configuration
-DISCORD_TOKEN=your_discord_bot_token_here
-APPLICATION_ID=your_application_id_here
-
-# Discord Channel and User Permissions (comma-separated)
-CHANNEL_IDS=channel_id_1,channel_id_2
-ALLOWED_USER_IDS=user_id_1,user_id_2
-
-# Live Notification Roles (optional, comma-separated role names)
-DISCORD_LIVE_NOTIFICATION_ROLES=Tunes,DJ Friends,Music Lovers
-
-#Location of root Traktor folder (ie without the version number)
-TRAKTOR_LOCATION=C:\\Users\\YourUser\\Documents\\Native Instruments\\
-TRAKTOR_COLLECTION_FILENAME=collection.nml
-
-#Traktor Broadcast port to listen to
-TRAKTOR_BROADCAST_PORT=8000
-
-"""
         try:
-            with open(env_path, 'w', encoding='utf-8') as f:
-                f.write(example_content)
+            if os.path.exists(example_path):
+                with open(example_path, 'r', encoding='utf-8') as src, open(env_path, 'w', encoding='utf-8') as dst:
+                    dst.write(src.read())
+            else:
+                # Fallback: create a minimal .env if .env.example is missing
+                with open(env_path, 'w', encoding='utf-8') as f:
+                    f.write('# .env file created (no .env.example found)\n')
             # Show user-friendly message and exit
             messagebox.showinfo(
                 "Setup Required - .env File Created",
                 ".env configuration file has been created!\n\n"
                 "📝 Please edit the .env file and replace the placeholder values with your actual settings:\n\n"
-                "• DISCORD_TOKEN - Your Discord bot token\n"
-                "• APPLICATION_ID - Your Discord application ID\n"
-                "• CHANNEL_IDS - Channel IDs (numbers, comma-separated)\n"
-                "• ALLOWED_USER_IDS - User IDs (numbers, comma-separated)\n"
-                "• TRAKTOR_LOCATION - Path to your Traktor folder\n"
-                "• TRAKTOR_BROADCAST_PORT - Traktor DJ Port\n"
                 "💡 Once configured, relaunch this application to start the bot.\n\n"
                 "Click OK to close this application."
             )
@@ -236,7 +212,7 @@ class BotGUI:
         self.traktor_listener = None
         self.traktor_listener_running = False
         self.traktor_listener_status = '🔴 Traktor Listener Offline'
-        self.traktor_listener_port = int(os.getenv('TRAKTOR_BROADCAST_PORT', '8001'))
+        self.traktor_listener_port = int(os.getenv('TRAKTOR_BROADCAST_PORT', '8000'))
         self.setup_gui()
         self.setup_output_capture()
         set_gui_callback(self.add_log)
