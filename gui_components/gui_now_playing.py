@@ -61,8 +61,7 @@ class NowPlayingPanel(ttk.LabelFrame):
         emit("song_played", song)
 
     def update_now_playing(self, song_info):
-        info(f"[NowPlayingPanel] update_now_playing called with song_info: {song_info}")
-        debug(f"update_now_playing called with song_info: {song_info}")
+        debug(f"[NowPlayingPanel] update_now_playing called with song_info: {song_info}")
         if not song_info:
             self.label.config(text="No song info available.")
             self.coverart_label.config(image='', bg="#222")
