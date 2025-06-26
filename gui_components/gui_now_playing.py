@@ -8,11 +8,15 @@ from utils.harmonic_keys import open_key_int_to_str
 from utils.coverart import get_coverart_image
 import os
 from PIL import ImageTk
+from utils.logger import debug, info, warning, error
+
+info("[NowPlayingPanel] File loaded and logger is active.")
 
 COVER_SIZE = 150  # px, square cover art dimension (move to .env later)
 
 class NowPlayingPanel(ttk.LabelFrame):
     def __init__(self, parent, *args, **kwargs):
+        info("[NowPlayingPanel] __init__ called.")
         super().__init__(parent, text="Now Playing", padding="8", *args, **kwargs)
         self.columnconfigure(0, weight=0)  # Cover art column
         self.columnconfigure(1, weight=1)  # Info column
@@ -49,6 +53,8 @@ class NowPlayingPanel(ttk.LabelFrame):
         emit("song_played", song)
 
     def update_now_playing(self, song_info):
+        info(f"[NowPlayingPanel] update_now_playing called with song_info: {song_info}")
+        debug(f"update_now_playing called with song_info: {song_info}")
         if not song_info:
             self.label.config(text="No song info available.")
             self.coverart_label.config(image='', bg="#222")
@@ -67,6 +73,7 @@ class NowPlayingPanel(ttk.LabelFrame):
         self.label.config(text=display)
         # Update cover art
         coverart_id = song_info.get('cover_art_id') or song_info.get('cover_art') or song_info.get('coverart_id') or song_info.get('coverart')
+        debug(f"Cover art id used: {coverart_id}")
         traktor_location = getattr(Settings, 'TRAKTOR_LOCATION', None)
         collection_filename = getattr(Settings, 'TRAKTOR_COLLECTION_FILENAME', None)
         version_folder = None
