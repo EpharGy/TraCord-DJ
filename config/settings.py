@@ -9,14 +9,14 @@ from pathlib import Path
 from typing import List, Optional
 from utils.logger import debug, info, warning, error
 
+def get_project_root():
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 def get_executable_dir():
-    """Get the directory where the executable or script is running from"""
     if getattr(sys, 'frozen', False):
-        # Running as PyInstaller executable
         return os.path.dirname(sys.executable)
     else:
-        # Running as Python script
-        return os.path.dirname(os.path.abspath(__file__))
+        return get_project_root()
 
 # Load environment variables from the script/executable directory
 env_path = os.path.join(get_executable_dir(), '.env')
@@ -24,6 +24,9 @@ if os.path.exists(env_path):
     load_dotenv(env_path)
 else:
     load_dotenv()
+
+USER_DATA_DIR = os.path.join(get_executable_dir(), 'data')
+os.makedirs(USER_DATA_DIR, exist_ok=True)
 
 class Settings:
     """Centralized configuration management"""
@@ -43,22 +46,20 @@ class Settings:
     @staticmethod
     def get_song_requests_file():
         """Get the song requests file path, always in config directory."""
-        base_dir = get_executable_dir()
-        return os.path.join(base_dir, 'song_requests.json')
+        return os.path.join(USER_DATA_DIR, 'song_requests.json')
     
     @staticmethod
     def get_stats_file():
         """Get the stats file path, always in config directory."""
-        base_dir = get_executable_dir()
-        return os.path.join(base_dir, 'stats.json')
+        return os.path.join(USER_DATA_DIR, 'stats.json')
     
     
     @staticmethod
     def get_collection_json_file():
         """Get the collection JSON file path, handling both development and executable modes"""
-        base_dir = get_executable_dir()
-        return os.path.join(base_dir, 'collection.json')
+        return os.path.join(USER_DATA_DIR, 'collection.json')
     
+    USER_DATA_DIR = USER_DATA_DIR
     SONG_REQUESTS_FILE: str = get_song_requests_file()
     STATS_FILE: str = get_stats_file()
     COLLECTION_JSON_FILE: str = get_collection_json_file()
