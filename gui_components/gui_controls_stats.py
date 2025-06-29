@@ -128,8 +128,8 @@ class ControlsStatsPanel(ttk.LabelFrame):
         button_width = ControlsStatsPanel.calculate_optimal_button_width(button_texts)
         max_width = max(max_width, button_width)
         stats_texts = [
-            "Songs: 999,999",
-            "New Songs: 9,999"
+            "Songs: 999,99",
+            "New Songs: 9,99"
         ]
         for text in stats_texts:
             max_width = max(max_width, len(text))

@@ -19,14 +19,10 @@ def find_song_in_collection(artist, title, collection):
     return None
 
 def get_song_info(artist, title, collection):
-    """Return a dict with Artist, Title, and Album (if found) from the collection."""
+    """Return the full dict from the collection if found, else a minimal dict."""
     match = find_song_in_collection(artist, title, collection)
     if match:
-        return {
-            'artist': match.get('artist', artist),
-            'title': match.get('title', title),
-            'album': match.get('album', '')
-        }
+        return match  # Return the full entry, including bpm, key, audio_file_path, etc.
     else:
         return {
             'artist': artist,

@@ -5,7 +5,6 @@ import random
 from config.settings import Settings
 from utils.traktor import load_collection_json
 from utils.harmonic_keys import open_key_int_to_str
-from utils.coverart import get_coverart_image
 import os
 from PIL import ImageTk
 from utils.logger import debug, info, warning, error
@@ -58,7 +57,11 @@ class NowPlayingPanel(ttk.LabelFrame):
             self.update_now_playing(None)
             return
         song = random.choice(songs)
-        emit("song_played", song)
+        from utils.song_matcher import get_song_info
+        artist = song.get('artist', '')
+        title = song.get('title', '')
+        matched_song = get_song_info(artist, title, songs)
+        emit("song_played", matched_song)
 
     def update_now_playing(self, song_info):
         debug(f"[NowPlayingPanel] update_now_playing called with song_info: {song_info}")
