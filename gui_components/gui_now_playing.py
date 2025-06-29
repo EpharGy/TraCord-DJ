@@ -5,7 +5,6 @@ import random
 from config.settings import Settings
 from utils.traktor import load_collection_json
 from utils.harmonic_keys import open_key_int_to_str
-from utils.coverart import get_coverart_image
 import os
 from PIL import ImageTk
 from utils.logger import debug, info, warning, error

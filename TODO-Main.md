@@ -3,9 +3,33 @@
 ## NowPlaying Replacement
 - [ ] Replicate NowPlaying functionality within the bot/GUI
     - [X] Listen to Traktor output/port for song data
-    - [ ] Display current playing track, artist, album, cover art, etc.
+    - [X] Display current playing track, artist, album, cover art, etc.
     - [ ] Generate a styled webpage (with CSS/animations) for OBS integration
     - [ ] Slide in/out animation for song changes
+
+## Animated Popup Window for Now Playing
+- [ ] Create animated popup window for clean cover art and song info display
+- [ ] Implement slide transitions (old song slides down, new song slides up)
+- [ ] Test different animation approaches:
+    - [ ] Tkinter with `place()` and `after()` (30-40fps, good enough)
+    - [ ] Pygame integration (60fps+, buttery smooth)
+    - [ ] Web-based popup with CSS animations (60-120fps, professional grade)
+- [ ] Add easing functions for smoother feel even at lower framerates
+
+## Visual Enhancement Features
+- [ ] YouTube video integration for background visualizations
+    - [ ] Research YouTube API + embedded player approach
+    - [ ] Test local video player integration with `yt-dlp` + `opencv-python`
+    - [ ] Implement local caching system for downloaded videos
+- [ ] Google Images integration as alternative/fallback
+    - [ ] Set up Google Custom Search API
+    - [ ] Implement image caching and random selection
+    - [ ] Create franchise-based image organization
+- [ ] Smart caching system:
+    - [ ] Priority downloading for most-played tracks
+    - [ ] Background downloads during idle time
+    - [ ] Auto-cleanup of old/unused content
+    - [ ] Size limits and storage management
 
 ## Additional Ideas & Suggestions
 - [ ] Customizable appearance for the OBS overlay (themes, colors)
@@ -28,43 +52,6 @@
 
 ---
 
-## Traktor Cover Art Extraction & Display Plan
-
-1. **File Path Construction**
-   - Use the stored coverart string (e.g., `039/HNQ02OBHLMIWDCIJDEG0AVRGRPMB`) to build the full file path:
-     `{TRAKTOR_LOCATION}\{latest_version}\Coverart\{folder}\{filename}000`
-   - Use existing logic to find the latest Traktor version folder.
-
-2. **File Format**
-   - Traktor cover art files are Zstandard (Zstd) compressed, usually containing a JPEG or PNG image.
-   - The `000` suffix is the largest version; `001`, `002`, etc. are smaller thumbnails.
-
-3. **Decompression & Image Extraction**
-   - Use the `zstandard` Python library to decompress the file.
-   - Extract the image data (likely JPEG/PNG) from the decompressed bytes.
-   - Use `Pillow` (PIL) to load/display the image from bytes.
-
-4. **Display in GUI**
-   - Show the cover art in the GUI near the current/selected song details.
-   - If direct display isn’t possible, write the decompressed image to a temp file and load it.
-   - Optionally cache decompressed images for performance.
-
-5. **Fallbacks & Error Handling**
-   - If the file isn’t Zstd or is corrupt, show a default "no cover art" image.
-   - If the image format inside isn’t supported, try to detect and convert it.
-   - Fallback to template image? 
-
-6. **Python Tools Needed**
-   - `zstandard` for decompression (`pip install zstandard`)
-   - `Pillow` for image handling (`pip install pillow`)
-
-7. **Next Steps**
-   - Implement a utility function:
-     - Input: coverart string, TRAKTOR_LOCATION
-     - Output: PIL Image object (or path to temp image file)
-   - Integrate with GUI for cover art display.
-
----
 
 **(Plan added by Suzuya & Kumano, so you don’t forget, Admiral! Sleep tight~)**
 
