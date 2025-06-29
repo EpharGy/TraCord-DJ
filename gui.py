@@ -523,17 +523,21 @@ class BotGUI:
         threading.Thread(target=_load_stats, daemon=True).start()
 
     def update_search_count_display(self):
-        """Update the search and request count labels in the GUI using stats.json."""
+        """Update the search, request, and play count labels in the GUI using stats.json."""
         from utils.stats import load_stats
         stats = load_stats()
         session_count = stats.get("session_song_searches", 0)
         total_count = stats.get("total_song_searches", 0)
         session_requests = stats.get("session_song_requests", 0)
         total_requests = stats.get("total_song_requests", 0)
-        self.root.after(0, lambda: self.session_searches_label.config(text=f"Song Searches: {session_count}"))
-        self.root.after(0, lambda: self.total_searches_label.config(text=f"Song Searches: {total_count}"))
-        self.root.after(0, lambda: self.session_requests_label.config(text=f"Song Requests: {session_requests}"))
-        self.root.after(0, lambda: self.total_requests_label.config(text=f"Song Requests: {total_requests}"))
+        session_plays = stats.get("session_song_plays", 0)
+        total_plays = stats.get("total_song_plays", 0)
+        self.root.after(0, lambda: self.controls_stats_panel.session_searches_label.config(text=f"Song Searches: {session_count}"))
+        self.root.after(0, lambda: self.controls_stats_panel.total_searches_label.config(text=f"Song Searches: {total_count}"))
+        self.root.after(0, lambda: self.controls_stats_panel.session_requests_label.config(text=f"Song Requests: {session_requests}"))
+        self.root.after(0, lambda: self.controls_stats_panel.total_requests_label.config(text=f"Song Requests: {total_requests}"))
+        self.root.after(0, lambda: self.controls_stats_panel.session_plays_label.config(text=f"Songs Played: {session_plays}"))
+        self.root.after(0, lambda: self.controls_stats_panel.total_plays_label.config(text=f"Songs Played: {total_plays}"))
 
     def on_discord_bot_ready(self, bot):
         """Update bot information in the UI when the Discord bot is ready."""
