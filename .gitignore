@@ -76,6 +76,7 @@ song_requests.json
 collection.nml
 collection.json
 stats.json
+settings.json
 Debug_unmatched_songs.txt
 
 # Temporary files
