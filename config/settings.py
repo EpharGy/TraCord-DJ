@@ -9,6 +9,9 @@ from pathlib import Path
 from typing import List, Optional
 from utils.logger import debug, info, warning, error
 
+def get_project_root():
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 def get_executable_dir():
     """Get the directory where the executable or script is running from"""
     if getattr(sys, 'frozen', False):
@@ -24,6 +27,9 @@ if os.path.exists(env_path):
     load_dotenv(env_path)
 else:
     load_dotenv()
+
+USER_DATA_DIR = os.path.join(get_executable_dir(), 'data')
+os.makedirs(USER_DATA_DIR, exist_ok=True)
 
 class Settings:
     """Centralized configuration management"""
