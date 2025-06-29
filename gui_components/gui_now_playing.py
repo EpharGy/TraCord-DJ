@@ -57,7 +57,11 @@ class NowPlayingPanel(ttk.LabelFrame):
             self.update_now_playing(None)
             return
         song = random.choice(songs)
-        emit("song_played", song)
+        from utils.song_matcher import get_song_info
+        artist = song.get('artist', '')
+        title = song.get('title', '')
+        matched_song = get_song_info(artist, title, songs)
+        emit("song_played", matched_song)
 
     def update_now_playing(self, song_info):
         debug(f"[NowPlayingPanel] update_now_playing called with song_info: {song_info}")
