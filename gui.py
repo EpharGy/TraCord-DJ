@@ -85,7 +85,7 @@ class BotGUI:
         self.root = tk.Tk()
         app_title = title or f"TraCord DJ v{__version__} - Control Panel"
         self.root.title(app_title)
-        self.root.geometry("1200x800")  # Widened for new layout DO NOT CHANGE
+        self.root.geometry("1200x700")  # Widened for new layout DO NOT CHANGE
         self.root.minsize(1000, 500)
         # Set window icon - remove the janky black diamond/question mark icon
         try:
