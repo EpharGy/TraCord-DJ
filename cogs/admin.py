@@ -24,7 +24,7 @@ class AdminCog(commands.Cog, name="Admin"):
     @app_commands.describe(message="The message to send with the notification")
     async def srblive(self, interaction: discord.Interaction, message: str):
         """Send live streaming notifications with role mentions (admin only)"""
-        if not check_permissions(interaction.user.id, Settings.ALLOWED_USER_IDS):
+        if not check_permissions(interaction.user.id, Settings.ADMIN_IDS):
             await interaction.response.send_message(
                 "You do not have permission to use this command.", 
                 ephemeral=True

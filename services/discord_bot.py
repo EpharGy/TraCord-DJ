@@ -4,6 +4,9 @@ Discord bot controller/service for managing the Discord bot lifecycle.
 import threading
 import asyncio
 from utils.logger import info, debug, warning, error
+from config.settings import Settings
+
+Settings.initialize()
 
 class DiscordBotController:
     def __init__(self, bot_class, settings, gui_callbacks=None):
@@ -22,13 +25,13 @@ class DiscordBotController:
     def start_discord_bot(self):
         if self.is_running:
             return
-        if not self.settings.TOKEN:
+        if not self.settings.get('DISCORD_TOKEN'):
             error("Discord token not found in configuration")
-            if self.gui_callbacks.get("on_error"):
+            if self.gui_callbacks and "on_error" in self.gui_callbacks:
                 self.gui_callbacks["on_error"]("Discord token not found!")
             return
         info("🚀 Starting Discord bot...")
-        debug(f"Bot token configured: {self.settings.TOKEN[:10]}...")
+        debug(f"Bot token configured: {str(self.settings.get('DISCORD_TOKEN'))[:10]}...")
         self.bot_thread = threading.Thread(target=self._run_discord_bot, daemon=True)
         self.bot_thread.start()
         if self.gui_callbacks.get("on_status"):
@@ -45,10 +48,11 @@ class DiscordBotController:
             async def on_ready():
                 if self.gui_callbacks.get("on_ready"):
                     self.gui_callbacks["on_ready"](self.bot)
-            if self.settings.TOKEN:
-                loop.run_until_complete(self.bot.start(self.settings.TOKEN))
+            token = self.settings.get('DISCORD_TOKEN')
+            if token:
+                loop.run_until_complete(self.bot.start(str(token)))
             else:
-                raise ValueError("Discord TOKEN not configured")
+                raise ValueError("Discord token not configured")
         except Exception as e:
             error(f"Bot error: {e}")
             if self.gui_callbacks.get("on_error"):

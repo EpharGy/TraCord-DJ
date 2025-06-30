@@ -69,19 +69,23 @@ def create_traktor_handler(status_queue, shutdown_event):
                                             tags[key.upper()] = value
                                     # Only process as a song if there is at least one tag other than ENCODER
                                     tag_keys = set(tags.keys())
+                                    info(f"[Traktor] Parsed tags: {tags}")
                                     # Only skip if the ONLY tag is ENCODER
                                     if tag_keys == {"ENCODER"}:
                                         total = 0
                                         continue
-                                    artist = tags.get('ARTIST', '')
-                                    title = tags.get('TITLE', '')
-                                    # Process as a song if either artist or title is present (not both required)
+                                    artist = tags.get('ARTIST', '').strip()
+                                    title = tags.get('TITLE', '').strip()
+                                    # Skip if both artist and title are missing or empty
                                     if not artist and not title:
                                         total = 0
                                         continue
+                                    # Try to match in collection
+                                    from utils.song_matcher import find_song_in_collection
+                                    match = find_song_in_collection(artist, title, collection)
                                     song_info = get_song_info(artist, title, collection)
-                                    if song_info.get('album'):
-                                        info(f"[Traktor] Song Played: {song_info['artist']} - {song_info['title']} [{song_info['album']}]")
+                                    if match:
+                                        info(f"[Traktor] Song Played: {song_info['artist']} - {song_info['title']} [{song_info.get('album','')}]" )
                                     else:
                                         warning(f"[Traktor] Unable to Match Song: {artist} | {title}")
                                         try:

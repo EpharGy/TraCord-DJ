@@ -8,111 +8,12 @@ import threading
 import sys
 import queue
 import os
-
-from services.traktor_listener import TraktorBroadcastListener
-
-CONSOLE_PANEL_WIDTH = int(os.getenv('CONSOLE_PANEL_WIDTH', 500))
+from datetime import datetime
+import asyncio
+import io
 
 # Import the centralized logger
 from utils.logger import set_gui_callback, set_debug_mode, info, debug, warning, error
-
-# Setup for PyInstaller executable - MUST be done before any local imports
-if getattr(sys, 'frozen', False):
-    # Running as PyInstaller executable
-    exe_dir = os.path.dirname(sys.executable)
-    os.chdir(exe_dir)  # Change to executable directory for .env file access
-    
-    # Add the PyInstaller bundle directory to Python path
-    bundle_dir = getattr(sys, '_MEIPASS', exe_dir)
-    if bundle_dir not in sys.path:
-        sys.path.insert(0, bundle_dir)
-
-
-
-def check_and_create_env_file():
-    """Check for .env file and create from .env.example if missing"""
-    if getattr(sys, 'frozen', False):
-        base_dir = os.path.dirname(sys.executable)
-    else:
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-    env_path = os.path.join(base_dir, '.env')
-    example_path = os.path.join(base_dir, '.env.example')
-    if not os.path.exists(env_path):
-        try:
-            if os.path.exists(example_path):
-                with open(example_path, 'r', encoding='utf-8') as src, open(env_path, 'w', encoding='utf-8') as dst:
-                    dst.write(src.read())
-            else:
-                # Fallback: create a minimal .env if .env.example is missing
-                with open(env_path, 'w', encoding='utf-8') as f:
-                    f.write('# .env file created (no .env.example found)\n')
-            # Show user-friendly message and exit
-            messagebox.showinfo(
-                "Setup Required - .env File Created",
-                ".env configuration file has been created!\n\n"
-                "📝 Please edit the .env file and replace the placeholder values with your actual settings:\n\n"
-                "💡 Once configured, relaunch this application to start the bot.\n\n"
-                "Click OK to close this application."
-            )
-            return False  # Signal to exit application
-        except Exception as e:
-            messagebox.showerror("Error", f"Could not create .env file: {e}")
-            return None
-    return True  # File exists
-
-def check_env_file_configured():
-    """Check if .env file has been properly configured (not using template values)"""
-    try:
-        from dotenv import load_dotenv
-        # Reload environment variables
-        load_dotenv(override=True)
-        
-        # Check for template values that indicate unconfigured .env
-        token = os.getenv('DISCORD_TOKEN', '').strip()
-        app_id = os.getenv('APPLICATION_ID', '').strip()
-        channels = os.getenv('CHANNEL_IDS', '').strip()
-        users = os.getenv('ALLOWED_USER_IDS', '').strip()
-        
-        template_values = [
-            'your_discord_bot_token_here',
-            'your_application_id_here', 
-            'channel_id_1',
-            'user_id_1'
-        ]
-        
-        # Check if any template values are still present
-        if (token in template_values or 
-            app_id in template_values or 
-            'channel_id_1' in channels or 
-            'user_id_1' in users):
-            
-            messagebox.showwarning(
-                "Configuration Required",
-                ".env file exists but contains template values!\n\n"
-                "📝 Please edit the .env file and replace ALL placeholder values with your actual settings.\n\n"
-                "The application will now close so you can configure the .env file.\n\n"
-                "Relaunch after making your changes."
-            )
-            return False
-            
-    except Exception as e:
-        messagebox.showerror("Configuration Error", f"Error checking .env configuration: {e}")
-        return False
-    
-    return True
-
-# Check and create .env file if needed
-env_status = check_and_create_env_file()
-
-# If .env was just created, exit to let user configure it
-if env_status is False:
-    sys.exit(0)
-elif env_status is None:
-    sys.exit(1)
-
-# Check if .env is properly configured
-if not check_env_file_configured():
-    sys.exit(0)
 
 # Import the bot and version
 try:
@@ -125,13 +26,7 @@ try:
 except ImportError as e:
     # Handle import errors gracefully for GUI-only executables
     __version__ = "unknown"
-    
-    # More user-friendly error message for executable
-    if getattr(sys, 'frozen', False):
-        error_msg = "Setup Error: Could not load bot modules.\n\nThis may be due to missing dependencies or configuration issues."
-    else:
-        error_msg = f"Error importing bot modules: {e}\nPlease ensure you're running from the correct directory."
-    
+    error_msg = f"Error importing bot modules: {e}\nPlease ensure you're running from the correct directory."
     try:
         # Try to show GUI error dialog
         root = tk.Tk()
@@ -139,20 +34,22 @@ except ImportError as e:
         messagebox.showerror("Setup Error", error_msg)
         root.destroy()
     except:
-        # Falleback to print if GUI isn't available
+        # Fallback to print if GUI isn't available
         print(f"Error importing bot modules: {e}")
         print("Please ensure you're running from the correct directory.")
     sys.exit(1)
+
 
 class BotGUI:
     """GUI application for the TraCord DJ bot"""
     
     def __init__(self, title=None):
-        #from utils.stats import reset_session_stats
-        #reset_session_stats()
+        from utils.stats import reset_session_stats
+        # reset_session_stats()
         from services.discord_bot import DiscordBotController
         from main import DJBot
         from config.settings import Settings
+        from services.traktor_listener import TraktorBroadcastListener
         self.discord_bot_controller = DiscordBotController(
             bot_class=DJBot,
             settings=Settings,
@@ -163,22 +60,20 @@ class BotGUI:
                 "on_stopped": self.on_discord_bot_stopped
             }
         )
+        self.traktor_listener = TraktorBroadcastListener(
+            port=Settings.TRAKTOR_BROADCAST_PORT,
+            status_callback=self._on_traktor_listener_status
+        )
         self.debug_mode = '--debug' in sys.argv
         self.root = tk.Tk()
         app_title = title or f"TraCord DJ v{__version__} - Control Panel"
         self.root.title(app_title)
-        self.root.geometry("1200x800")  # Widened for new layout
-        self.root.minsize(1000, 600)
+        self.root.geometry("1200x700")  # Widened for new layout DO NOT CHANGE
+        self.root.minsize(1000, 500)
         # Set window icon - remove the janky black diamond/question mark icon
         try:
-            # Use PyInstaller's _MEIPASS for bundled resources
-            if getattr(sys, 'frozen', False):
-                bundle_dir = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
-                icon_path = os.path.join(bundle_dir, 'assets', 'app_icon.ico')
-                png_icon_path = os.path.join(bundle_dir, 'assets', 'icon.png')
-            else:
-                icon_path = os.path.join('assets', 'app_icon.ico')
-                png_icon_path = os.path.join('assets', 'icon.png')
+            icon_path = os.path.join('assets', 'app_icon.ico')
+            png_icon_path = os.path.join('assets', 'icon.png')
             if os.path.exists(icon_path):
                 self.root.iconbitmap(icon_path)
                 info(f"✅ Using custom icon: {icon_path}")
@@ -209,10 +104,6 @@ class BotGUI:
         self.bot_thread = None
         self.search_count = 0
         self.output_queue = queue.Queue()
-        self.traktor_listener = None
-        self.traktor_listener_running = False
-        self.traktor_listener_status = '🔴 Traktor Listener Offline'
-        self.traktor_listener_port = int(os.getenv('TRAKTOR_BROADCAST_PORT', '8000'))
         self.setup_gui()
         self.setup_output_capture()
         set_gui_callback(self.add_log)
@@ -236,9 +127,9 @@ class BotGUI:
         # Reset session stats on startup (but not global stats)
         from utils.stats import reset_session_stats
         reset_session_stats()
-        self.update_search_count_display()
         info("Session stats reset on startup.")
 
+        # Subscribe to stats_updated event to update GUI when stats change
         from utils.events import subscribe
         subscribe("stats_updated", lambda _: self.update_search_count_display())
 
@@ -250,14 +141,19 @@ class BotGUI:
         # Main frame
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky="nsew")
-        main_frame.columnconfigure(1, weight=0, minsize=CONSOLE_PANEL_WIDTH)  # Console/NowPlaying area fixed width
-        main_frame.columnconfigure(2, weight=1)  # Song Requests area resizes
+        main_frame.columnconfigure(1, weight=0, minsize=Settings.CONSOLE_PANEL_WIDTH)  # Console/NowPlaying area
+        main_frame.columnconfigure(2, weight=2)  # Song Requests area
         main_frame.columnconfigure(0, weight=0)  # Controls don't expand
         main_frame.rowconfigure(1, weight=1)
         # Removed the large title label to save space
         
         # Left panel - Controls
         from gui_components.gui_controls_stats import ControlsStatsPanel
+        # Check if NowPlaying is enabled
+        # If you want to control this via settings.json, add a NOWPLAYING_ENABLED key and use:
+        # self.nowplaying_enabled = bool(Settings.get('NOWPLAYING_ENABLED', True))
+        # For now, default to True:
+        self.nowplaying_enabled = True
         # Define button texts for dynamic sizing (conditionally include NowPlaying button)
         button_texts = [
             "🛑 Stop & Close",
@@ -271,15 +167,14 @@ class BotGUI:
             main_frame,
             button_texts,
             optimal_width,
-            self.clear_log,
-            self.refresh_session_stats,
-            self.reset_global_stats,
-            None,  # Remove clear_track_history
-            self.on_stop_button_press,
-            self.on_stop_button_release,
-            self.toggle_traktor_listener
+            self.clear_log,                # clear_log_cmd
+            self.refresh_session_stats,    # refresh_collection_cmd
+            self.reset_global_stats,       # reset_global_stats_cmd
+            None,                          # clear_track_history_cmd (not used)
+            self.on_stop_button_press,     # on_stop_press
+            self.on_stop_button_release,   # on_stop_release
+            self.toggle_traktor_listener   # on_toggle_traktor_listener
         )
-        self.controls_stats_panel.set_traktor_toggle_button(False)  # Start in Turn On state
         self.controls_stats_panel.grid(row=1, column=0, sticky="nsew", padx=(0, 15))
         # Expose key widgets for BotGUI
         self.stop_button = self.controls_stats_panel.stop_button
@@ -296,11 +191,13 @@ class BotGUI:
         self.total_searches_label = self.controls_stats_panel.total_searches_label
         self.session_requests_label = self.controls_stats_panel.session_requests_label
         self.total_requests_label = self.controls_stats_panel.total_requests_label
-        
+        self.session_plays_label = self.controls_stats_panel.session_plays_label
+        self.total_plays_label = self.controls_stats_panel.total_plays_label
+
         # Console/NowPlaying Panel (was right_panel)
-        console_panel = ttk.Frame(main_frame, width=CONSOLE_PANEL_WIDTH)
+        console_panel = ttk.Frame(main_frame, width=Settings.CONSOLE_PANEL_WIDTH)
         console_panel.grid(row=1, column=1, sticky="nsew")
-        console_panel.grid_propagate(False)  # Prevent resizing beyond fixed width
+        console_panel.grid_propagate(False)  # Prevent resizing
         console_panel.columnconfigure(0, weight=1)
         console_panel.rowconfigure(0, weight=1)  # Now Playing (top half)
         console_panel.rowconfigure(1, weight=1)  # Log (bottom half)
@@ -411,9 +308,6 @@ class BotGUI:
 
     def on_stop_button_release(self, event=None):
         """Execute stop and close when button is released"""
-        # Stop Traktor listener first if running
-        if self.traktor_listener_running:
-            self.stop_traktor_listener()
         self._shutdown_application()
 
     def on_x_button_clicked(self):
@@ -434,11 +328,18 @@ class BotGUI:
 
     def _shutdown_application(self):
         """Common shutdown logic for both Stop button and X button"""
+        info("[Shutdown] _shutdown_application called. is_running=%s" % self.is_running)
         if self.is_running:
             info("🔄 User requested application close - stopping bot...")
             self.stop_discord_bot()
             # Wait for clean shutdown then close
-            self.root.after(500, self.root.destroy)
+            def force_destroy():
+                info("[Shutdown] Forcing root.destroy() after timeout.")
+                try:
+                    self.root.destroy()
+                except Exception as e:
+                    error(f"[Shutdown] Error during forced destroy: {e}")
+            self.root.after(2000, force_destroy)  # 2 seconds fallback
         else:
             info("🔄 Closing application...")
             self.root.destroy()
@@ -526,18 +427,8 @@ class BotGUI:
         """Update the search, request, and play count labels in the GUI using stats.json."""
         from utils.stats import load_stats
         stats = load_stats()
-        session_count = stats.get("session_song_searches", 0)
-        total_count = stats.get("total_song_searches", 0)
-        session_requests = stats.get("session_song_requests", 0)
-        total_requests = stats.get("total_song_requests", 0)
-        session_plays = stats.get("session_song_plays", 0)
-        total_plays = stats.get("total_song_plays", 0)
-        self.root.after(0, lambda: self.controls_stats_panel.session_searches_label.config(text=f"Song Searches: {session_count}"))
-        self.root.after(0, lambda: self.controls_stats_panel.total_searches_label.config(text=f"Song Searches: {total_count}"))
-        self.root.after(0, lambda: self.controls_stats_panel.session_requests_label.config(text=f"Song Requests: {session_requests}"))
-        self.root.after(0, lambda: self.controls_stats_panel.total_requests_label.config(text=f"Song Requests: {total_requests}"))
-        self.root.after(0, lambda: self.controls_stats_panel.session_plays_label.config(text=f"Songs Played: {session_plays}"))
-        self.root.after(0, lambda: self.controls_stats_panel.total_plays_label.config(text=f"Songs Played: {total_plays}"))
+        if hasattr(self, 'controls_stats_panel'):
+            self.controls_stats_panel.update_stats_labels(stats)
 
     def on_discord_bot_ready(self, bot):
         """Update bot information in the UI when the Discord bot is ready."""
@@ -595,59 +486,6 @@ class BotGUI:
         else:
             info("Reset Global Stats cancelled by user.")
 
-    def toggle_traktor_listener(self):
-        if self.traktor_listener_running:
-            self.stop_traktor_listener()
-        else:
-            self.start_traktor_listener()
-
-    def start_traktor_listener(self):
-        def _start():
-            info(f"[Traktor] Starting Traktor Broadcast Listener on Port {self.traktor_listener_port}, if this doesn't connect try toggling Broadcast in Traktor.")
-            self.traktor_listener_status = '🟡 Traktor Listener Connecting'
-            self.controls_stats_panel.set_traktor_listener_status(self.traktor_listener_status, foreground='orange')
-            self.controls_stats_panel.set_traktor_toggle_button(True)
-            if not self.traktor_listener:
-                self.traktor_listener = TraktorBroadcastListener(
-                    port=self.traktor_listener_port,
-                    status_callback=self.on_traktor_listener_status
-                )
-            self.traktor_listener.start()
-            self.traktor_listener_running = True
-            self.root.after(500, self.poll_traktor_listener_status)
-        threading.Thread(target=_start, daemon=True).start()
-
-    def stop_traktor_listener(self):
-        def _stop():
-            info("[Traktor] Stopping Traktor Broadcast Listener")
-            if self.traktor_listener:
-                self.traktor_listener.stop()
-            self.traktor_listener_running = False
-            self.traktor_listener_status = '🔴 Traktor Listener Offline'
-            self.controls_stats_panel.set_traktor_listener_status(self.traktor_listener_status, foreground='gray')
-            self.controls_stats_panel.set_traktor_toggle_button(False)
-        threading.Thread(target=_stop, daemon=True).start()
-
-    def on_traktor_listener_status(self, status):
-        # Discord status colors: online green, idle orange, dnd red, offline gray
-        if status == 'starting':
-            self.traktor_listener_status = '🟡 Traktor Listener Connecting'
-            color = 'orange'  # idle
-        elif status == 'listening':
-            self.traktor_listener_status = '🟢 Traktor Listener Listening'
-            color = 'green'  # online
-        elif status == 'offline':
-            self.traktor_listener_status = '🔴 Traktor Listener Offline'
-            color = 'gray'  # offline
-        else:
-            color = 'gray'
-        self.controls_stats_panel.set_traktor_listener_status(self.traktor_listener_status, foreground=color)
-
-    def poll_traktor_listener_status(self):
-        if self.traktor_listener and self.traktor_listener_running:
-            self.traktor_listener.poll_status()
-            self.root.after(500, self.poll_traktor_listener_status)
-
     def bring_to_front(self):
         try:
             self.root.lift()
@@ -655,6 +493,30 @@ class BotGUI:
             self.root.after(200, lambda: self.root.attributes('-topmost', False))
         except Exception:
             pass
+
+    def toggle_traktor_listener(self):
+        """Toggle the Traktor Listener on/off and update the button and status label."""
+        if not hasattr(self, 'traktor_listener') or self.traktor_listener is None:
+            info("Traktor Listener instance not initialized.")
+            return
+        if not hasattr(self, '_traktor_listener_on'):
+            self._traktor_listener_on = False
+        if not self._traktor_listener_on:
+            self.traktor_listener.start()
+            self._traktor_listener_on = True
+            self.controls_stats_panel.set_traktor_toggle_button(True)
+            info("Traktor Listener started.")
+        else:
+            self.traktor_listener.stop()
+            self._traktor_listener_on = False
+            self.controls_stats_panel.set_traktor_toggle_button(False)
+            info("Traktor Listener stopped.")
+
+    def _on_traktor_listener_status(self, status):
+        if status == 'starting' or status == 'listening':
+            self.controls_stats_panel.set_traktor_listener_status("🟢 Traktor Listener Online", foreground="green")
+        else:
+            self.controls_stats_panel.set_traktor_listener_status("🔴 Traktor Listener Offline", foreground="red")
 
     def run(self):
         """Run the Tkinter GUI loop"""

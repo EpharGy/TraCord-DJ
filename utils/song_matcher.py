@@ -22,10 +22,15 @@ def get_song_info(artist, title, collection):
     """Return the full dict from the collection if found, else a minimal dict."""
     match = find_song_in_collection(artist, title, collection)
     if match:
-        return match  # Return the full entry, including bpm, key, audio_file_path, etc.
+        return match  # Return the full song dict
     else:
+        # Return a dict with all expected fields, but only artist/title filled
         return {
             'artist': artist,
             'title': title,
-            'album': ''
+            'album': '',
+            'genre': '',
+            'bpm': '',
+            'musical_key': '',
+            'audio_file_path': ''
         }

@@ -27,15 +27,6 @@ if not exist "gui.py" (
     exit /b 1
 )
 
-if not exist ".env" (
-    echo ERROR: .env file not found!
-    echo Please create a .env file with your Discord bot token.
-    echo You can copy .env.example and fill in your values.
-    echo.
-    pause
-    exit /b 1
-)
-
 echo Starting TraCord DJ GUI...
 echo.
 
