@@ -164,7 +164,7 @@ class BotGUI:
         # Main frame
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky="nsew")
-        main_frame.columnconfigure(1, weight=3)  # Console/NowPlaying area
+        main_frame.columnconfigure(1, weight=0, minsize=Settings.CONSOLE_PANEL_WIDTH)  # Console/NowPlaying area
         main_frame.columnconfigure(2, weight=2)  # Song Requests area
         main_frame.columnconfigure(0, weight=0)  # Controls don't expand
         main_frame.rowconfigure(1, weight=1)
@@ -218,8 +218,9 @@ class BotGUI:
         self.total_plays_label = self.controls_stats_panel.total_plays_label
 
         # Console/NowPlaying Panel (was right_panel)
-        console_panel = ttk.Frame(main_frame)
+        console_panel = ttk.Frame(main_frame, width=Settings.CONSOLE_PANEL_WIDTH)
         console_panel.grid(row=1, column=1, sticky="nsew")
+        console_panel.grid_propagate(False)  # Prevent resizing
         console_panel.columnconfigure(0, weight=1)
         console_panel.rowconfigure(0, weight=1)  # Now Playing (top half)
         console_panel.rowconfigure(1, weight=1)  # Log (bottom half)

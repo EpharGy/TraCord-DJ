@@ -19,7 +19,7 @@ import io
 
 info("[NowPlayingPanel] File loaded and logger is active.")
 
-COVER_SIZE = int(os.getenv('COVER_SIZE', 150))  # px, square cover art dimension (move to .env later)
+COVER_SIZE = Settings.COVER_SIZE if hasattr(Settings, 'COVER_SIZE') and Settings.COVER_SIZE else 150  # px, square cover art dimension
 
 class NowPlayingPanel(ttk.LabelFrame):
     def __init__(self, parent, *args, **kwargs):
@@ -44,7 +44,7 @@ class NowPlayingPanel(ttk.LabelFrame):
         # Formula: wraplength = CONSOLE_PANEL_WIDTH - border_left - border_right - left_padding - COVER_SIZE - between_padding - right_padding
         # (Assume border_left/right = 2px each, paddings = 5px each except between_padding=0)
         # wraplength = CONSOLE_PANEL_WIDTH - COVER_SIZE - 14
-        panel_width = int(os.getenv('CONSOLE_PANEL_WIDTH', 500))
+        panel_width = Settings.CONSOLE_PANEL_WIDTH if hasattr(Settings, 'CONSOLE_PANEL_WIDTH') and Settings.CONSOLE_PANEL_WIDTH else 500
         wraplength = panel_width - COVER_SIZE - 14
         self.label = tk.Label(self, text="Now Playing info will appear here.", anchor="w", justify="left", font=("Arial", 16, "bold"), wraplength=wraplength, padx=8, pady=4)
         self.label.grid(row=1, column=1, sticky="nw")
@@ -74,11 +74,11 @@ class NowPlayingPanel(ttk.LabelFrame):
         bpm = song_info.get('bpm', '')
         key_int = song_info.get('musical_key', None)
         key_str = open_key_int_to_str(key_int) if key_int is not None else ''
-        display = f"Artist: {artist}\nTitle: {title}"
+        display = f"{artist}\n{title}" #Confirm before changing
         if album:
-            display += f"\n[{album}]"
+            display += f"\n[{album}]" 
         if bpm or key_str:
-            display += f"\nBPM: {bpm} | Key: {key_str}"
+            display += f"\n{bpm}BPM | {key_str}" #Confirm before changing
         self.label.config(text=display)
         # Update cover art from audio file in a background thread
         audio_file_path = song_info.get('audio_file_path')
