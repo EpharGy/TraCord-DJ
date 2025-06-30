@@ -2,7 +2,7 @@
 
 A comprehensive Discord bot for managing music requests, interacting with Traktor DJ software collections, and enhancing DJ workflow automation. This is a standalone GUI application suitable for personal DJ environments.
 
-> **📝 Version & Releases**: Current version in [`version.py`](version.py) | Release history at [GitHub Releases](https://github.com/EpharGy/TraCord-DJ/releases)
+> **📝 Version **: Current version in [`version.py`](version.py)
 
 ## Features
 
@@ -18,7 +18,7 @@ A comprehensive Discord bot for managing music requests, interacting with Trakto
 - **🎧 Now Playing Song**: Traktor Broadcast Listening for Song/Artist details, integrated with collection details for advanced meta data (coverart, BPM, Key)
 
 ## Screenshots
-![TraCord DJ GUI](https://raw.githubusercontent.com/EpharGy/TraCord-DJ/main/assets/gui_screenshot.png)
+![TraCord DJ GUI](https://raw.githubusercontent.com/EpharGy/TraCord-DJ/assets/gui_screenshot.png)
 
 ## Quick Start
 
