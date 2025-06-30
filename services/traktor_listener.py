@@ -90,9 +90,9 @@ def create_traktor_handler(status_queue, shutdown_event):
                                         warning(f"[Traktor] Unable to Match Song: {artist} | {title}")
                                         try:
                                             dt = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
-                                            unmatched_path = os.path.join(Settings.USER_DATA_DIR, "Debug_unmatched_songs.txt")
+                                            unmatched_path = os.path.join(os.path.dirname(Settings.SONG_REQUESTS_FILE), "Debug_unmatched_songs.txt")
                                             with open(unmatched_path, "a", encoding="utf-8") as f:
-                                                f.write(f"{dt} ARTIST: {artist or '[MISSING]'} | TITLE: {title or '[MISSING]'}\n")
+                                                f.write(f"{dt} {artist} - {title}\n")
                                         except Exception as e:
                                             warning(f"[Traktor] Could not write unmatched song: {e}")
                                     emit("song_played", song_info)
