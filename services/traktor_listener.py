@@ -27,7 +27,7 @@ def create_traktor_handler(status_queue, shutdown_event):
             self.end_headers()
             info("[Traktor] Traktor connected, receiving stream...")
             try:
-                # Load collection once per connection
+                # Load collection once per connection.
                 try:
                     with open(COLLECTION_PATH, 'r', encoding='utf-8') as f:
                         collection = json.load(f)
