@@ -160,11 +160,11 @@ class ControlsStatsPanel(ttk.LabelFrame):
             self.toggle_traktor_listener_button.config(text="⭕ Turn On Traktor Listener", style="TButton")
 
     def update_stats_labels(self, stats):
-        self.session_searches_label.config(text=f"Song Searches (Session): {stats.get('session_song_searches', 0)}")
+        self.session_searches_label.config(text=f"Song Searches: {stats.get('session_song_searches', 0)}")
         self.total_searches_label.config(text=f"Total Song Searches: {stats.get('total_song_searches', 0)}")
-        self.session_requests_label.config(text=f"Song Requests (Session): {stats.get('session_song_requests', 0)}")
+        self.session_requests_label.config(text=f"Song Requests: {stats.get('session_song_requests', 0)}")
         self.total_requests_label.config(text=f"Total Song Requests: {stats.get('total_song_requests', 0)}")
-        self.session_plays_label.config(text=f"Songs Played (Session): {stats.get('session_song_plays', 0)}")
+        self.session_plays_label.config(text=f"Songs Played: {stats.get('session_song_plays', 0)}")
         self.total_plays_label.config(text=f"Total Songs Played: {stats.get('total_song_plays', 0)}")
 
 # Add a custom style for Red.TButton

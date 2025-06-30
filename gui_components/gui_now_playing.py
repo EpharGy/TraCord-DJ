@@ -87,6 +87,7 @@ class NowPlayingPanel(ttk.LabelFrame):
                 try:
                     img_data = None
                     ext = os.path.splitext(audio_file_path)[1].lower()
+                    info(f"[CoverArt] Attempting extraction for file type: {ext}")
                     if ext == '.flac':
                         audio = FLAC(audio_file_path)
                         if audio.pictures:
@@ -116,6 +117,7 @@ class NowPlayingPanel(ttk.LabelFrame):
                             img_data = audio.pictures[0].data
                     if img_data:
                         img = Image.open(io.BytesIO(img_data))
+                        info(f"[CoverArt] Extracted image file type: {img.format}")
                         img = img.resize((COVER_SIZE, COVER_SIZE), resample=3)
                         cover_img = ImageTk.PhotoImage(img)
                         def update_gui():
@@ -123,8 +125,15 @@ class NowPlayingPanel(ttk.LabelFrame):
                             self.coverart_label.config(image=self._coverart_img, bg="#111")
                         self.coverart_label.after(0, update_gui)
                         return
+                    else:
+                        warning(f"[CoverArt] Song had no cover art to extract: {audio_file_path}")
                 except Exception as e:
-                    warning(f"Failed to extract cover art: {e}")
+                    warning(f"[CoverArt] Error extracting cover art: {e}")
+                    try:
+                        with open('data/Debug_unmatched_songs.txt', 'a', encoding='utf-8') as debug_file:
+                            debug_file.write(f"Error extracting cover art for {audio_file_path}: {e}\n")
+                    except Exception as log_error:
+                        error(f"[CoverArt] Failed to log error to Debug_unmatched_songs.txt: {log_error}")
                 def clear_gui():
                     self.coverart_label.config(image='', bg="#222")
                 self.coverart_label.after(0, clear_gui)
