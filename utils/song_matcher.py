@@ -22,14 +22,15 @@ def get_song_info(artist, title, collection):
     """Return a dict with Artist, Title, and Album (if found) from the collection."""
     match = find_song_in_collection(artist, title, collection)
     if match:
-        return {
-            'artist': match.get('artist', artist),
-            'title': match.get('title', title),
-            'album': match.get('album', '')
-        }
+        return match  # Return the full song dict
     else:
+        # Return a dict with all expected fields, but only artist/title filled
         return {
             'artist': artist,
             'title': title,
-            'album': ''
+            'album': '',
+            'genre': '',
+            'bpm': '',
+            'musical_key': '',
+            'audio_file_path': ''
         }

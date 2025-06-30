@@ -62,10 +62,11 @@ class BotGUI:
     
     def __init__(self, title=None):
         from utils.stats import reset_session_stats
-        reset_session_stats()
+        # reset_session_stats()
         from services.discord_bot import DiscordBotController
         from main import DJBot
         from config.settings import Settings
+        from services.traktor_listener import TraktorBroadcastListener
         self.discord_bot_controller = DiscordBotController(
             bot_class=DJBot,
             settings=Settings,
@@ -76,11 +77,15 @@ class BotGUI:
                 "on_stopped": self.on_discord_bot_stopped
             }
         )
+        self.traktor_listener = TraktorBroadcastListener(
+            port=Settings.TRAKTOR_BROADCAST_PORT,
+            status_callback=self._on_traktor_listener_status
+        )
         self.debug_mode = '--debug' in sys.argv
         self.root = tk.Tk()
         app_title = title or f"TraCord DJ v{__version__} - Control Panel"
         self.root.title(app_title)
-        self.root.geometry("1200x700")  # Widened for new layout
+        self.root.geometry("1200x800")  # Widened for new layout DO NOT CHANGE
         self.root.minsize(1000, 500)
         # Set window icon - remove the janky black diamond/question mark icon
         try:
@@ -147,6 +152,10 @@ class BotGUI:
         reset_session_stats()
         info("Session stats reset on startup.")
 
+        # Subscribe to stats_updated event to update GUI when stats change
+        from utils.events import subscribe
+        subscribe("stats_updated", lambda _: self.update_search_count_display())
+
     def setup_gui(self):
         """Set up the GUI elements"""
         # Configure the root grid
@@ -181,13 +190,13 @@ class BotGUI:
             main_frame,
             button_texts,
             optimal_width,
-            self.nowplaying_enabled,
-            self.clear_log,
-            self.refresh_session_stats,
-            self.reset_global_stats,
-            None,  # Remove clear_track_history
-            self.on_stop_button_press,
-            self.on_stop_button_release
+            self.clear_log,                # clear_log_cmd
+            self.refresh_session_stats,    # refresh_collection_cmd
+            self.reset_global_stats,       # reset_global_stats_cmd
+            None,                          # clear_track_history_cmd (not used)
+            self.on_stop_button_press,     # on_stop_press
+            self.on_stop_button_release,   # on_stop_release
+            self.toggle_traktor_listener   # on_toggle_traktor_listener
         )
         self.controls_stats_panel.grid(row=1, column=0, sticky="nsew", padx=(0, 15))
         # Expose key widgets for BotGUI
@@ -440,18 +449,8 @@ class BotGUI:
         """Update the search, request, and play count labels in the GUI using stats.json."""
         from utils.stats import load_stats
         stats = load_stats()
-        session_count = stats.get("session_song_searches", 0)
-        total_count = stats.get("total_song_searches", 0)
-        session_requests = stats.get("session_song_requests", 0)
-        total_requests = stats.get("total_song_requests", 0)
-        session_plays = stats.get("session_song_plays", 0)
-        total_plays = stats.get("total_song_plays", 0)
-        self.root.after(0, lambda: self.session_searches_label.config(text=f"Song Searches (Session): {session_count}"))
-        self.root.after(0, lambda: self.total_searches_label.config(text=f"Total Song Searches: {total_count}"))
-        self.root.after(0, lambda: self.session_requests_label.config(text=f"Song Requests (Session): {session_requests}"))
-        self.root.after(0, lambda: self.total_requests_label.config(text=f"Total Song Requests: {total_requests}"))
-        self.root.after(0, lambda: self.session_plays_label.config(text=f"Songs Played (Session): {session_plays}"))
-        self.root.after(0, lambda: self.total_plays_label.config(text=f"Total Songs Played: {total_plays}"))
+        if hasattr(self, 'controls_stats_panel'):
+            self.controls_stats_panel.update_stats_labels(stats)
 
     def on_discord_bot_ready(self, bot):
         """Update bot information in the UI when the Discord bot is ready."""
@@ -516,6 +515,30 @@ class BotGUI:
             self.root.after(200, lambda: self.root.attributes('-topmost', False))
         except Exception:
             pass
+
+    def toggle_traktor_listener(self):
+        """Toggle the Traktor Listener on/off and update the button and status label."""
+        if not hasattr(self, 'traktor_listener') or self.traktor_listener is None:
+            info("Traktor Listener instance not initialized.")
+            return
+        if not hasattr(self, '_traktor_listener_on'):
+            self._traktor_listener_on = False
+        if not self._traktor_listener_on:
+            self.traktor_listener.start()
+            self._traktor_listener_on = True
+            self.controls_stats_panel.set_traktor_toggle_button(True)
+            info("Traktor Listener started.")
+        else:
+            self.traktor_listener.stop()
+            self._traktor_listener_on = False
+            self.controls_stats_panel.set_traktor_toggle_button(False)
+            info("Traktor Listener stopped.")
+
+    def _on_traktor_listener_status(self, status):
+        if status == 'starting' or status == 'listening':
+            self.controls_stats_panel.set_traktor_listener_status("🟢 Traktor Listener Online", foreground="green")
+        else:
+            self.controls_stats_panel.set_traktor_listener_status("🔴 Traktor Listener Offline", foreground="red")
 
     def run(self):
         """Run the Tkinter GUI loop"""
