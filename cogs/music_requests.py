@@ -75,7 +75,7 @@ class RequestsCog(commands.Cog, name="Requests"):
             # Handle 'all' deletion
             if request_number.lower() == "all":
                 # Check if the user has permission to delete all
-                if not check_permissions(interaction.user.id, Settings.ALLOWED_USER_IDS):
+                if not check_permissions(interaction.user.id, Settings.ADMIN_IDS):
                     await interaction.response.send_message(
                         "You do not have permission to delete all song requests.", 
                         ephemeral=True
@@ -127,7 +127,7 @@ class RequestsCog(commands.Cog, name="Requests"):
                 request_to_delete = song_requests[request_num - 1]
 
                 # Check if the user has permission to delete the specific request
-                if (not check_permissions(interaction.user.id, Settings.ALLOWED_USER_IDS) and 
+                if (not check_permissions(interaction.user.id, Settings.ADMIN_IDS) and 
                     str(interaction.user) != request_to_delete["User"]):
                     await interaction.response.send_message(
                         "You do not have permission to delete this song request.", 
@@ -157,7 +157,7 @@ class RequestsCog(commands.Cog, name="Requests"):
             target_user = request_number
             if target_user:
                 # Check if the requesting user has permission to delete another user's requests
-                if (not check_permissions(interaction.user.id, Settings.ALLOWED_USER_IDS) and 
+                if (not check_permissions(interaction.user.id, Settings.ADMIN_IDS) and 
                     str(interaction.user) != target_user):
                     await interaction.response.send_message(
                         "You do not have permission to delete all requests from this user.", 

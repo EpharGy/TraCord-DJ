@@ -29,7 +29,8 @@ class DJBot(commands.Bot):
         super().__init__(
             command_prefix='!',  # Keep for compatibility, mainly using slash commands
             intents=intents,
-            application_id=Settings.APPLICATION_ID        )
+            application_id=Settings.get('DISCORD_BOT_APP_ID')
+        )
     
     async def setup_hook(self):
         """Load internal cogs (always), then dynamically load external cogs if present."""
@@ -120,9 +121,9 @@ class DJBot(commands.Bot):
 
 async def main():
     """Main function to start the bot"""
-    if not Settings.TOKEN:
-        print("❌ ERROR: DISCORD_TOKEN not found in environment variables!")
-        print("Please check your .env file and ensure DISCORD_TOKEN is set.")
+    if not Settings.get('DISCORD_TOKEN'):
+        print("❌ ERROR: DISCORD_TOKEN not found in settings.json!")
+        print("Please check your settings.json file and ensure DISCORD_TOKEN is set.")
         return
     
     print("🚀 Starting TraCord DJ...")
@@ -132,7 +133,7 @@ async def main():
     
     try:
         async with bot:
-            await bot.start(Settings.TOKEN)
+            await bot.start(str(Settings.get('DISCORD_TOKEN') or ''))
     except KeyboardInterrupt:
         print("\n🛑 Bot stopped by user")
     except Exception as e:

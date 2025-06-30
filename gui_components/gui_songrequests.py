@@ -13,8 +13,10 @@ from config.settings import Settings
 SONG_REQUESTS_FILE = Settings.SONG_REQUESTS_FILE
 
 class SongRequestsPanel(ttk.LabelFrame):
+    _instance = None  # Singleton instance for event-based access
     def __init__(self, parent, *args, **kwargs):
         super().__init__(parent, text="Song Requests", padding="8", *args, **kwargs)
+        SongRequestsPanel._instance = self  # Set the singleton instance
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
         # --- Top button bar ---
@@ -53,6 +55,8 @@ class SongRequestsPanel(ttk.LabelFrame):
         # Subscribe popout refresh to events
         subscribe("song_request_added", lambda _: self.refresh_clean_list_window())
         subscribe("song_request_deleted", lambda _: self.refresh_clean_list_window())
+        # Subscribe to the song_played event for auto-removal
+        subscribe("song_played", SongRequestsPanel.auto_remove_request)
 
     def get_request_id(self, req):
         # Use User, Song, Date for unique ID (not RequestNumber)
@@ -221,7 +225,7 @@ class SongRequestsPanel(ttk.LabelFrame):
                 self.clean_list_window.iconbitmap(icon_path)
             except Exception:
                 pass
-        self.clean_list_window.geometry("600x600")
+        self.clean_list_window.geometry("500x600")
         self.clean_list_window.resizable(True, True)
         self.clean_list_window.attributes("-topmost", True)
         frame = ttk.Frame(self.clean_list_window, padding=20)
@@ -255,3 +259,37 @@ class SongRequestsPanel(ttk.LabelFrame):
                 song = req.get('Song', '')
                 label = ttk.Label(frame, text=song, anchor="w", font=("Segoe UI", 14))
                 label.pack(fill="x", pady=2, anchor="w")
+
+    @staticmethod
+    def normalize_string(artist: str, title: str) -> str:
+        """Normalize song data for comparison."""
+        return f"{artist.strip().lower()} - {title.strip().lower()}"
+
+    @classmethod
+    def auto_remove_request(cls, played_song: dict):
+        """Automatically remove a song request if it matches the played song (with red highlight and timer)."""
+        inst = cls._instance
+        if not inst:
+            return
+        normalized_played = cls.normalize_string(played_song.get("artist", ""), played_song.get("title", ""))
+        for req in inst.requests:
+            normalized_request = cls.normalize_string(req.get("User", ""), req.get("Song", ""))
+            if normalized_played == normalized_request:
+                req_id = inst.get_request_id(req)
+                if req_id not in inst._deleted_rows:
+                    inst._deleted_rows[req_id] = {
+                        'req': req,
+                        'timer': inst.requests_frame.after(5000, lambda rid=req_id: inst._remove_single_deleted_row(rid))
+                    }
+                inst.load_requests(render_deleted=True)
+                # Remove from the actual requests list and update JSON
+                if req in inst.requests:
+                    inst.requests.remove(req)
+                    from utils.helpers import update_request_numbers
+                    update_request_numbers(inst.requests)
+                    try:
+                        with open(SONG_REQUESTS_FILE, 'w', encoding='utf-8') as f:
+                            json.dump(inst.requests, f, indent=4, ensure_ascii=False)
+                    except Exception:
+                        pass
+                break
