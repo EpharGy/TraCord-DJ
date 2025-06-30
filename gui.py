@@ -15,17 +15,6 @@ import io
 # Import the centralized logger
 from utils.logger import set_gui_callback, set_debug_mode, info, debug, warning, error
 
-# Setup for PyInstaller executable - MUST be done before any local imports
-if getattr(sys, 'frozen', False):
-    # Running as PyInstaller executable
-    exe_dir = os.path.dirname(sys.executable)
-    os.chdir(exe_dir)  # Change to executable directory for .env file access
-    
-    # Add the PyInstaller bundle directory to Python path
-    bundle_dir = getattr(sys, '_MEIPASS', exe_dir)
-    if bundle_dir not in sys.path:
-        sys.path.insert(0, bundle_dir)
-
 # Import the bot and version
 try:
     from main import DJBot
@@ -37,13 +26,7 @@ try:
 except ImportError as e:
     # Handle import errors gracefully for GUI-only executables
     __version__ = "unknown"
-    
-    # More user-friendly error message for executable
-    if getattr(sys, 'frozen', False):
-        error_msg = "Setup Error: Could not load bot modules.\n\nThis may be due to missing dependencies or configuration issues."
-    else:
-        error_msg = f"Error importing bot modules: {e}\nPlease ensure you're running from the correct directory."
-    
+    error_msg = f"Error importing bot modules: {e}\nPlease ensure you're running from the correct directory."
     try:
         # Try to show GUI error dialog
         root = tk.Tk()
@@ -51,7 +34,7 @@ except ImportError as e:
         messagebox.showerror("Setup Error", error_msg)
         root.destroy()
     except:
-        # Falleback to print if GUI isn't available
+        # Fallback to print if GUI isn't available
         print(f"Error importing bot modules: {e}")
         print("Please ensure you're running from the correct directory.")
     sys.exit(1)
@@ -89,14 +72,8 @@ class BotGUI:
         self.root.minsize(1000, 500)
         # Set window icon - remove the janky black diamond/question mark icon
         try:
-            # Use PyInstaller's _MEIPASS for bundled resources
-            if getattr(sys, 'frozen', False):
-                bundle_dir = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
-                icon_path = os.path.join(bundle_dir, 'app_icon.ico')
-                png_icon_path = os.path.join(bundle_dir, 'icon.png')
-            else:
-                icon_path = 'app_icon.ico'
-                png_icon_path = 'icon.png'
+            icon_path = os.path.join('assets', 'app_icon.ico')
+            png_icon_path = os.path.join('assets', 'icon.png')
             if os.path.exists(icon_path):
                 self.root.iconbitmap(icon_path)
                 info(f"✅ Using custom icon: {icon_path}")
