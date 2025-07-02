@@ -217,15 +217,18 @@ class NowPlayingPanel(ttk.LabelFrame):
                     if img_data:
                         img_original = Image.open(io.BytesIO(img_data))
                         info(f"[CoverArt] Extracted image file type: {img_original.format}")
-                        img_resized = img_original.resize((COVER_SIZE, COVER_SIZE), resample=3)
+                        # For Spout: always resize to 1080x1080 and copy
+                        img_for_spout = img_original.resize((1080, 1080), resample=3).copy()
+                        # For GUI: resize to COVER_SIZE and copy
+                        img_resized = img_original.resize((COVER_SIZE, COVER_SIZE), resample=3).copy()
                         cover_img = ImageTk.PhotoImage(img_resized)
                         def update_gui():
                             self._coverart_img = cover_img
                             self.coverart_label.config(image=self._coverart_img, bg="#111")
-                            # Spout: send original image if enabled
-                            self._last_spout_image = img_original
+                            # Spout: send 1080x1080 image if enabled
+                            self._last_spout_image = img_for_spout
                             if self.spout_enabled and self.spout_sender is not None:
-                                self._send_spout_image(img_original)
+                                self._send_spout_image(img_for_spout)
                         self.coverart_label.after(0, update_gui)
                         return
                     else:

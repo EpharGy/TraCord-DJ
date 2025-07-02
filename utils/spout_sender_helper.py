@@ -1,4 +1,5 @@
 # pyright: reportAttributeAccessIssue=false
+SPOUT_SIZE = 1080
 import threading
 import time
 import traceback
@@ -26,7 +27,7 @@ class SpoutGLHelper:
         helper.send_pil_image(pil_img)
         helper.stop()
     """
-    def __init__(self, sender_name="TraCordDJ CoverArt", width=1080, height=1080):
+    def __init__(self, sender_name="TraCordDJ CoverArt", width=SPOUT_SIZE, height=SPOUT_SIZE):
         self.sender_name = sender_name
         self.width = width
         self.height = height
@@ -97,13 +98,13 @@ class SpoutGLHelper:
                 glfw.terminate() # type: ignore
 
     def _send_image(self, pil_img):
-        img = pil_img.convert("RGBA").resize((self.width, self.height))
+        img = pil_img.convert("RGBA").resize((SPOUT_SIZE, SPOUT_SIZE))
         img_bytes = img.tobytes()
         # Upload to OpenGL texture
         tex_id = gl.glGenTextures(1) # type: ignore
         gl.glBindTexture(gl.GL_TEXTURE_2D, tex_id) # type: ignore
-        gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, self.width, self.height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, img_bytes) # type: ignore
+        gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, SPOUT_SIZE, SPOUT_SIZE, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, img_bytes) # type: ignore
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR) # type: ignore
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR) # type: ignore
-        self._sender.sendTexture(tex_id, gl.GL_TEXTURE_2D, self.width, self.height, False, 0) # type: ignore
+        self._sender.sendTexture(tex_id, gl.GL_TEXTURE_2D, SPOUT_SIZE, SPOUT_SIZE, False, 0) # type: ignore
         gl.glDeleteTextures([tex_id]) # type: ignore
