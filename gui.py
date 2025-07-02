@@ -206,6 +206,11 @@ class BotGUI:
         from gui_components.gui_now_playing import NowPlayingPanel
         self.nowplaying_panel = NowPlayingPanel(console_panel)
         self.nowplaying_panel.grid(row=0, column=0, sticky="nsew")
+        # Wire up Traktor Listener button
+        self.nowplaying_panel.set_traktor_listener_command(self.toggle_traktor_listener)
+        # Wire up Spout Cover Art toggle
+        self.spout_coverart_on = False
+        self.nowplaying_panel.set_spout_toggle_command(self.toggle_spout_coverart)
 
         # Log Panel (bottom half of console_panel)
         from gui_components.gui_logconsole import LogConsolePanel
@@ -495,22 +500,27 @@ class BotGUI:
             pass
 
     def toggle_traktor_listener(self):
-        """Toggle the Traktor Listener on/off and update the button and status label."""
         if not hasattr(self, 'traktor_listener') or self.traktor_listener is None:
             info("Traktor Listener instance not initialized.")
             return
-        if not hasattr(self, '_traktor_listener_on'):
-            self._traktor_listener_on = False
-        if not self._traktor_listener_on:
+        if not self.traktor_listener.running:
             self.traktor_listener.start()
-            self._traktor_listener_on = True
-            self.controls_stats_panel.set_traktor_toggle_button(True)
             info("Traktor Listener started.")
+            self.nowplaying_panel.set_traktor_listener_state(True)
+            self.controls_stats_panel.set_traktor_listener_status("🟢 Traktor Listener Online", foreground="green")
         else:
             self.traktor_listener.stop()
-            self._traktor_listener_on = False
-            self.controls_stats_panel.set_traktor_toggle_button(False)
             info("Traktor Listener stopped.")
+            self.nowplaying_panel.set_traktor_listener_state(False)
+            self.controls_stats_panel.set_traktor_listener_status("🔴 Traktor Listener Offline", foreground="red")
+
+    def toggle_spout_coverart(self):
+        self.spout_coverart_on = not getattr(self, 'spout_coverart_on', False)
+        self.nowplaying_panel.set_spout_toggle_state(self.spout_coverart_on)
+        if self.spout_coverart_on:
+            info("Spout Cover Art sharing enabled.")
+        else:
+            info("Spout Cover Art sharing disabled.")
 
     def _on_traktor_listener_status(self, status):
         if status == 'starting' or status == 'listening':

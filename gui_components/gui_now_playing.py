@@ -29,9 +29,33 @@ class NowPlayingPanel(ttk.LabelFrame):
         self.columnconfigure(1, weight=1)  # Info column
         self.rowconfigure(0, weight=0)  # Button row
         self.rowconfigure(1, weight=0)  # Content row (no vertical expansion)
-        # Temporary Random Song Button (easy to remove later)
-        self.random_button = ttk.Button(self, text="🎲", width=3, command=self.play_random_song)
-        self.random_button.grid(row=0, column=1, sticky="ne", padx=2, pady=(0, 6))
+
+        # --- New Button Row ---
+        self.button_row = tk.Frame(self)
+        self.button_row.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 6))
+        self.button_row.columnconfigure(0, weight=0)
+        self.button_row.columnconfigure(1, weight=0)
+        self.button_row.columnconfigure(2, weight=1)
+        self.button_row.columnconfigure(3, weight=0)
+
+        # Traktor Listener Toggle Button (left)
+        self.traktor_listener_btn = ttk.Button(self.button_row, text="⭕ Enable Traktor Listener", width=25, style="TButton")
+        self.traktor_listener_btn.grid(row=0, column=0, padx=(0, 4))
+
+        # Spout Cover Art Toggle Button (center)
+        self.spout_toggle_btn = ttk.Button(self.button_row, text="⭕ Enable Spout", width=25, style="TButton")
+        self.spout_toggle_btn.grid(row=0, column=1, padx=(0, 4))
+
+        # Spacer (expandable)
+        spacer = tk.Frame(self.button_row)
+        spacer.grid(row=0, column=2, sticky="ew")
+
+        # Random Song Button (far right)
+        self.random_button = ttk.Button(self.button_row, text="🎲", width=3, command=self.play_random_song)
+        self.random_button.grid(row=0, column=3, sticky="e", padx=(0, 2))
+
+        # --- End Button Row ---
+
         # Cover art frame (fixed size)
         self.coverart_frame = tk.Frame(self, width=COVER_SIZE, height=COVER_SIZE, bg="#222")
         self.coverart_frame.grid_propagate(False)
@@ -50,6 +74,24 @@ class NowPlayingPanel(ttk.LabelFrame):
         self.label.grid(row=1, column=1, sticky="nw")
         subscribe("song_played", self.update_now_playing)
         self._coverart_img = None  # Keep reference to avoid garbage collection
+
+    def set_traktor_listener_command(self, cmd):
+        self.traktor_listener_btn.config(command=cmd)
+
+    def set_spout_toggle_command(self, cmd):
+        self.spout_toggle_btn.config(command=cmd)
+
+    def set_traktor_listener_state(self, on: bool):
+        if on:
+            self.traktor_listener_btn.config(text="⭕ Disable Traktor Listener", style="Red.TButton")
+        else:
+            self.traktor_listener_btn.config(text="⭕ Enable Traktor Listener", style="TButton")
+
+    def set_spout_toggle_state(self, on: bool):
+        if on:
+            self.spout_toggle_btn.config(text="⭕ Disable Spout", style="Red.TButton")
+        else:
+            self.spout_toggle_btn.config(text="⭕ Enable Spout", style="TButton")
 
     def play_random_song(self):
         songs = load_collection_json(Settings.COLLECTION_JSON_FILE)

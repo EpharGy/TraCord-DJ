@@ -1,6 +1,6 @@
 # TraCord DJ
 
-A comprehensive Discord bot for managing music requests, interacting with Traktor DJ software collections, and enhancing DJ workflow automation. This is a standalone GUI application suitable for personal DJ environments.
+A comprehensive Discord bot for managing music requests, interacting with Traktor DJ software collections, and enhancing DJ workflow automation. This is a standalone GUI application suitable for personal DJ environments. Spout integration is included for cover art display in other supported applications.
 
 > **📝 Version **: Current version in [`version.py`](version.py)
 
@@ -21,14 +21,6 @@ A comprehensive Discord bot for managing music requests, interacting with Trakto
 ![TraCord DJ GUI](https://raw.githubusercontent.com/EpharGy/TraCord-DJ/assets/gui_screenshot.png)
 
 ## Quick Start
-
-### 🎯 For End Users (No Python Required)
-
-1. **Download** the latest `TraCord-DJ-GUI.exe` from [Releases](https://github.com/your-repo/releases)
-2. **Run** the executable - it will create a `.env` configuration file
-3. **Edit** the `.env` file with your Discord bot token and settings
-4. **Run** the executable again to start the bot
-
 ## Commands
 
 ### Music Discovery
@@ -66,37 +58,9 @@ python gui.py  # Run the GUI application
 
 The GUI provides real-time monitoring, admin controls, and automatic bot startup.
 
-### ⚡ Command Line (Advanced)
-```bash
-python main.py
-```
-
-## Building & Distribution
-
-### 🏗️ Building for Distribution
-
-Create a standalone executable for users without Python:
-
-```bash
-# Quick build (Windows)
-build.bat
-
-# Manual build
-pip install -r requirements-dev.txt
-python build.py
-```
-
-Output: `dist/TraCord-DJ-GUI.exe`
-
-### 📦 Distribution Notes
-- Executable is fully portable and self-contained
-- First run creates `.env` file with setup instructions
-- No Python installation required for end users
-- Can be run from any directory
-
 ## 🧩 Extending with Discord Cogs (Plugins)
 
-This bot uses a dynamic cog loader! To add new features or commands, simply drop a `.py` file into the `cogs/` folder (if using EXE, create one where the exe is launched from). The bot will automatically load all cogs in this folder at startup—no need to edit the main code!
+This bot uses a dynamic cog loader! To add new discord features or commands, simply drop a `.py` file into the `cogs/` folder (if using EXE, create one where the exe is launched from). The bot will automatically load all cogs in this folder at startup—no need to edit the main code!
 
 - **To add a new cog:**
   1. Place your `my_cool_feature.py` in the `cogs/` folder.
@@ -154,13 +118,12 @@ TraCord-DJ/
 │   │   └── traktor.py              # Traktor collection parsing and management
 │   └── version.py                  # Version information
 ├── 🎨 Assets
-│   ├── app_icon.ico
-│   └── icon.png
-├── 🔧 Build & Development
-│   ├── .env.example
-│   ├── build.bat
-│   ├── build.py
-│   ├── requirements-dev.txt
+│   ├── assets/
+|   |   ├── screenshots/
+|   |   |   └── gui_screenshot.png
+│   │   ├── app_icon.png
+│   │   └── app_icon.ico
+├── 🔧 Development
 │   └── requirements.txt
 ├── 📖 Documentation
 │   ├── LICENSE
@@ -170,10 +133,7 @@ TraCord-DJ/
 │   ├── .gitignore
 │   └── TraCord DJ.code-workspace
 └── 📝 Generated Files (git-ignored)
-    ├── .env
-    ├── *.spec
-    ├── build/
-    └── dist/
+    └── *.spec
 ```
 
 > **Note:** The `gui/` folder contains all modular GUI panels and controls. The `services/` folder contains bot lifecycle logic. The `utils/` folder contains helpers, logging, and Traktor, Now Playing utilities.
