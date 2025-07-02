@@ -19,18 +19,9 @@ class ControlsStatsPanel(ttk.LabelFrame):
         self.stop_button.bind('<Button-1>', on_stop_press)
         self.stop_button.bind('<ButtonRelease-1>', on_stop_release)
         self.stop_button.grid(row=0, column=0, pady=self.STANDARD_PADY)
-        # Toggle Traktor Listener button (starts in Turn On state)
-        self.toggle_traktor_listener_button = ttk.Button(
-            self,
-            text="⭕ Turn On Traktor Listener",
-            width=optimal_width,
-            command=on_toggle_traktor_listener,
-            style="TButton"
-        )
-        self.toggle_traktor_listener_button.grid(row=1, column=0, pady=self.STANDARD_PADY)
         # Status section
         self.status_frame = ttk.LabelFrame(self, text="Status", padding=self.STANDARD_PADY)
-        self.status_frame.grid(row=2, column=0, pady=self.STANDARD_PADY, sticky="ew")
+        self.status_frame.grid(row=1, column=0, pady=self.STANDARD_PADY, sticky="ew")
         self.status_label = ttk.Label(self.status_frame, text="⚪ Bot Stopped")
         self.status_label.grid(row=0, column=0, sticky="w")  # No padding
         # Traktor Listener status label
@@ -38,7 +29,7 @@ class ControlsStatsPanel(ttk.LabelFrame):
         self.traktor_listener_status_label.grid(row=1, column=0, sticky="w")  # No padding
         # Bot info section
         self.info_frame = ttk.LabelFrame(self, text="Bot Information", padding=self.STANDARD_PADY)
-        self.info_frame.grid(row=3, column=0, pady=self.STANDARD_PADY, sticky="ew")
+        self.info_frame.grid(row=2, column=0, pady=self.STANDARD_PADY, sticky="ew")
         self.bot_name_label = ttk.Label(self.info_frame, text="Name: Not connected")
         self.bot_name_label.grid(row=0, column=0, sticky="w")  # No padding
         self.bot_id_label = ttk.Label(self.info_frame, text="ID: Not connected")
@@ -47,7 +38,7 @@ class ControlsStatsPanel(ttk.LabelFrame):
         self.commands_label.grid(row=2, column=0, sticky="w")  # No padding
         # Statistics section
         self.stats_frame = ttk.LabelFrame(self, text="Stats", padding=self.STANDARD_PADY)
-        self.stats_frame.grid(row=4, column=0, pady=self.STANDARD_PADY, sticky="ew")
+        self.stats_frame.grid(row=3, column=0, pady=self.STANDARD_PADY, sticky="ew")
         self.import_title_label = ttk.Label(self.stats_frame, text="Traktor Import:", font=("Arial", 9, "bold"))
         self.import_title_label.grid(row=0, column=0, sticky="w")  # No padding
         self.import_date_label = ttk.Label(self.stats_frame, text="Loading...", font=("Arial", 8))
@@ -151,13 +142,6 @@ class ControlsStatsPanel(ttk.LabelFrame):
             self.traktor_listener_status_label.config(text=status, foreground=foreground)
         else:
             self.traktor_listener_status_label.config(text=status)
-
-    def set_traktor_toggle_button(self, is_on: bool):
-        """Update the toggle button text and style based on listener state."""
-        if is_on:
-            self.toggle_traktor_listener_button.config(text="❌ Turn Off Traktor Listener", style="Red.TButton")
-        else:
-            self.toggle_traktor_listener_button.config(text="⭕ Turn On Traktor Listener", style="TButton")
 
     def update_stats_labels(self, stats):
         self.session_searches_label.config(text=f"Song Searches: {stats.get('session_song_searches', 0)}")
