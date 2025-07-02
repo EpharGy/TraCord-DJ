@@ -16,6 +16,7 @@ from mutagen.id3._frames import APIC
 from mutagen._file import File as MutagenFile
 from PIL import Image, ImageTk
 import io
+from utils.spout_sender_helper import SpoutGLHelper, SPOUTGL_AVAILABLE
 
 info("[NowPlayingPanel] File loaded and logger is active.")
 
@@ -74,6 +75,10 @@ class NowPlayingPanel(ttk.LabelFrame):
         self.label.grid(row=1, column=1, sticky="nw")
         subscribe("song_played", self.update_now_playing)
         self._coverart_img = None  # Keep reference to avoid garbage collection
+        # Spout
+        self.spout_sender = None
+        self.spout_enabled = False
+        self._last_spout_image = None
 
     def set_traktor_listener_command(self, cmd):
         self.traktor_listener_btn.config(command=cmd)
@@ -88,10 +93,19 @@ class NowPlayingPanel(ttk.LabelFrame):
             self.traktor_listener_btn.config(text="⭕ Enable Traktor Listener", style="TButton")
 
     def set_spout_toggle_state(self, on: bool):
+        self.spout_enabled = on
         if on:
+            if not SPOUTGL_AVAILABLE:
+                import tkinter.messagebox as mb
+                mb.showwarning("Spout Not Installed", "SpoutGL is not installed. Please see the README for installation instructions to enable Spout cover art output.")
+                self.spout_toggle_btn.config(text="⭕ Enable Spout", style="TButton")
+                self.spout_enabled = False
+                return
             self.spout_toggle_btn.config(text="⭕ Disable Spout", style="Red.TButton")
+            self._start_spout_sender()
         else:
             self.spout_toggle_btn.config(text="⭕ Enable Spout", style="TButton")
+            self._stop_spout_sender()
 
     def play_random_song(self):
         songs = load_collection_json(Settings.COLLECTION_JSON_FILE)
@@ -104,11 +118,54 @@ class NowPlayingPanel(ttk.LabelFrame):
         song_info = get_song_info(song.get('artist', ''), song.get('title', ''), songs)
         emit("song_played", song_info)
 
+    def _start_spout_sender(self):
+        if not SPOUTGL_AVAILABLE:
+            warning("SpoutGL is not installed. Cannot start Spout sender.")
+            return
+        if self.spout_sender is None:
+            self.spout_sender = SpoutGLHelper(sender_name="TraCordDJ CoverArt", width=COVER_SIZE, height=COVER_SIZE)
+            self.spout_sender.start()
+            info("[SpoutGL] Sender started.")
+        # If we have a last cover image, send it
+        if self._last_spout_image is not None:
+            self._send_spout_image(self._last_spout_image)
+
+    def _stop_spout_sender(self):
+        if self.spout_sender is not None:
+            try:
+                self.spout_sender.stop()
+                info("[SpoutGL] Sender stopped.")
+            except Exception as e:
+                warning(f"[SpoutGL] Error stopping sender: {e}")
+            self.spout_sender = None
+
+    def _send_spout_image(self, pil_img):
+        if self.spout_sender is None:
+            return
+        try:
+            self.spout_sender.send_pil_image(pil_img)
+            info(f"[SpoutGL] Sent cover art via SpoutGL: {COVER_SIZE}x{COVER_SIZE}")
+        except Exception as e:
+            warning(f"[SpoutGL] Error sending image: {e}")
+
+    def _send_blank_spout_image(self):
+        if self.spout_sender is not None:
+            try:
+                from PIL import Image
+                img = Image.new("RGBA", (COVER_SIZE, COVER_SIZE), (0, 0, 0, 0))
+                self.spout_sender.send_pil_image(img)
+                info(f"[SpoutGL] Sent blank/transparent image via SpoutGL: {COVER_SIZE}x{COVER_SIZE}")
+            except Exception as e:
+                warning(f"[SpoutGL] Error sending blank image: {e}")
+
     def update_now_playing(self, song_info):
         debug(f"[NowPlayingPanel] update_now_playing called with song_info: {song_info}")
         if not song_info:
             self.label.config(text="No song info available.")
             self.coverart_label.config(image='', bg="#222")
+            # Spout: send blank if enabled
+            if self.spout_enabled and self.spout_sender is not None:
+                self._send_blank_spout_image()
             return
         artist = song_info.get('artist', '')
         title = song_info.get('title', '')
@@ -165,10 +222,17 @@ class NowPlayingPanel(ttk.LabelFrame):
                         def update_gui():
                             self._coverart_img = cover_img
                             self.coverart_label.config(image=self._coverart_img, bg="#111")
+                            # Spout: send image if enabled
+                            self._last_spout_image = img
+                            if self.spout_enabled and self.spout_sender is not None:
+                                self._send_spout_image(img)
                         self.coverart_label.after(0, update_gui)
                         return
                     else:
                         warning(f"[CoverArt] Song had no cover art to extract: {audio_file_path}")
+                        # Spout: send blank if enabled
+                        if self.spout_enabled and self.spout_sender is not None:
+                            self._send_blank_spout_image()
                 except Exception as e:
                     warning(f"[CoverArt] Error extracting cover art: {e}")
                     try:
@@ -176,9 +240,15 @@ class NowPlayingPanel(ttk.LabelFrame):
                             debug_file.write(f"Error extracting cover art for {audio_file_path}: {e}\n")
                     except Exception as log_error:
                         error(f"[CoverArt] Failed to log error to Debug_unmatched_songs.txt: {log_error}")
+                    # Spout: send blank if enabled
+                    if self.spout_enabled and self.spout_sender is not None:
+                        self._send_blank_spout_image()
                 def clear_gui():
                     self.coverart_label.config(image='', bg="#222")
                 self.coverart_label.after(0, clear_gui)
             threading.Thread(target=load_cover_art, daemon=True).start()
         else:
             self.coverart_label.config(image='', bg="#222")
+            # Spout: send blank if enabled
+            if self.spout_enabled and self.spout_sender is not None:
+                self._send_blank_spout_image()

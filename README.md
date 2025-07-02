@@ -145,6 +145,27 @@ TraCord-DJ/
 - Errors for missing cogs in `extra_cogs` are suppressed for a clean dev experience.
 - Use `extra_cogs/` for personal, experimental, or private cogs and files. This folder is gitignored by default.
 
+## 🖼️ Spout Cover Art Integration (Optional)
+
+This app supports sending cover art to other applications via Spout (Windows only) using [Python-SpoutGL](https://github.com/jlai/Python-SpoutGL).
+
+- **Spout is optional**: The rest of the app works even if you do not install SpoutGL.
+- If you click the Spout button in the GUI without SpoutGL installed, you will see a warning message.
+
+### To enable Spout support:
+1. Install dependencies:
+   ```bash
+   pip install PyOpenGL glfw
+   ```
+2. Clone and install Python-SpoutGL:
+   ```bash
+   git clone https://github.com/jlai/Python-SpoutGL.git
+   cd Python-SpoutGL
+   pip install .
+   ```
+
+**Do not include the Python-SpoutGL source in your own repo.** Just document these steps for users who want Spout support.
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
