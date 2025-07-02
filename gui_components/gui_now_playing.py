@@ -144,7 +144,7 @@ class NowPlayingPanel(ttk.LabelFrame):
             return
         try:
             self.spout_sender.send_pil_image(pil_img)
-            info(f"[SpoutGL] Sent cover art via SpoutGL: {COVER_SIZE}x{COVER_SIZE}")
+            info(f"[SpoutGL] Sent cover art via SpoutGL")
         except Exception as e:
             warning(f"[SpoutGL] Error sending image: {e}")
 
@@ -152,9 +152,9 @@ class NowPlayingPanel(ttk.LabelFrame):
         if self.spout_sender is not None:
             try:
                 from PIL import Image
-                img = Image.new("RGBA", (COVER_SIZE, COVER_SIZE), (0, 0, 0, 0))
+                img = Image.new("RGBA", (1080, 1080), (0, 0, 0, 0))
                 self.spout_sender.send_pil_image(img)
-                info(f"[SpoutGL] Sent blank/transparent image via SpoutGL: {COVER_SIZE}x{COVER_SIZE}")
+                info(f"[SpoutGL] Sent blank/transparent image via SpoutGL: {1080}x{1080}")
             except Exception as e:
                 warning(f"[SpoutGL] Error sending blank image: {e}")
 
@@ -215,17 +215,17 @@ class NowPlayingPanel(ttk.LabelFrame):
                         if audio is not None and hasattr(audio, 'pictures') and audio.pictures:
                             img_data = audio.pictures[0].data
                     if img_data:
-                        img = Image.open(io.BytesIO(img_data))
-                        info(f"[CoverArt] Extracted image file type: {img.format}")
-                        img = img.resize((COVER_SIZE, COVER_SIZE), resample=3)
-                        cover_img = ImageTk.PhotoImage(img)
+                        img_original = Image.open(io.BytesIO(img_data))
+                        info(f"[CoverArt] Extracted image file type: {img_original.format}")
+                        img_resized = img_original.resize((COVER_SIZE, COVER_SIZE), resample=3)
+                        cover_img = ImageTk.PhotoImage(img_resized)
                         def update_gui():
                             self._coverart_img = cover_img
                             self.coverart_label.config(image=self._coverart_img, bg="#111")
-                            # Spout: send image if enabled
-                            self._last_spout_image = img
+                            # Spout: send original image if enabled
+                            self._last_spout_image = img_original
                             if self.spout_enabled and self.spout_sender is not None:
-                                self._send_spout_image(img)
+                                self._send_spout_image(img_original)
                         self.coverart_label.after(0, update_gui)
                         return
                     else:

@@ -26,7 +26,7 @@ class SpoutGLHelper:
         helper.send_pil_image(pil_img)
         helper.stop()
     """
-    def __init__(self, sender_name="TraCordDJ CoverArt", width=150, height=150):
+    def __init__(self, sender_name="TraCordDJ CoverArt", width=1080, height=1080):
         self.sender_name = sender_name
         self.width = width
         self.height = height
@@ -53,8 +53,8 @@ class SpoutGLHelper:
         if self._thread:
             self._thread.join(timeout=2)
         if self._window:
-            glfw.destroy_window(self._window)
-            glfw.terminate()
+            glfw.destroy_window(self._window) # type: ignore # type: ignore
+            glfw.terminate() # type: ignore
         self._sender = None
         self._window = None
 
@@ -66,17 +66,17 @@ class SpoutGLHelper:
 
     def _run(self):
         try:
-            if not glfw.init():
+            if not glfw.init(): # type: ignore # type: ignore
                 print("[SpoutGL] Failed to init GLFW")
                 return
-            glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
-            self._window = glfw.create_window(self.width, self.height, "SpoutGL Hidden", None, None)
+            glfw.window_hint(glfw.VISIBLE, glfw.FALSE) # type: ignore
+            self._window = glfw.create_window(self.width, self.height, "SpoutGL Hidden", None, None) # type: ignore
             if not self._window:
                 print("[SpoutGL] Failed to create GLFW window")
-                glfw.terminate()
+                glfw.terminate() # type: ignore
                 return
-            glfw.make_context_current(self._window)
-            self._sender = SpoutSender()
+            glfw.make_context_current(self._window) # type: ignore
+            self._sender = SpoutSender() # type: ignore
             self._sender.setSenderName(self.sender_name)
             self._ready.set()
             while self._running:
@@ -93,17 +93,17 @@ class SpoutGLHelper:
         finally:
             self._sender = None
             if self._window:
-                glfw.destroy_window(self._window)
-                glfw.terminate()
+                glfw.destroy_window(self._window) # type: ignore
+                glfw.terminate() # type: ignore
 
     def _send_image(self, pil_img):
         img = pil_img.convert("RGBA").resize((self.width, self.height))
         img_bytes = img.tobytes()
         # Upload to OpenGL texture
-        tex_id = gl.glGenTextures(1)
-        gl.glBindTexture(gl.GL_TEXTURE_2D, tex_id)
-        gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, self.width, self.height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, img_bytes)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
-        self._sender.sendTexture(tex_id, gl.GL_TEXTURE_2D, self.width, self.height, False, 0)
-        gl.glDeleteTextures([tex_id])
+        tex_id = gl.glGenTextures(1) # type: ignore
+        gl.glBindTexture(gl.GL_TEXTURE_2D, tex_id) # type: ignore
+        gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, self.width, self.height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, img_bytes) # type: ignore
+        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR) # type: ignore
+        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR) # type: ignore
+        self._sender.sendTexture(tex_id, gl.GL_TEXTURE_2D, self.width, self.height, False, 0) # type: ignore
+        gl.glDeleteTextures([tex_id]) # type: ignore
