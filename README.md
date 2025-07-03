@@ -19,10 +19,10 @@ A comprehensive Discord bot for managing music requests, interacting with Trakto
 
 ## Screenshots
 # Main Interface
-![TraCord DJ GUI](https://raw.githubusercontent.com/EpharGy/TraCord-DJ/assets/screenshots/gui_screenshot.png)
+![TraCord DJ GUI](https://raw.githubusercontent.com/EpharGy/TraCord-DJ/main/assets/screenshots/gui_screenshot.png)
 
 # Spout Cover Art Integration -> Nest Drop -> OBS
-![Spout Integration](https://raw.githubusercontent.com/EpharGy/TraCord-DJ/assets/screenshots/gui_spout_integration.png)
+![Spout Integration](https://raw.githubusercontent.com/EpharGy/TraCord-DJ/main/assets/screenshots/gui_spout_integration.png)
 
 ## Quick Start
 ## Commands
