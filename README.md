@@ -19,10 +19,11 @@ A comprehensive Discord bot for managing music requests, interacting with Trakto
 
 ## Screenshots
 # Main Interface
-![TraCord DJ GUI](https://raw.githubusercontent.com/EpharGy/TraCord-DJ/assets/screenshots/gui_screenshot.png)
+![TraCord DJ GUI](https://raw.githubusercontent.com/EpharGy/TraCord-DJ/main/assets/screenshots/gui_screenshot.png)
 
 # Spout Cover Art Integration -> Nest Drop -> OBS
-![Spout Integration](https://raw.githubusercontent.com/EpharGy/TraCord-DJ/assets/screenshots/gui_spout_integration.png)
+Any application that supports Spout can receive cover art from this bot, allowing you to display it in OBS or other software. (OBS does support spout directly via plugin)
+![Spout Integration](https://raw.githubusercontent.com/EpharGy/TraCord-DJ/main/assets/screenshots/gui_spout_integration.png)
 
 ## Quick Start
 ## Commands
