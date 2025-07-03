@@ -123,9 +123,11 @@ class NowPlayingPanel(ttk.LabelFrame):
             warning("SpoutGL is not installed. Cannot start Spout sender.")
             return
         if self.spout_sender is None:
-            self.spout_sender = SpoutGLHelper(sender_name="TraCordDJ CoverArt", width=COVER_SIZE, height=COVER_SIZE)
+            self.spout_sender = SpoutGLHelper(sender_name="TraCordDJ CoverArt", width=1080, height=1080)
             self.spout_sender.start()
             info("[SpoutGL] Sender started.")
+            # Send blank image on startup
+            self._send_blank_spout_image()
         # If we have a last cover image, send it
         if self._last_spout_image is not None:
             self._send_spout_image(self._last_spout_image)

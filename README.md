@@ -18,7 +18,11 @@ A comprehensive Discord bot for managing music requests, interacting with Trakto
 - **🎧 Now Playing Song**: Traktor Broadcast Listening for Song/Artist details, integrated with collection details for advanced meta data (coverart, BPM, Key)
 
 ## Screenshots
-![TraCord DJ GUI](https://raw.githubusercontent.com/EpharGy/TraCord-DJ/assets/gui_screenshot.png)
+# Main Interface
+![TraCord DJ GUI](https://raw.githubusercontent.com/EpharGy/TraCord-DJ/assets/screenshots/gui_screenshot.png)
+
+# Spout Cover Art Integration -> Nest Drop -> OBS
+![Spout Integration](https://raw.githubusercontent.com/EpharGy/TraCord-DJ/assets/screenshots/gui_spout_integration.png)
 
 ## Quick Start
 ## Commands
