@@ -196,8 +196,13 @@ class NowPlayingPanel(ttk.LabelFrame):
                     elif ext in ('.mp3', '.m4a', '.aac', '.ogg'):
                         audio = MutagenFile(audio_file_path)
                         if audio is not None and hasattr(audio, 'tags') and audio.tags:
+                            if ext == '.m4a' and 'covr' in audio.tags:
+                                covr = audio.tags['covr']
+                                # covr may be a list of images, take the first
+                                if isinstance(covr, list) and len(covr) > 0:
+                                    img_data = covr[0]
                             # For MP3 with ID3 tags
-                            if isinstance(audio, MP3) and isinstance(audio.tags, ID3):
+                            elif isinstance(audio, MP3) and isinstance(audio.tags, ID3):
                                 for tag in audio.tags.values():
                                     if isinstance(tag, APIC):
                                         img_data = getattr(tag, 'data', None)
