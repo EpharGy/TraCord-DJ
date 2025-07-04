@@ -146,7 +146,8 @@ class SpoutGLHelper:
                 glfw.terminate() # type: ignore
 
     def _send_image(self, pil_img):
-        img = pil_img.convert("RGBA").resize((SPOUT_SIZE, SPOUT_SIZE))
+        border_px = getattr(Settings, 'SPOUT_BORDER_PX', 0)
+        img = add_spout_border(pil_img, border_px)
         img_bytes = img.tobytes()
         # Upload to OpenGL texture
         tex_id = gl.glGenTextures(1) # type: ignore
@@ -156,3 +157,12 @@ class SpoutGLHelper:
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR) # type: ignore
         self._sender.sendTexture(tex_id, gl.GL_TEXTURE_2D, SPOUT_SIZE, SPOUT_SIZE, False, 0) # type: ignore
         gl.glDeleteTextures([tex_id]) # type: ignore
+
+def add_spout_border(img, border_px=0):
+    if border_px <= 0:
+        return img.resize((SPOUT_SIZE, SPOUT_SIZE), Image.LANCZOS)
+    inner_size = SPOUT_SIZE - 2 * border_px
+    img_resized = img.resize((inner_size, inner_size), Image.LANCZOS)
+    out = Image.new("RGBA", (SPOUT_SIZE, SPOUT_SIZE), (0, 0, 0, 0))
+    out.paste(img_resized, (border_px, border_px))
+    return out

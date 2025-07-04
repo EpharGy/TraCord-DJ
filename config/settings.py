@@ -73,6 +73,7 @@ class Settings:
     FADE_STYLE = "fade"  # Options: 'crossfade', 'fade' (fade to transparent then fade new image, double overall duration)
     FADE_FRAMES: int = 30
     FADE_DURATION: float = 1.0
+    SPOUT_BORDER_PX: int = 0
 
     @classmethod
     def initialize(cls) -> None:
@@ -104,6 +105,7 @@ class Settings:
         cls.COVER_SIZE = safe_int(cls.get('COVER_SIZE'), 150)
         cls.FADE_FRAMES = safe_int(cls.get('FADE_FRAMES'), 30)
         cls.FADE_DURATION = safe_float(cls.get('FADE_DURATION'), 1.0)
+        cls.SPOUT_BORDER_PX = safe_int(cls.get('SPOUT_BORDER_PX'), 0)
         # Validate required settings
         required_vars = [
             cls.get('DISCORD_TOKEN'),
