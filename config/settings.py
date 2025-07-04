@@ -70,6 +70,7 @@ class Settings:
     TIMEOUT: float = 0.0
     CONSOLE_PANEL_WIDTH: int = 0
     COVER_SIZE: int = 0
+    FADE_STYLE = "fade"  # Options: 'crossfade', 'fade' (fade to transparent)
 
     @classmethod
     def initialize(cls) -> None:

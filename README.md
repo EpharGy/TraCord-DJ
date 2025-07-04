@@ -9,13 +9,14 @@ A comprehensive Discord bot for managing music requests, interacting with Trakto
 - **🖥️ Standalone GUI Application**: Tkinter-based control panel with real-time monitoring
 - **🎵 Dynamic Song Search**: Intelligent search with interactive selection
 - **📋 Song Request Management**: Full CRUD operations with user permissions
-- **📂 Collection Management**: Automatic Traktor integration and collection refresh
+- **📂 Collection Integration**: Automatic Traktor collection integration for data
 - **🆕 New Song Tracking**: Display recently imported songs
 - **📢 Live Streaming Notifications**: Broadcast notifications with role mentions
-- **🔒 Permission System**: Granular access control for different user roles
+- **🔒 Permission System**: Granular access control for different user roles or channels
 - **🧹 Admin Controls**: Collection refresh and track history via GUI buttons
 - **📊 Search Analytics**: Track and display search statistics
 - **🎧 Now Playing Song**: Traktor Broadcast Listening for Song/Artist details, integrated with collection details for advanced meta data (coverart, BPM, Key)
+- **🖼️ Spout Cover Art Integration**: Send cover art to other applications via Spout (Windows only)
 
 ## Screenshots
 # Main Interface

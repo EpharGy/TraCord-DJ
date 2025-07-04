@@ -5,6 +5,7 @@ import time
 import traceback
 import SpoutGL
 from PIL import Image
+from config.settings import Settings
 
 try:
     # type: ignore[import]
@@ -63,7 +64,39 @@ class SpoutGLHelper:
         if not self._running:
             return
         with self._lock:
-            self._pending_img = pil_img.copy()
+            if not hasattr(self, '_last_img'):
+                self._last_img = None
+            if self._last_img is not None and Settings.FADE_STYLE in ("fade", "crossfade"):
+                self._fade_to_image(self._last_img, pil_img, style=Settings.FADE_STYLE)
+            else:
+                self._pending_img = pil_img.copy()
+            self._last_img = pil_img.copy()
+
+    def _fade_to_image(self, img_from, img_to, steps=12, delay=0.08, style="fade"):
+        img_from = img_from.convert("RGBA").resize((SPOUT_SIZE, SPOUT_SIZE))
+        img_to = img_to.convert("RGBA").resize((SPOUT_SIZE, SPOUT_SIZE))
+        if style == "fade":
+            # Fade out to transparent, then fade in
+            transparent = Image.new("RGBA", (SPOUT_SIZE, SPOUT_SIZE), (0, 0, 0, 0))
+            for i in range(steps):
+                alpha = 1 - (i / steps)
+                blended = Image.blend(img_from, transparent, 1 - alpha)
+                self._pending_img = blended.copy()
+                time.sleep(delay)
+            for i in range(steps):
+                alpha = (i + 1) / steps
+                blended = Image.blend(transparent, img_to, alpha)
+                self._pending_img = blended.copy()
+                time.sleep(delay)
+        elif style == "crossfade":
+            # Direct crossfade
+            for i in range(steps + 1):
+                alpha = i / steps
+                blended = Image.blend(img_from, img_to, alpha)
+                self._pending_img = blended.copy()
+                time.sleep(delay)
+        else:
+            self._pending_img = img_to.copy()
 
     def _run(self):
         try:
