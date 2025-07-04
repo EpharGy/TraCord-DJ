@@ -2,6 +2,19 @@
 TraCord DJ - Standalone GUI Application
 A standalone GUI application for running the TraCord DJ bot with real-time monitoring.
 """
+import os
+import sys
+# --- DPI Awareness Fix for Windows High-DPI Scaling ---
+if sys.platform == "win32":
+    import ctypes
+    try:
+        ctypes.windll.shcore.SetProcessDpiAwareness(2)  # Per-monitor DPI aware
+    except Exception:
+        try:
+            ctypes.windll.user32.SetProcessDPIAware()  # System DPI aware
+        except Exception:
+            pass
+# --- End DPI Fix ---
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
 import threading
@@ -68,7 +81,7 @@ class BotGUI:
         self.root = tk.Tk()
         app_title = title or f"TraCord DJ v{__version__} - Control Panel"
         self.root.title(app_title)
-        self.root.geometry("1200x700")  # Widened for new layout DO NOT CHANGE
+        self.root.geometry("1200x800")  # Widened for new layout DO NOT CHANGE
         self.root.minsize(1000, 500)
         # Set window icon - remove the janky black diamond/question mark icon
         try:
