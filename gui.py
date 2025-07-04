@@ -334,18 +334,27 @@ class BotGUI:
     def _shutdown_application(self):
         """Common shutdown logic for both Stop button and X button"""
         info("[Shutdown] _shutdown_application called. is_running=%s" % self.is_running)
+        # Stop Discord bot
         if self.is_running:
             info("🔄 User requested application close - stopping bot...")
             self.stop_discord_bot()
-            # Wait for clean shutdown then close
-            def force_destroy():
-                info("[Shutdown] Forcing root.destroy() after timeout.")
-                try:
-                    self.root.destroy()
-                except Exception as e:
-                    error(f"[Shutdown] Error during forced destroy: {e}")
-            self.root.after(2000, force_destroy)  # 2 seconds fallback
-        else:
+        # Stop Traktor Listener if running
+        if hasattr(self, 'traktor_listener') and self.traktor_listener and getattr(self.traktor_listener, 'running', False):
+            info("🔄 Stopping Traktor Listener...")
+            self.traktor_listener.stop()
+        # Stop Spout if enabled
+        if hasattr(self, 'nowplaying_panel') and getattr(self.nowplaying_panel, 'spout_enabled', False):
+            info("🔄 Stopping Spout sender...")
+            self.nowplaying_panel._stop_spout_sender()
+        # Wait for clean shutdown then close
+        def force_destroy():
+            info("[Shutdown] Forcing root.destroy() after timeout.")
+            try:
+                self.root.destroy()
+            except Exception as e:
+                error(f"[Shutdown] Error during forced destroy: {e}")
+        self.root.after(2000, force_destroy)  # 2 seconds fallback
+        if not self.is_running:
             info("🔄 Closing application...")
             self.root.destroy()
 

@@ -39,6 +39,7 @@ class SpoutGLHelper:
         self._ready = threading.Event()
         self._sender = None
         self._window = None
+        self._fade_queue = []
 
     def start(self):
         if not SPOUTGL_AVAILABLE:
@@ -66,37 +67,45 @@ class SpoutGLHelper:
         with self._lock:
             if not hasattr(self, '_last_img'):
                 self._last_img = None
+            frames = getattr(Settings, 'FADE_FRAMES', 30)
+            duration = getattr(Settings, 'FADE_DURATION', 1.0)
             if self._last_img is not None and Settings.FADE_STYLE in ("fade", "crossfade"):
-                self._fade_to_image(self._last_img, pil_img, style=Settings.FADE_STYLE)
+                self._fade_to_image(self._last_img, pil_img, frames=frames, duration=duration, style=Settings.FADE_STYLE)
             else:
                 self._pending_img = pil_img.copy()
             self._last_img = pil_img.copy()
 
-    def _fade_to_image(self, img_from, img_to, steps=12, delay=0.08, style="fade"):
+    def _fade_to_image(self, img_from, img_to, frames=30, duration=1.0, style="fade"):
+        # frames: total frames for the transition
+        # duration: total duration in seconds
+        if style == "fade":
+            steps = max(1, frames // 2)
+            delay = duration / frames
+        else:  # crossfade or other
+            steps = frames
+            delay = duration / frames
+        frames_list = []
         img_from = img_from.convert("RGBA").resize((SPOUT_SIZE, SPOUT_SIZE))
         img_to = img_to.convert("RGBA").resize((SPOUT_SIZE, SPOUT_SIZE))
         if style == "fade":
-            # Fade out to transparent, then fade in
             transparent = Image.new("RGBA", (SPOUT_SIZE, SPOUT_SIZE), (0, 0, 0, 0))
             for i in range(steps):
                 alpha = 1 - (i / steps)
                 blended = Image.blend(img_from, transparent, 1 - alpha)
-                self._pending_img = blended.copy()
-                time.sleep(delay)
+                frames_list.append(blended.copy())
             for i in range(steps):
                 alpha = (i + 1) / steps
                 blended = Image.blend(transparent, img_to, alpha)
-                self._pending_img = blended.copy()
-                time.sleep(delay)
+                frames_list.append(blended.copy())
         elif style == "crossfade":
-            # Direct crossfade
             for i in range(steps + 1):
                 alpha = i / steps
                 blended = Image.blend(img_from, img_to, alpha)
-                self._pending_img = blended.copy()
-                time.sleep(delay)
+                frames_list.append(blended.copy())
         else:
-            self._pending_img = img_to.copy()
+            frames_list.append(img_to.copy())
+        self._fade_queue = frames_list
+        self._fade_delay = delay
 
     def _run(self):
         try:
@@ -115,13 +124,19 @@ class SpoutGLHelper:
             self._ready.set()
             while self._running:
                 img = None
+                delay = 0.02
                 with self._lock:
-                    if self._pending_img is not None:
+                    if self._fade_queue:
+                        img = self._fade_queue.pop(0)
+                        delay = getattr(self, '_fade_delay', 0.08)
+                    elif self._pending_img is not None:
                         img = self._pending_img
                         self._pending_img = None
                 if img is not None:
                     self._send_image(img)
-                time.sleep(0.02)
+                    time.sleep(delay)
+                else:
+                    time.sleep(0.02)
         except Exception as e:
             print(f"[SpoutGL] Error in sender thread: {e}\n{traceback.format_exc()}")
         finally:
