@@ -121,9 +121,9 @@ class ControlsStatsPanel(ttk.LabelFrame):
     def calculate_controls_frame_width():
         max_width = 0
         button_texts = [
-            "🛑 Stop & Close",
+            "🛑 Stop All & Close",
             "🗑️ Clear Log", 
-            "🔄 Refresh Collection & Stats"
+            "🔄 Refresh Session Stats"
         ]
         button_width = ControlsStatsPanel.calculate_optimal_button_width(button_texts)
         max_width = max(max_width, button_width)
