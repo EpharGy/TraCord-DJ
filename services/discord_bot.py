@@ -54,7 +54,7 @@ class DiscordBotController:
             else:
                 raise ValueError("Discord token not configured")
         except Exception as e:
-            error(f"Bot error: {e}")
+            error(f"Bot error: {e} | Setup Bot Token in settings.json")
             if self.gui_callbacks.get("on_error"):
                 self.gui_callbacks["on_error"](str(e))
         finally:

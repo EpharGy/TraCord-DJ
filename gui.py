@@ -52,6 +52,7 @@ except ImportError as e:
         print("Please ensure you're running from the correct directory.")
     sys.exit(1)
 
+from gui_components.settings_dialog import SettingsDialog, DESCRIPTIONS
 
 class BotGUI:
     """GUI application for the TraCord DJ bot"""
@@ -81,7 +82,7 @@ class BotGUI:
         self.root = tk.Tk()
         app_title = title or f"TraCord DJ v{__version__} - Control Panel"
         self.root.title(app_title)
-        self.root.geometry("1200x800")  # Widened for new layout DO NOT CHANGE
+        self.root.geometry("1250x825")  # Widened for new layout DO NOT CHANGE
         self.root.minsize(1000, 500)
         # Set window icon - remove the janky black diamond/question mark icon
         try:
@@ -189,6 +190,7 @@ class BotGUI:
             self.toggle_traktor_listener   # on_toggle_traktor_listener
         )
         self.controls_stats_panel.grid(row=1, column=0, sticky="nsew", padx=(0, 15))
+        self.controls_stats_panel.set_settings_command(self.open_settings_dialog)
         # Expose key widgets for BotGUI
         self.stop_button = self.controls_stats_panel.stop_button
         self.status_label = self.controls_stats_panel.status_label
@@ -549,6 +551,33 @@ class BotGUI:
             self.controls_stats_panel.set_traktor_listener_status("🟢 Traktor Listener Online", foreground="green")
         else:
             self.controls_stats_panel.set_traktor_listener_status("🔴 Traktor Listener Offline", foreground="red")
+
+    def open_settings_dialog(self):
+        from config.settings import Settings
+        from utils.logger import debug
+        debug("[SettingsDialog] Opening settings dialog.")
+        Settings.load()  # Ensure latest
+        SettingsDialog(self.root, Settings._settings, DESCRIPTIONS, on_save=self.on_settings_saved)
+
+    def on_settings_saved(self, new_settings):
+        from tkinter import messagebox
+        from utils.logger import info
+        import tkinter as tk
+        info("[SettingsDialog] User saved settings.")
+        # Center the messagebox over the settings dialog if possible
+        parent = None
+        try:
+            for w in self.root.winfo_children():
+                if isinstance(w, tk.Toplevel) and hasattr(w, 'title') and w.title() == 'Settings':
+                    parent = w
+                    break
+        except Exception:
+            pass
+        messagebox.showinfo(
+            "Restart Required",
+            "Settings have been saved. Please restart the application for changes to take effect.",
+            parent=parent or self.root
+        )
 
     def run(self):
         """Run the Tkinter GUI loop"""
