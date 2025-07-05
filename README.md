@@ -27,6 +27,8 @@ Any application that supports Spout can receive cover art from this bot, allowin
 ![Spout Integration](https://raw.githubusercontent.com/EpharGy/TraCord-DJ/main/assets/screenshots/gui_spout_integration.png)
 
 ## Quick Start
+**You must setup Various settings, settings.json will be created on first launch, these can then be set via the Settings button, Traktor path is the path with out the version folders, ie (C:/Users/user)/Documents/Native Instruments/). Discord Token, ID's etc**
+
 ## Commands
 
 ### Music Discovery

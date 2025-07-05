@@ -128,7 +128,9 @@ class Settings:
             from pathlib import Path
             traktor_dirs = [d for d in Path(traktor_location).iterdir() if d.is_dir() and d.name.startswith("Traktor ")]
             if not traktor_dirs:
-                raise ValueError(f"No Traktor folders found in {traktor_location}")
+                warning(f"No Traktor folders found in {traktor_location}. Please set the correct Traktor path in settings.")
+                cls.TRAKTOR_PATH = ""
+                return
             version_paths = []
             for path in traktor_dirs:
                 version = path.name.replace("Traktor ", "").strip("\\")
@@ -138,10 +140,11 @@ class Settings:
             latest_traktor_folder = str(version_paths[0][1])
             cls.TRAKTOR_PATH = os.path.join(latest_traktor_folder, traktor_collection_filename)
             if not os.path.exists(cls.TRAKTOR_PATH):
-                raise ValueError(f"Collection file not found: {cls.TRAKTOR_PATH}")
+                warning(f"Collection file not found: {cls.TRAKTOR_PATH}. Please check your settings.")
+                cls.TRAKTOR_PATH = ""
         except Exception as e:
             error(f"Error setting up Traktor path: {e}")
-            raise
+            cls.TRAKTOR_PATH = ""
 
 # Assign file paths as class variables after class definition
 Settings.SONG_REQUESTS_FILE = Settings.get_song_requests_file()

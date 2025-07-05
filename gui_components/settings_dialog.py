@@ -19,6 +19,10 @@ LEFT_KEYS = [
     "MAX_SONGS"
 ]
 
+ID_STRING_KEYS = [
+    "DISCORD_BOT_APP_ID",
+]
+
 DESCRIPTIONS = {
     "DISCORD_TOKEN": "Discord bot token.",
     "DISCORD_BOT_APP_ID": "Discord bot application ID.",
@@ -88,10 +92,14 @@ class SettingsDialog(tk.Toplevel):
                 desc_label.grid(row=row, column=col+1, sticky="w", padx=8, pady=(8, 0))
             row += 1
             # Input field directly below
-            entry = tk.Entry(self, width=60)
-            if key in LIST_KEYS and isinstance(value, list):
+            if key == "FADE_STYLE":
+                entry = ttk.Combobox(self, values=["fade", "crossfade"], state="readonly", width=57)
+                entry.set(str(value))
+            elif key in LIST_KEYS and isinstance(value, list):
+                entry = tk.Entry(self, width=60)
                 entry.insert(0, ",".join(str(v) for v in value))
             else:
+                entry = tk.Entry(self, width=60)
                 entry.insert(0, str(value))
             entry.grid(row=row, column=col, columnspan=2, padx=8, pady=(0, 8), sticky="ew")
             self.entries[key] = entry
@@ -105,11 +113,13 @@ class SettingsDialog(tk.Toplevel):
         import copy
         new_settings = copy.deepcopy(self.settings_dict)
         for key, entry in self.entries.items():
-            val = entry.get()
+            val = entry.get() if key != "FADE_STYLE" else entry.get()
             if key in LIST_KEYS:
                 # Split by comma, strip whitespace, ignore empty
                 items = [v.strip() for v in val.split(",") if v.strip()]
                 new_settings[key] = items
+            elif key in ID_STRING_KEYS:
+                new_settings[key] = str(val)
             elif val.lower() in ("true", "false"):
                 new_settings[key] = val.lower() == "true"
             else:
