@@ -97,6 +97,14 @@ class ControlsStatsPanel(ttk.LabelFrame):
         except Exception:
             pass
         self.reset_global_button.grid(row=7, column=0, pady=self.STANDARD_PADY)
+        # Settings button (above Clear Log)
+        self.settings_button = ttk.Button(
+            self,
+            text="⚙️ Settings",
+            width=optimal_width,
+            command=lambda: None  # No-op by default
+        )
+        self.settings_button.grid(row=4, column=0, pady=(self.STANDARD_PADY, 0))
 
     @staticmethod
     def calculate_optimal_button_width(button_texts):
@@ -150,6 +158,9 @@ class ControlsStatsPanel(ttk.LabelFrame):
         self.total_requests_label.config(text=f"Total Song Requests: {stats.get('total_song_requests', 0)}")
         self.session_plays_label.config(text=f"Songs Played: {stats.get('session_song_plays', 0)}")
         self.total_plays_label.config(text=f"Total Songs Played: {stats.get('total_song_plays', 0)}")
+
+    def set_settings_command(self, cmd):
+        self.settings_button.config(command=cmd)
 
 # Add a custom style for Red.TButton
 from tkinter import ttk

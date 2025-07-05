@@ -16,7 +16,8 @@ class LogConsolePanel(ttk.LabelFrame):
             bg="#1a1a1a",
             fg="#ffffff",
             insertbackground="#ffffff",
-            selectbackground="#404040"
+            selectbackground="#404040",
+            state="disabled"  # Make read-only by default
         )
         self.output_text.grid(row=0, column=0, sticky="nsew")
         # Configure text tags for colored output
@@ -28,6 +29,7 @@ class LogConsolePanel(ttk.LabelFrame):
 
     def add_log(self, message, level="info"):
         timestamp = datetime.now().strftime("%H:%M:%S")
+        self.output_text.config(state="normal")
         self.output_text.insert(tk.END, f"[{timestamp}] ", "timestamp")
         self.output_text.insert(tk.END, f"{message}\n", level)
         self.output_text.see(tk.END)
@@ -36,7 +38,10 @@ class LogConsolePanel(ttk.LabelFrame):
         if len(lines) > 1000:
             lines_to_delete = len(lines) - 1000
             self.output_text.delete("1.0", f"{lines_to_delete}.0")
+        self.output_text.config(state="disabled")
 
     def clear_log(self):
+        self.output_text.config(state="normal")
         self.output_text.delete("1.0", tk.END)
+        self.output_text.config(state="disabled")
         self.add_log("Log cleared", "info")

@@ -183,3 +183,41 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 3. Commit your changes
 4. Push to the branch
 5. Create a Pull Request
+
+## Settings Popup Panel (Planned)
+
+### 1. Settings Dialog UI
+- Create a `SettingsDialog` class (Tkinter Toplevel window).
+- Dynamically generate form fields for each key in `settings.json` (text, int, bool, dropdown for enums like `FADE_STYLE`).
+- Add "Save" and "Cancel" buttons.
+
+### 2. Loading and Displaying Settings
+- On dialog open, load current settings from `Settings._settings` (or reload from file).
+- Populate the form fields with current values.
+
+### 3. Saving and Applying Changes
+- On "Save":
+  - Validate and write changes to `settings.json`.
+  - Call `Settings.reload()` to update in-memory settings.
+  - For settings that affect the UI (e.g., `CONSOLE_PANEL_WIDTH`, `COVER_SIZE`), update the relevant widgets immediately.
+  - For settings that affect services (e.g., port, Spout, etc.), restart or reinitialize those services as needed.
+  - Optionally, show a message if a restart is required for some settings.
+
+### 4. First-Run Experience
+- On app startup, check for missing or incomplete `settings.json`.
+- If missing or incomplete, automatically open the `SettingsDialog` and require the user to fill in required fields before proceeding.
+
+### 5. Live Refresh
+- For UI-related settings, update the UI immediately after saving.
+- For service-related settings, stop and restart the relevant service (e.g., Traktor listener, Spout sender) with new settings.
+
+### 6. (Optional) Advanced
+- Add tooltips or help text for each setting.
+- Add validation (e.g., port must be integer, token must not be empty).
+- Allow restoring defaults.
+
+**Summary:**
+- Build a Tkinter popup for settings.
+- Load, edit, and save all `settings.json` fields.
+- Apply changes live where possible, or on next relevant action.
+- Require setup on first run.

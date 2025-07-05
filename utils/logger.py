@@ -124,7 +124,7 @@ class BotLogger:
     
     def debug(self, message: str):
         """Log a debug message (only shown in debug mode)"""
-        self._log(message, self.DEBUG)
+        self._log(message, self.INFO)
     
     def info(self, message: str):
         """Log an info message (always shown)"""
