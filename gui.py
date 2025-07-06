@@ -217,13 +217,15 @@ class BotGUI:
         console_panel.grid(row=1, column=1, sticky="nsew")
         console_panel.grid_propagate(False)  # Prevent resizing
         console_panel.columnconfigure(0, weight=1)
-        console_panel.rowconfigure(0, weight=1)  # Now Playing (top half)
-        console_panel.rowconfigure(1, weight=1)  # Log (bottom half)
+        now_playing_height = Settings.COVER_SIZE + 80
+        console_panel.rowconfigure(0, weight=0, minsize=now_playing_height)  # Fixed height for Now Playing
+        console_panel.rowconfigure(1, weight=1)  # Log panel expands
 
         # Now Playing Panel (top half of console_panel)
         from gui_components.gui_now_playing import NowPlayingPanel
         self.nowplaying_panel = NowPlayingPanel(console_panel)
         self.nowplaying_panel.grid(row=0, column=0, sticky="nsew")
+        self.nowplaying_panel.grid_propagate(False)  # Prevent resizing
         # Wire up Traktor Listener button
         self.nowplaying_panel.set_traktor_listener_command(self.toggle_traktor_listener)
         # Wire up Spout Cover Art toggle

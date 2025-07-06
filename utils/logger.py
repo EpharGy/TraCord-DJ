@@ -42,22 +42,7 @@ class BotLogger:
         self._debug_enabled = False
         self._level = self.INFO
         
-        # Check for debug mode from environment or will be set programmatically
-        self._check_debug_mode()
-    
-    def _check_debug_mode(self):
-        """Check if debug mode should be enabled"""
-        # Check environment variable
-        debug_env = os.getenv('TRAKTOR_DEBUG', '').lower()
-        if debug_env in ['true', '1', 'yes', 'on']:
-            self._debug_enabled = True
-            self._level = self.DEBUG
-        
-        # Check command line arguments
-        if '--debug' in sys.argv:
-            self._debug_enabled = True
-            self._level = self.DEBUG
-    
+        # Debug mode is now set only via set_debug_mode(), not auto-detected
     def set_debug_mode(self, enabled: bool):
         """Programmatically enable or disable debug mode"""
         self._debug_enabled = enabled
@@ -124,7 +109,7 @@ class BotLogger:
     
     def debug(self, message: str):
         """Log a debug message (only shown in debug mode)"""
-        self._log(message, self.INFO)
+        self._log(message, self.DEBUG)
     
     def info(self, message: str):
         """Log an info message (always shown)"""
