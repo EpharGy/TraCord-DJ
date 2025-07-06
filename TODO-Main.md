@@ -1,25 +1,22 @@
 # TODO & Feature Ideas
 
-## NowPlaying Replacement
-- [ ] Replicate NowPlaying functionality within the bot/GUI
-    - [X] Listen to Traktor output/port for song data
-    - [X] Display current playing track, artist, album, cover art, etc.
-    - [ ] Generate a styled webpage (with CSS/animations) for OBS integration
-    - [ ] Slide in/out animation for song changes
-
-## Animated Popup Window for Now Playing
-- [ ] Create animated popup window for clean cover art and song info display
-- [ ] Implement slide transitions (old song slides down, new song slides up)
-- [ ] Test different animation approaches:
-    - [ ] Tkinter with `place()` and `after()` (30-40fps, good enough)
-    - [ ] Pygame integration (60fps+, buttery smooth)
-    - [ ] Web-based popup with CSS animations (60-120fps, professional grade)
-- [ ] Add easing functions for smoother feel even at lower framerates
+## Web Overlay for Now Playing (OBS Integration)
+- [ ] Flask-based local web server to serve overlay page
+- [ ] HTML/CSS/JS overlay page for OBS browser source
+- [ ] Start/Stop Overlay button in GUI, with status indicator
+- [ ] Flexible transition system (slide, fade, crossfade, swipe, typewriter, etc.)
+- [ ] User-selectable transition in settings
+- [ ] Per-item visibility options (cover art, album, BPM, key, etc.) in settings
+- [ ] Adjustable font size and color for each item
+- [ ] Always show artist & title; others optional
+- [ ] CSS for white text, grey outline, black or translucent background
+- [ ] Overlay auto-updates with current song info
+- [ ] Future: Add websocket for real-time updates (optional)
 
 ## Visual Enhancement Features
 - [ ] YouTube video integration for background visualizations
-    - [ ] Research YouTube API + embedded player approach
-    - [ ] Test local video player integration with `yt-dlp` + `opencv-python`
+    - [ ] Research VLC -> NDI -> Spout pipeline for OBS (see: https://resolume.com/forum/viewtopic.php?t=14201, https://www.youtube.com/watch?v=LrNi3ZSNN6w)
+    - [ ] Test local video player integration with `yt-dlp` + `opencv-python` or VLC
     - [ ] Implement local caching system for downloaded videos
 - [ ] Google Images integration as alternative/fallback
     - [ ] Set up Google Custom Search API
@@ -30,12 +27,6 @@
     - [ ] Background downloads during idle time
     - [ ] Auto-cleanup of old/unused content
     - [ ] Size limits and storage management
-
-## Additional Ideas & Suggestions
-- [ ] Customizable appearance for the OBS overlay (themes, colors)
-- [ ] Notification or sound when a new song is requested
-- [ ] User request limits or cooldowns
-- [ ] Integration with Discord for request notifications or commands
 
 ## Song Request Auto-Removal
 - [ ] When a song is played (live or random), check if it matches any entry in the song request list.

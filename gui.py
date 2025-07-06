@@ -25,8 +25,13 @@ from datetime import datetime
 import asyncio
 import io
 
-# Import the centralized logger
+# Set debug mode and discord disable mode as early as possible
+DEBUG_MODE = '--debug' in sys.argv or '--debugd' in sys.argv or '--nodiscord' in sys.argv
+DISCORD_DISABLED = '--debugd' in sys.argv or '--nodiscord' in sys.argv
+
 from utils.logger import set_gui_callback, set_debug_mode, info, debug, warning, error
+set_debug_mode(DEBUG_MODE)
+info("Debug mode is enabled" if DEBUG_MODE else "Debug mode is disabled")
 
 # Import the bot and version
 try:
@@ -78,11 +83,12 @@ class BotGUI:
             port=Settings.TRAKTOR_BROADCAST_PORT,
             status_callback=self._on_traktor_listener_status
         )
-        self.debug_mode = '--debug' in sys.argv
+        self.debug_mode = DEBUG_MODE
+        self.discord_disabled = DISCORD_DISABLED
         self.root = tk.Tk()
         app_title = title or f"TraCord DJ v{__version__} - Control Panel"
         self.root.title(app_title)
-        self.root.geometry("1250x825")  # Widened for new layout DO NOT CHANGE
+        self.root.geometry("1400x825")  # Widened for new layout DO NOT CHANGE
         self.root.minsize(1000, 500)
         # Set window icon - remove the janky black diamond/question mark icon
         try:
@@ -121,19 +127,16 @@ class BotGUI:
         self.setup_gui()
         self.setup_output_capture()
         set_gui_callback(self.add_log)
-        from config.settings import Settings
-        set_debug_mode(Settings.DEBUG)
-        info("GUI logger callback initialized")
-        debug("Debug mode is enabled" if Settings.DEBUG else "Debug mode is disabled")
+        # Remove set_debug_mode(Settings.DEBUG) and duplicate debug/info logs
         self.check_output_queue()
         sys.stdout = self.stdout_capture
         sys.stderr = self.stderr_capture
         self.root.protocol("WM_DELETE_WINDOW", self.on_x_button_clicked)
-        # Always enable all GUI features, but only block Discord bot connection in debug mode
-        if not self.debug_mode:
+        # Always enable all GUI features, but only block Discord bot connection in debugd/nodiscord mode
+        if not self.discord_disabled:
             self.root.after(1000, self.auto_start_bot)
         else:
-            info("Debug mode enabled: Bot will not connect to Discord.")
+            info("Debug mode (no Discord): Bot will not connect to Discord.")
             self.status_label.config(text="🟡 Debug Mode (Bot Not Connected)", foreground="orange")
             # Optionally, load collection stats and other features for testing
             self.load_collection_stats()
@@ -312,7 +315,7 @@ class BotGUI:
 
     def start_discord_bot(self):
         """Start the Discord bot"""
-        if getattr(self, 'debug_mode', False):
+        if getattr(self, 'discord_disabled', False):
             info("Debug mode: Skipping Discord bot connection.")
             self.status_label.config(text="🟡 Debug Mode (Bot Not Connected)", foreground="orange")
             return

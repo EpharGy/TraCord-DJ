@@ -3,7 +3,7 @@ from tkinter import ttk
 from typing import Optional
 
 class ControlsStatsPanel(ttk.LabelFrame):
-    STANDARD_PADY = 5
+    STANDARD_PADY = 4
     def __init__(self, parent, button_texts, optimal_width, clear_log_cmd, refresh_collection_cmd, reset_global_stats_cmd, clear_track_history_cmd, on_stop_press, on_stop_release, on_toggle_traktor_listener=lambda: None):
         super().__init__(parent, text="Controls & Stats", padding=self.STANDARD_PADY)
         self.columnconfigure(0, weight=0)
@@ -104,7 +104,7 @@ class ControlsStatsPanel(ttk.LabelFrame):
             width=optimal_width,
             command=lambda: None  # No-op by default
         )
-        self.settings_button.grid(row=4, column=0, pady=(self.STANDARD_PADY, 0))
+        self.settings_button.grid(row=4, column=0, pady=self.STANDARD_PADY)
 
     @staticmethod
     def calculate_optimal_button_width(button_texts):
@@ -121,9 +121,9 @@ class ControlsStatsPanel(ttk.LabelFrame):
     def calculate_controls_frame_width():
         max_width = 0
         button_texts = [
-            "🛑 Stop & Close",
+            "🛑 Stop All & Close",
             "🗑️ Clear Log", 
-            "🔄 Refresh Collection & Stats"
+            "🔄 Refresh Session Stats"
         ]
         button_width = ControlsStatsPanel.calculate_optimal_button_width(button_texts)
         max_width = max(max_width, button_width)
