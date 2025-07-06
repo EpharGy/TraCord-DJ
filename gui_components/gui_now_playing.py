@@ -188,7 +188,7 @@ class NowPlayingPanel(ttk.LabelFrame):
                 try:
                     img_data = None
                     ext = os.path.splitext(audio_file_path)[1].lower()
-                    info(f"[CoverArt] Attempting extraction for file type: {ext}")
+                    debug(f"[CoverArt] Attempting extraction for file type: {ext}")
                     if ext == '.flac':
                         audio = FLAC(audio_file_path)
                         if audio.pictures:
@@ -223,7 +223,7 @@ class NowPlayingPanel(ttk.LabelFrame):
                             img_data = audio.pictures[0].data
                     if img_data:
                         img_original = Image.open(io.BytesIO(img_data))
-                        info(f"[CoverArt] Extracted image file type: {img_original.format}")
+                        debug(f"[CoverArt] Extracted image file type: {img_original.format}")
                         # For Spout: always resize to 1080x1080 and copy
                         img_for_spout = img_original.resize((1080, 1080), resample=3).copy()
                         # For GUI: resize to COVER_SIZE and copy
