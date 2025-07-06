@@ -52,8 +52,9 @@ def main():
     try:
         # Set working directory to script's directory
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        # Launch the GUI
-        subprocess.run([sys.executable, 'gui.py'], check=True, cwd=script_dir)
+        # Forward all command-line arguments (except the script name itself) to gui.py
+        gui_args = [sys.executable, 'gui.py'] + sys.argv[1:]
+        subprocess.run(gui_args, check=True, cwd=script_dir)
     except subprocess.CalledProcessError as e:
         messagebox.showerror("Error", f"Error running GUI: {e}")
     except FileNotFoundError:

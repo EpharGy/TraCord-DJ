@@ -28,6 +28,13 @@ Any application that supports Spout can receive cover art from this bot, allowin
 
 ## Quick Start
 **You must setup Various settings, settings.json will be created on first launch, these can then be set via the Settings button, Traktor path is the path with out the version folders, ie (C:/Users/user)/Documents/Native Instruments/). Discord Token, ID's etc**
+To Launch:
+Python run_bot.py
+Debug mode:
+add --debug
+Debug with no Discord connection:
+add --debugd or --nodiscord
+
 
 ## Commands
 
