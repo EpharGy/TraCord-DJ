@@ -64,7 +64,7 @@ class BotGUI:
     
     def __init__(self, title=None):
         from utils.stats import reset_session_stats
-        # reset_session_stats()
+        reset_session_stats()
         from services.discord_bot import DiscordBotController
         from main import DJBot
         from config.settings import Settings
@@ -142,9 +142,9 @@ class BotGUI:
             self.load_collection_stats()
         
         # Reset session stats on startup (but not global stats)
-        from utils.stats import reset_session_stats
-        reset_session_stats()
-        info("Session stats reset on startup.")
+        # from utils.stats import reset_session_stats
+        # reset_session_stats()
+        # info("Session stats reset on startup.")
 
         # Subscribe to stats_updated event to update GUI when stats change
         from utils.events import subscribe
