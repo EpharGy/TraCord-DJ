@@ -56,7 +56,7 @@ add --debugd or --nodiscord
 The bot uses a `settings.json` file for configuration. This file is created on the first run and can be edited via the GUI settings panel.
 
 ### Web Overlay
-The web overlay can be found at http://127.0.0.1:5000/ you can use this in OBS, by default, width 1024px and height of 350px, but you may want more as text wraps for long song titles. By default cover art is 200px. Variables can be set at the top of the `default_overlay.html` file.
+The web overlay can be found at http://127.0.0.1:5000/ you can use this in OBS, by default, width 1024px and height of 350px, this should be plenty in the case of text wrapping (entire panel has a default of 1024). By default cover art is 200px. Variables can be set at the top of the `default_overlay.html` file.
 
 ### 🛠️ For Developers
 

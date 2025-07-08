@@ -36,24 +36,29 @@ class NowPlayingPanel(ttk.LabelFrame):
         self.button_row.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 6))
         self.button_row.columnconfigure(0, weight=0)
         self.button_row.columnconfigure(1, weight=0)
-        self.button_row.columnconfigure(2, weight=1)
-        self.button_row.columnconfigure(3, weight=0)
+        self.button_row.columnconfigure(2, weight=0)
+        self.button_row.columnconfigure(3, weight=1)
+        self.button_row.columnconfigure(4, weight=0)
 
         # Traktor Listener Toggle Button (left)
         self.traktor_listener_btn = ttk.Button(self.button_row, text="⭕ Enable Traktor Listener", width=25, style="TButton")
         self.traktor_listener_btn.grid(row=0, column=0, padx=(0, 4))
 
-        # Spout Cover Art Toggle Button (center)
+        # Spout Cover Art Toggle Button (center left)
         self.spout_toggle_btn = ttk.Button(self.button_row, text="⭕ Enable Spout", width=25, style="TButton")
         self.spout_toggle_btn.grid(row=0, column=1, padx=(0, 4))
 
+        # Open Overlay Button (center right)
+        self.overlay_button = ttk.Button(self.button_row, text="🌐 Open Overlay", width=25, command=lambda: None)
+        self.overlay_button.grid(row=0, column=2, padx=(0, 4))
+
         # Spacer (expandable)
         spacer = tk.Frame(self.button_row)
-        spacer.grid(row=0, column=2, sticky="ew")
+        spacer.grid(row=0, column=3, sticky="ew")
 
         # Random Song Button (far right)
         self.random_button = ttk.Button(self.button_row, text="🎲", width=3, command=self.play_random_song)
-        self.random_button.grid(row=0, column=3, sticky="e", padx=(0, 2))
+        self.random_button.grid(row=0, column=4, sticky="e", padx=(0, 2))
 
         # --- End Button Row ---
 
@@ -87,6 +92,9 @@ class NowPlayingPanel(ttk.LabelFrame):
 
     def set_spout_toggle_command(self, cmd):
         self.spout_toggle_btn.config(command=cmd)
+
+    def set_overlay_command(self, cmd):
+        self.overlay_button.config(command=cmd)
 
     def set_traktor_listener_state(self, on: bool):
         if on:
@@ -168,8 +176,7 @@ class NowPlayingPanel(ttk.LabelFrame):
     def handle_song_play(self, song_info):
         """Unified handler for any song play event (Traktor or random)."""
         def after_coverart_extracted(song_info_with_art):
-            self.update_now_playing(song_info_with_art)
-            # Emit on the main thread for thread safety
+            # Only emit the event, do not call update_now_playing directly
             self.label.after(0, lambda: emit("song_played", song_info_with_art))
         self.extract_coverart_and_continue(song_info, after_coverart_extracted)
 
@@ -251,8 +258,8 @@ class NowPlayingPanel(ttk.LabelFrame):
             # Send blank image on startup
             self._send_blank_spout_image()
         # If we have a last cover image, send it
-        if self._last_spout_image is not None:
-            self._send_spout_image(self._last_spout_image)
+        #if self._last_spout_image is not None:
+        #    self._send_spout_image(self._last_spout_image)
 
     def _stop_spout_sender(self):
         if self.spout_sender is not None:
@@ -290,7 +297,11 @@ class NowPlayingPanel(ttk.LabelFrame):
     # earmark: any direct emit("song_played", ...) outside emit_song_with_coverart/handle_song_play should be removed after confirming
 
     def update_now_playing(self, song_info):
-        debug(f"[NowPlayingPanel] update_now_playing called with song_info: {song_info}")
+        # Mask coverart_base64 in debug log
+        log_info = dict(song_info) if song_info else {}
+        if 'coverart_base64' in log_info:
+            log_info['coverart_base64'] = f"<base64 string, {len(log_info['coverart_base64'])} bytes>"
+        debug(f"[NowPlayingPanel] update_now_playing called with song_info: {log_info}")
         self._coverart_base64 = None
         if not song_info:
             self.label.config(text="No song info available.")
@@ -362,7 +373,9 @@ class NowPlayingPanel(ttk.LabelFrame):
                             self._coverart_img = cover_img
                             self.coverart_label.config(image=self._coverart_img, bg="#111")
                             self._last_spout_image = img_for_spout
+                            debug(f"[SpoutGL][DEBUG] update_gui called, spout_enabled={self.spout_enabled}, spout_sender is not None={self.spout_sender is not None}")
                             if self.spout_enabled and self.spout_sender is not None:
+                                debug(f"[SpoutGL][DEBUG] About to call _send_spout_image for {artist} - {title}")
                                 self._send_spout_image(img_for_spout)
                         self.coverart_label.after(0, update_gui)
                         # Also update song_info for overlay event

@@ -201,25 +201,7 @@ class BotGUI:
         )
         self.controls_stats_panel.grid(row=1, column=0, sticky="nsew", padx=(0, 15))
         self.controls_stats_panel.set_settings_command(self.open_settings_dialog)
-        self.controls_stats_panel.set_overlay_command(self.open_overlay_url)
-        # Expose key widgets for BotGUI
-        self.stop_button = self.controls_stats_panel.stop_button
-        self.status_label = self.controls_stats_panel.status_label
-        self.bot_name_label = self.controls_stats_panel.bot_name_label
-        self.bot_id_label = self.controls_stats_panel.bot_id_label
-        self.commands_label = self.controls_stats_panel.commands_label
-        self.import_title_label = self.controls_stats_panel.import_title_label
-        self.import_date_label = self.controls_stats_panel.import_date_label
-        self.import_time_label = self.controls_stats_panel.import_time_label
-        self.songs_label = self.controls_stats_panel.songs_label
-        self.new_songs_label = self.controls_stats_panel.new_songs_label
-        self.session_searches_label = self.controls_stats_panel.session_searches_label
-        self.total_searches_label = self.controls_stats_panel.total_searches_label
-        self.session_requests_label = self.controls_stats_panel.session_requests_label
-        self.total_requests_label = self.controls_stats_panel.total_requests_label
-        self.session_plays_label = self.controls_stats_panel.session_plays_label
-        self.total_plays_label = self.controls_stats_panel.total_plays_label
-
+        # self.controls_stats_panel.set_overlay_command(self.open_overlay_url)  # No longer needed, overlay button is now in NowPlayingPanel
         # Console/NowPlaying Panel (was right_panel)
         console_panel = ttk.Frame(main_frame, width=Settings.CONSOLE_PANEL_WIDTH)
         console_panel.grid(row=1, column=1, sticky="nsew")
@@ -239,6 +221,26 @@ class BotGUI:
         # Wire up Spout Cover Art toggle
         self.spout_coverart_on = False
         self.nowplaying_panel.set_spout_toggle_command(self.toggle_spout_coverart)
+        # Wire up Overlay button (must be after instantiation)
+        self.nowplaying_panel.set_overlay_command(self.open_overlay_url)
+
+        # Expose key widgets for BotGUI (after all panels are created)
+        self.stop_button = self.controls_stats_panel.stop_button
+        self.status_label = self.controls_stats_panel.status_label
+        self.bot_name_label = self.controls_stats_panel.bot_name_label
+        self.bot_id_label = self.controls_stats_panel.bot_id_label
+        self.commands_label = self.controls_stats_panel.commands_label
+        self.import_title_label = self.controls_stats_panel.import_title_label
+        self.import_date_label = self.controls_stats_panel.import_date_label
+        self.import_time_label = self.controls_stats_panel.import_time_label
+        self.songs_label = self.controls_stats_panel.songs_label
+        self.new_songs_label = self.controls_stats_panel.new_songs_label
+        self.session_searches_label = self.controls_stats_panel.session_searches_label
+        self.total_searches_label = self.controls_stats_panel.total_searches_label
+        self.session_requests_label = self.controls_stats_panel.session_requests_label
+        self.total_requests_label = self.controls_stats_panel.total_requests_label
+        self.session_plays_label = self.controls_stats_panel.session_plays_label
+        self.total_plays_label = self.controls_stats_panel.total_plays_label
 
         # Log Panel (bottom half of console_panel)
         from gui_components.gui_logconsole import LogConsolePanel
@@ -565,11 +567,11 @@ class BotGUI:
             return
         if not self.web_overlay_server.is_running:
             self.web_overlay_server.start_server()
-            self.controls_stats_panel.overlay_button.config(text="🌐 Stop Overlay")
+            # self.controls_stats_panel.overlay_button.config(text="🌐 Stop Overlay")
             info("Web overlay server started from GUI.")
         else:
             self.web_overlay_server.stop_server()
-            self.controls_stats_panel.overlay_button.config(text="🌐 Start Overlay")
+            # self.controls_stats_panel.overlay_button.config(text="🌐 Start Overlay")
             info("Web overlay server stopped from GUI.")
 
     def _on_traktor_listener_status(self, status):

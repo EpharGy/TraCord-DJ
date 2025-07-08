@@ -97,14 +97,6 @@ class ControlsStatsPanel(ttk.LabelFrame):
         except Exception:
             pass
         self.reset_global_button.grid(row=7, column=0, pady=self.STANDARD_PADY)
-        # Overlay button
-        self.overlay_button = ttk.Button(
-            self,
-            text="🌐 Open Overlay",
-            width=optimal_width,
-            command=lambda: None  # To be set by parent
-        )
-        self.overlay_button.grid(row=8, column=0, pady=self.STANDARD_PADY)
         # Settings button (above Clear Log)
         self.settings_button = ttk.Button(
             self,
@@ -171,7 +163,7 @@ class ControlsStatsPanel(ttk.LabelFrame):
         self.settings_button.config(command=cmd)
 
     def set_overlay_command(self, cmd):
-        self.overlay_button.config(command=cmd)
+        pass  # No longer needed, overlay button is now in NowPlayingPanel
 
 # Add a custom style for Red.TButton
 from tkinter import ttk
