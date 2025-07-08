@@ -9,34 +9,34 @@
         /* Overlay Appearance Variables */
         :root {
             /* Overlay box */
-            --overlay-padding: 10px;
+            --overlay-padding: 0px;
             --overlay-bg-color: rgba(0, 0, 0, 0);
-            --songinfo-bg-color: rgba(0, 0, 0, 0.8);
+            --songinfo-bg-color: rgba(0, 0, 0, 0.9);
             --songinfo-border-width: 2px;
             --songinfo-border-radius: 12px;
             --songinfo-padding: 10px 10px;
             --songinfo-z-index: 1000;
-            --songinfo-max-width: 1024px;
+            --songinfo-max-width: 1020px;  /* 1024 - 2*(border-width + padding) */
             /* Status colors */
             --status-connected-color: orange;
             --status-disconnected-color: red;
             /* Base Shadow size (multiplier used for text and cover art) */
-            --shadow-size: 2px;
-            --shadow-color: rgba(0, 0, 0, 0.8);
+            --shadow-size: 3px;
+            --shadow-color: rgba(0, 0, 0, 1);
             /* Cover art (single value, used for width/height) cover art is sent at COVER_SIZE resolution*/
             --coverart-size: 200px;
             --coverart-radius: 8px;
             /* Artist */
-            --artist-font-size: 40px;
+            --artist-font-size: 46px;   /* 40px when using 200px and metadata */
             --artist-color: #ffffff;
             /* Title */
-            --title-font-size: 44px;
+            --title-font-size: 52px;   /* 44px when using 200px and metadata */
             --title-color: #ff6b35;
             /* Album */
-            --album-font-size: 36px;
+            --album-font-size: 40px;   /* 36px when using 200px and metadata */
             --album-color: #cccccc;
             /* Metadata (bpm/key) */
-            --metadata-font-size: 28px;
+            --metadata-font-size: 28px;   /* 28px when using 200px and metadata */
             --metadata-color: #aaaaaa;
             --bpm-key-bg: rgba(255, 107, 53, 0.2);
             --bpm-key-color: #fff;
@@ -78,10 +78,6 @@
             min-width: 0;
         }
         
-        .song-info.visible {
-            /* display: block; removed to preserve flex layout */
-        }
-        
         .song-info:not(.visible) {
             display: none;
         }
@@ -99,7 +95,8 @@
             text-shadow: var(--shadow-size) var(--shadow-size) calc(2 * var(--shadow-size)) var(--shadow-color);
             overflow: hidden;
             text-overflow: ellipsis;
-            white-space: nowrap;
+            /* white-space: nowrap; */
+            /*  Removed white-space: nowrap to allow multiline text */
             display: block;
             min-width: 0;
         }
@@ -120,11 +117,13 @@
             font-style: italic;
         }
         .metadata {
+            /*  Hiding Metadata (bpm/key)
             display: flex;
             gap: 20px;
             font-size: var(--metadata-font-size);
             color: var(--metadata-color);
-            text-shadow: var(--shadow-size) var(--shadow-size) calc(2 * var(--shadow-size)) var(--shadow-color);
+            text-shadow: var(--shadow-size) var(--shadow-size) calc(2 * var(--shadow-size)) var(--shadow-color);*/
+            display: none;
         }
         
         .bpm, .key {
@@ -212,53 +211,39 @@
         });
         
         function updateOverlay(songData) {
-            // Check if we have song data
-            const hasSong = songData.artist && songData.title;
-            
-            if (hasSong) {
-                // Update song information
-                artist.textContent = songData.artist;
-                title.textContent = songData.title;
-                album.textContent = songData.album || '';
-                
-                // Update BPM if provided
-                if (songData.bpm) {
-                    bpmValue.textContent = songData.bpm + ' BPM';
-                    bpmElement.style.display = 'block';
-                } else {
-                    bpmElement.style.display = 'none';
-                }
-                
-                // Update Key if provided
-                if (songData.key) {
-                    keyValue.textContent = songData.key;
-                    keyElement.style.display = 'block';
-                } else {
-                    keyElement.style.display = 'none';
-                }
-                
-                // Cover art
-                if (songData.coverart_base64) {
-                    coverArt.src = 'data:image/png;base64,' + songData.coverart_base64;
-                    coverArt.style.display = 'block';
-                } else {
-                    coverArt.src = '';
-                    coverArt.style.display = 'none';
-                }
-                
-                // Remove no-song class and show
+            // Always update all fields, even if the song is the same
+            artist.textContent = songData.artist || 'No Artist';
+            title.textContent = songData.title || 'No Song Playing';
+            album.textContent = songData.album || '';
+
+            // Cover art: always update
+            if (songData.coverart_base64) {
+                coverArt.src = 'data:image/png;base64,' + songData.coverart_base64;
+                coverArt.style.display = 'block';
+            } else {
+                coverArt.src = '';
+                coverArt.style.display = 'none';
+            }
+
+            // BPM and Key (optional, can be hidden)
+            if (songData.bpm) {
+                bpmValue.textContent = songData.bpm + ' BPM';
+                bpmElement.style.display = 'block';
+            } else {
+                bpmElement.style.display = 'none';
+            }
+            if (songData.key) {
+                keyValue.textContent = songData.key;
+                keyElement.style.display = 'block';
+            } else {
+                keyElement.style.display = 'none';
+            }
+
+            // Show/hide song info
+            if (songData.artist && songData.title) {
                 songInfo.classList.remove('no-song');
                 songInfo.classList.add('visible');
             } else {
-                // No song playing
-                artist.textContent = 'No Artist';
-                title.textContent = 'No Song Playing';
-                album.textContent = '';
-                bpmElement.style.display = 'none';
-                keyElement.style.display = 'none';
-                coverArt.style.display = 'none';
-                
-                // Add no-song class
                 songInfo.classList.add('no-song');
                 songInfo.classList.add('visible');
             }

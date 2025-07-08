@@ -74,6 +74,7 @@ class NowPlayingPanel(ttk.LabelFrame):
         self.label = tk.Label(self, text="Now Playing info will appear here.", anchor="w", justify="left", font=("Arial", 16, "bold"), wraplength=wraplength, padx=8, pady=4)
         self.label.grid(row=1, column=1, sticky="nw")
         subscribe("song_played", self._on_song_played_event)
+        subscribe("traktor_song", self.handle_song_play)  # Subscribe to custom event from Traktor
         self._coverart_img = None  # Keep reference to avoid garbage collection
         # Spout
         self.spout_sender = None
@@ -164,6 +165,70 @@ class NowPlayingPanel(ttk.LabelFrame):
             song_info['coverart_base64'] = ''
             emit("song_played", song_info)
 
+    def handle_song_play(self, song_info):
+        """Unified handler for any song play event (Traktor or random)."""
+        def after_coverart_extracted(song_info_with_art):
+            self.update_now_playing(song_info_with_art)
+            # Emit on the main thread for thread safety
+            self.label.after(0, lambda: emit("song_played", song_info_with_art))
+        self.extract_coverart_and_continue(song_info, after_coverart_extracted)
+
+    def extract_coverart_and_continue(self, song_info, callback):
+        """Extract cover art, add as base64, then call callback(song_info)."""
+        audio_file_path = song_info.get('audio_file_path')
+        if audio_file_path and os.path.exists(audio_file_path):
+            def load_and_continue():
+                try:
+                    img_data = None
+                    ext = os.path.splitext(audio_file_path)[1].lower()
+                    if ext == '.flac':
+                        audio = FLAC(audio_file_path)
+                        if audio.pictures:
+                            img_data = audio.pictures[0].data
+                    elif ext in ('.mp3', '.m4a', '.aac', '.ogg'):
+                        audio = MutagenFile(audio_file_path)
+                        if audio is not None and hasattr(audio, 'tags') and audio.tags:
+                            if ext == '.m4a' and 'covr' in audio.tags:
+                                covr = audio.tags['covr']
+                                if isinstance(covr, list) and len(covr) > 0:
+                                    img_data = covr[0]
+                            elif isinstance(audio, MP3) and isinstance(audio.tags, ID3):
+                                for tag in audio.tags.values():
+                                    if isinstance(tag, APIC):
+                                        img_data = getattr(tag, 'data', None)
+                                        break
+                            else:
+                                for tag in audio.tags.values():
+                                    if hasattr(tag, 'data'):
+                                        img_data = tag.data
+                                        break
+                                    elif isinstance(tag, bytes):
+                                        img_data = tag
+                                        break
+                    else:
+                        audio = MutagenFile(audio_file_path)
+                        if audio is not None and hasattr(audio, 'pictures') and audio.pictures:
+                            img_data = audio.pictures[0].data
+                    if img_data:
+                        from PIL import Image
+                        import base64
+                        import io
+                        img_original = Image.open(io.BytesIO(img_data))
+                        img_resized = img_original.resize((COVER_SIZE, COVER_SIZE), resample=3).copy()
+                        buffered = io.BytesIO()
+                        img_resized.save(buffered, format="PNG")
+                        song_info['coverart_base64'] = base64.b64encode(buffered.getvalue()).decode('ascii')
+                    else:
+                        song_info['coverart_base64'] = ''
+                except Exception as e:
+                    warning(f"[CoverArt] Error extracting cover art for overlay: {e}")
+                    song_info['coverart_base64'] = ''
+                callback(song_info)
+            threading.Thread(target=load_and_continue, daemon=True).start()
+        else:
+            song_info['coverart_base64'] = ''
+            callback(song_info)
+
     def play_random_song(self):
         songs = load_collection_json(Settings.COLLECTION_JSON_FILE)
         if not songs:
@@ -173,7 +238,7 @@ class NowPlayingPanel(ttk.LabelFrame):
         from utils.song_matcher import get_song_info
         # Use get_song_info to standardize the song dict
         song_info = get_song_info(song.get('artist', ''), song.get('title', ''), songs)
-        self.emit_song_with_coverart(song_info)
+        self.handle_song_play(song_info)
 
     def _start_spout_sender(self):
         if not SPOUTGL_AVAILABLE:
@@ -218,8 +283,11 @@ class NowPlayingPanel(ttk.LabelFrame):
                 warning(f"[SpoutGL] Error sending blank image: {e}")
 
     def _on_song_played_event(self, song_info):
-        # Only update GUI, never emit or trigger another event
+        # Only update the GUI, do not emit or call handle_song_play here!
         self.update_now_playing(song_info)
+
+    # earmark: update_now_playing is now only needed for GUI updates, not for event emission
+    # earmark: any direct emit("song_played", ...) outside emit_song_with_coverart/handle_song_play should be removed after confirming
 
     def update_now_playing(self, song_info):
         debug(f"[NowPlayingPanel] update_now_playing called with song_info: {song_info}")

@@ -31,7 +31,7 @@ class WebOverlayServer:
         @self.app.route('/')
         def overlay():
             """Serve the main overlay page"""
-            return render_template('overlay.html')
+            return render_template('default_overlay.html')
             
         @self.app.route('/health')
         def health():

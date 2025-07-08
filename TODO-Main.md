@@ -11,29 +11,19 @@
 - [x] Test with static data first
 
 ### Stage 2: GUI Integration & Data Source
-- [ ] Start/Stop Overlay button in GUI with status indicator
-- [ ] Integrate with existing now-playing data source
-- [ ] Emit WebSocket events when song changes
-- [ ] Handle "no song playing" state gracefully
-- [ ] Test with real Traktor data
+- [x] Integrate with existing now-playing data source
+- [x] Handle "no song playing" state gracefully
+- [x] Test with real Traktor data
 
 ### Stage 3: Basic Transitions & Core Features
 - [ ] Implement 2-3 basic CSS transitions (fade, slide)
 - [ ] Always show artist & title; others optional
-- [ ] Handle WebSocket connection/disconnection gracefully
-- [ ] Error handling for server downtime
 
 ### Stage 4: Advanced Customization
 - [ ] User-selectable transition in settings (crossfade, swipe, typewriter, etc.)
 - [ ] Per-item visibility options (cover art, album, BPM, key, etc.) in settings
-- [ ] Adjustable font size and color for each item
-- [ ] Cover art integration (if available)
-
-### Stage 5: Production Polish
-- [ ] Optimize WebSocket performance
-- [ ] Auto-reconnection on connection loss
-- [ ] Graceful degradation when data unavailable
-- [ ] Documentation for OBS Browser Source setup
+- [x] Adjustable font size and color for each item
+- [x] Cover art integration (if available)
 
 ## Visual Enhancement Features
 - [ ] YouTube video integration for background visualizations

@@ -8,13 +8,14 @@ import codecs
 import queue
 import sys
 from typing import Optional
-from utils.logger import info, warning, error
+from utils.logger import info, warning, error, debug
 from utils.events import emit
 from utils.song_matcher import get_song_info
 from utils.stats import increment_stat
 import json
 from datetime import datetime
 from config.settings import Settings
+from gui_components.gui_now_playing import NowPlayingPanel
 
 COLLECTION_PATH: str = Settings.COLLECTION_JSON_FILE
 
@@ -69,7 +70,7 @@ def create_traktor_handler(status_queue, shutdown_event):
                                             tags[key.upper()] = value
                                     # Only process as a song if there is at least one tag other than ENCODER
                                     tag_keys = set(tags.keys())
-                                    info(f"[Traktor] Parsed tags: {tags}")
+                                    debug(f"[Traktor] Parsed tags: {tags}")
                                     # Only skip if the ONLY tag is ENCODER
                                     if tag_keys == {"ENCODER"}:
                                         total = 0
@@ -95,7 +96,11 @@ def create_traktor_handler(status_queue, shutdown_event):
                                                 f.write(f"{dt} {artist} - {title}\n")
                                         except Exception as e:
                                             warning(f"[Traktor] Could not write unmatched song: {e}")
-                                    emit("song_played", song_info)
+                                    # Replace direct emit("song_played", song_info) with a call to the GUI workflow
+                                    # You must have a reference to your NowPlayingPanel instance, e.g., now_playing_panel
+                                    # Example: now_playing_panel.handle_song_play(song_info)
+                                    # If you do not have direct access, emit a custom event (e.g., emit("traktor_song", song_info)) and subscribe in the GUI to call handle_song_play
+                                    emit("traktor_song", song_info)
                                     increment_stat("total_song_plays", 1)
                                     increment_stat("session_song_plays", 1)
                                 except Exception as e:

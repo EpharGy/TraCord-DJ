@@ -1,12 +1,15 @@
 # TraCord DJ
 
-A comprehensive Discord bot for managing music requests, interacting with Traktor DJ software collections, and enhancing DJ workflow automation. This is a standalone GUI application suitable for personal DJ environments. Spout integration is included for cover art display in other supported applications.
+A comprehensive Discord bot for managing music requests, interacting with Traktor DJ software collections, and enhancing DJ workflow automation. This is a standalone GUI application suitable for personal DJ environments. Spout integration is included for cover art display in other supported applications. Automatically creates a flask webserver for web overlays, allowing real-time song updates in OBS or other streaming software.
 
 > **📝 Version **: Current version in [`version.py`](version.py)
 
 ## Features
 
 - **🖥️ Standalone GUI Application**: Tkinter-based control panel with real-time monitoring
+- **🎧 Now Playing Song**: Traktor Broadcast Listening for Song/Artist details, integrated with collection details for advanced meta data (coverart, BPM, Key)
+- **🖼️ Spout Cover Art Integration**: Send cover art to other applications via Spout (Windows only)
+- **🖼️ Webpage for OBS/Overlays**: Flask webserver with Current Song Playing details. http://127.0.0.1:5000/
 - **🎵 Dynamic Song Search**: Intelligent search with interactive selection
 - **📋 Song Request Management**: Full CRUD operations with user permissions
 - **📂 Collection Integration**: Automatic Traktor collection integration for data
@@ -15,8 +18,6 @@ A comprehensive Discord bot for managing music requests, interacting with Trakto
 - **🔒 Permission System**: Granular access control for different user roles or channels
 - **🧹 Admin Controls**: Collection refresh and track history via GUI buttons
 - **📊 Search Analytics**: Track and display search statistics
-- **🎧 Now Playing Song**: Traktor Broadcast Listening for Song/Artist details, integrated with collection details for advanced meta data (coverart, BPM, Key)
-- **🖼️ Spout Cover Art Integration**: Send cover art to other applications via Spout (Windows only)
 
 ## Screenshots
 # Main Interface
@@ -51,8 +52,11 @@ add --debugd or --nodiscord
 
 ## Configuration
 
-### Environment Variables
-- Update environment variables in the `.env` file, run application before use to generate one or copy from `.env.example` (non EXE) 
+### Settings File
+The bot uses a `settings.json` file for configuration. This file is created on the first run and can be edited via the GUI settings panel.
+
+### Web Overlay
+The web overlay can be found at http://127.0.0.1:5000/ you can use this in OBS, by default, width 1024px and height of 350px, but you may want more as text wraps for long song titles. By default cover art is 200px. Variables can be set at the top of the `default_overlay.html` file.
 
 ### 🛠️ For Developers
 
@@ -93,72 +97,73 @@ The bot uses a modular Discord.py Cogs architecture for better organization:
 ```
 TraCord-DJ/
 ├── 🚀 Entry Points
-│   ├── debug_gui.py                # Debug GUI for development (optional)
-│   ├── gui.py                      # Main GUI application (recommended)
-│   ├── main.py                     # Command-line entry point (dynamic cog loader)
-│   ├── run_bot.py                  # Cross-platform launcher
-│   └── start_bot.bat               # Windows batch launcher
+│   ├── debug_gui.py
+│   ├── gui.py
+│   ├── main.py
+│   ├── run_bot.py
+│   └── start_bot.bat
 ├── 📁 Core Application
-│   ├── cogs/                       # All bot features as plugins (just drop in .py files!)
+│   ├── cogs/
 │   │   ├── admin.py
 │   │   ├── collection.py
 │   │   ├── music.py
 │   │   ├── music_requests.py
-│   │   └── _internal_cogs.py      # Auto-managed: always-up-to-date list of internal cogs
-│   ├── extra_cogs/                # (gitignored) Personal/dev-only cogs, launchers, and 
-│   │   └── ...                    # Any .py files here are loaded as cogs in dev, but not in packaged EXE
+│   │   └── _internal_cogs.py
 │   ├── config/
-|   |   ├── collection.json
-|   |   ├── song_requests.json
-|   |   ├── stats.json              # Search and usage statistics (auto-created)
 │   │   └── settings.py
-│   ├── gui/                        # GUI submodules (panels, controls, etc.)
+│   ├── data/
+│   │   ├── collection.json
+│   │   ├── Debug_unmatched_songs.txt
+│   │   ├── settings.json
+│   │   ├── settings_example.json
+│   │   ├── song_requests.json
+│   │   ├── stats.json
+│   │   └── _datafiles_stored_here.txt
+│   ├── gui_components/
 │   │   ├── gui_controls_stats.py
 │   │   ├── gui_logconsole.py
 │   │   ├── gui_now_playing.py
 │   │   ├── gui_songrequests.py
+│   │   ├── settings_dialog.py
 │   │   └── __init__.py
 │   ├── services/
-│   │   ├── discord_bot.py          # Discord bot lifecycle/controller logic
-│   │   └── traktor_listener.py     # Traktor Broadcast listener for Now Playing songs
+│   │   ├── discord_bot.py
+│   │   ├── traktor_listener.py
+│   │   └── web_overlay.py
 │   ├── utils/
-|   │   |── coverart.py             # Cover art extraction and caching
-│   │   ├── events.py               # Event handling and custom events
-│   │   ├── harmonic_keys.py        # Harmonic key detection and management
-│   │   ├── helpers.py              # Utility functions and permission checks
-│   │   ├── logger.py               # Logging setup and output capture
-│   │   ├── song_matcher.py         # Song matching and search utilities
-│   │   ├── song_request_highlight.py # Highlighting song requests
-│   │   ├── stats.py                # Search and usage statistics management
-│   │   └── traktor.py              # Traktor collection parsing and management
-│   └── version.py                  # Version information
-├── 🎨 Assets
-│   ├── assets/
-|   |   ├── screenshots/
-|   |   |   └── gui_screenshot.png
-│   │   ├── app_icon.png
-│   │   └── app_icon.ico
-├── 🔧 Development
-│   └── requirements.txt
-├── 📖 Documentation
-│   ├── LICENSE
-│   ├── README.md
-│   └── RELEASE.md
-├── ⚙️ Configuration
-│   ├── .gitignore
-│   └── TraCord DJ.code-workspace
-└── 📝 Generated Files (git-ignored)
-    └── *.spec
+│   │   ├── events.py
+│   │   ├── harmonic_keys.py
+│   │   ├── helpers.py
+│   │   ├── logger.py
+│   │   ├── song_matcher.py
+│   │   ├── spout_sender_helper.py
+│   │   ├── stats.py
+│   │   └── traktor.py
+│   ├── version.py
+├── assets/
+│   ├── app_icon.ico
+│   ├── icon.png
+│   └── screenshots/
+│       ├── gui_screenshot.png
+│       └── gui_spout_integration.png
+├── web_overlay/
+│   ├── templates/
+│   │   └── default_overlay.html
+├── requirements.txt
+├── LICENSE
+├── README.md
+├── TODO-Main.md
+└── TraCord DJ.code-workspace
 ```
 
-> **Note:** The `gui/` folder contains all modular GUI panels and controls. The `services/` folder contains bot lifecycle logic. The `utils/` folder contains helpers, logging, and Traktor, Now Playing utilities.
+> **Note:** The `gui_components/` folder contains all modular GUI panels and controls. The `services/` folder contains bot lifecycle logic. The `utils/` folder contains helpers, logging, and Traktor, Now Playing utilities. The `data/` and `extra_cogs/` folders are gitignored and not included in distributed builds.
 
-## ⚙️ Cog Loading Behavior
+## ⚙️ Discord Cog Loading Behavior
 
-- All cogs in `cogs/` are always loaded and should be included in packaged builds.
-- Any `.py` files in `extra_cogs/` (top-level only) are also loaded as cogs when running from source, but are **not** included in the EXE unless you add `--add-data=extra_cogs;extra_cogs` to your build.
+- All cogs in `cogs/` are always loaded and are considered part of the core bot functionality.
+- Any `.py` files in `extra_cogs/` (top-level only) are also loaded as cogs.
 - Errors for missing cogs in `extra_cogs` are suppressed for a clean dev experience.
-- Use `extra_cogs/` for personal, experimental, or private cogs and files. This folder is gitignored by default.
+- Use `extra_cogs/` for personal, experimental, or private cogs and files. This folder is gitignored by default. Create the folder if it does not exist.
 
 ## 🖼️ Spout Cover Art Integration (Optional)
 
