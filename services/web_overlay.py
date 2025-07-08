@@ -146,7 +146,7 @@ class WebOverlayServer:
                 'title': self.current_song.get('title', ''),
                 'album': self.current_song.get('album', ''),
                 'bpm': self.current_song.get('bpm', ''),
-                'key': self.current_song.get('musical_key', ''),
+                'key': open_key_int_to_str(self.current_song.get('musical_key', '')) if self.current_song.get('musical_key', '') != '' else '',
                 'genre': self.current_song.get('genre', ''),
                 'audio_file_path': self.current_song.get('audio_file_path', ''),
                 'coverart_base64': self.current_song.get('coverart_base64', ''),
