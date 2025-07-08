@@ -8,6 +8,7 @@ import threading
 import time
 from utils.logger import info, debug, warning, error
 from utils.events import subscribe, unsubscribe
+from utils.harmonic_keys import open_key_int_to_str
 
 class WebOverlayServer:
     """Flask-SocketIO server for web overlay functionality"""
@@ -75,7 +76,7 @@ class WebOverlayServer:
             'title': song_info.get('title', ''),
             'album': song_info.get('album', ''),
             'bpm': song_info.get('bpm', ''),
-            'key': song_info.get('musical_key', ''),  # Note: using 'musical_key' from your data
+            'key': open_key_int_to_str(song_info.get('musical_key', '')) if song_info.get('musical_key', '') != '' else '',
             'genre': song_info.get('genre', ''),
             'audio_file_path': song_info.get('audio_file_path', ''),
             'coverart_base64': song_info.get('coverart_base64', ''),
