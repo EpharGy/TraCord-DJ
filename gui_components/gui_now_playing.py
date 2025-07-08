@@ -373,9 +373,9 @@ class NowPlayingPanel(ttk.LabelFrame):
                             self._coverart_img = cover_img
                             self.coverart_label.config(image=self._coverart_img, bg="#111")
                             self._last_spout_image = img_for_spout
-                            debug(f"[SpoutGL][DEBUG] update_gui called, spout_enabled={self.spout_enabled}, spout_sender is not None={self.spout_sender is not None}")
+                            debug(f"[SpoutGL] Update_gui called, spout_enabled={self.spout_enabled}, spout_sender is not None={self.spout_sender is not None}")
                             if self.spout_enabled and self.spout_sender is not None:
-                                debug(f"[SpoutGL][DEBUG] About to call _send_spout_image for {artist} - {title}")
+                                debug(f"[SpoutGL] About to call _send_spout_image for {artist} - {title}")
                                 self._send_spout_image(img_for_spout)
                         self.coverart_label.after(0, update_gui)
                         # Also update song_info for overlay event

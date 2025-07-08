@@ -47,6 +47,17 @@
     - [ ] Ensure this works for both live and random playback.
     - [ ] (Future) Optionally send a Discord message to the requester when their song is played.
 
+## Song Requests Overlay & Always-On-Top Popup
+- [ ] Add a new web overlay page (e.g., `/requests`) to display the song requests list in a clean, browser-based UI
+    - [ ] Create `requests_overlay.html` in the templates folder
+    - [ ] Add Flask route `/requests` in `web_overlay.py`
+    - [ ] Use Flask-SocketIO to send live song request updates to this overlay
+- [ ] Move the main GUI song requests panel to the popup window replacing the current requests panel and requests popup
+    - [ ] Make the popup always-on-top (for use over Traktor)
+    - [ ] Keep the popup in sync with the web overlay and JSON data
+- [ ] Allow the overlay and popup to be used independently (browser or GUI)
+- [ ] (Optional) Add filtering, search, or highlight for urgent/priority requests
+
 ---
 
 ## Technical Considerations
