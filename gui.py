@@ -69,6 +69,13 @@ class BotGUI:
         from main import DJBot
         from config.settings import Settings
         from services.traktor_listener import TraktorBroadcastListener
+        from services.web_overlay import WebOverlayServer
+        
+        # Initialize web overlay server
+        self.web_overlay_server = WebOverlayServer(host='127.0.0.1', port=5000)
+        self.web_overlay_server.start_server()
+        info("Web overlay server auto-started on http://127.0.0.1:5000")
+        
         self.discord_bot_controller = DiscordBotController(
             bot_class=DJBot,
             settings=Settings,
@@ -194,6 +201,7 @@ class BotGUI:
         )
         self.controls_stats_panel.grid(row=1, column=0, sticky="nsew", padx=(0, 15))
         self.controls_stats_panel.set_settings_command(self.open_settings_dialog)
+        self.controls_stats_panel.set_overlay_command(self.open_overlay_url)
         # Expose key widgets for BotGUI
         self.stop_button = self.controls_stats_panel.stop_button
         self.status_label = self.controls_stats_panel.status_label
@@ -551,6 +559,19 @@ class BotGUI:
         else:
             info("Spout Cover Art sharing disabled.")
 
+    def toggle_overlay_server(self):
+        if not hasattr(self, 'web_overlay_server'):
+            warning("Web overlay server not initialized!")
+            return
+        if not self.web_overlay_server.is_running:
+            self.web_overlay_server.start_server()
+            self.controls_stats_panel.overlay_button.config(text="🌐 Stop Overlay")
+            info("Web overlay server started from GUI.")
+        else:
+            self.web_overlay_server.stop_server()
+            self.controls_stats_panel.overlay_button.config(text="🌐 Start Overlay")
+            info("Web overlay server stopped from GUI.")
+
     def _on_traktor_listener_status(self, status):
         if status == 'starting' or status == 'listening':
             self.controls_stats_panel.set_traktor_listener_status("🟢 Traktor Listener Online", foreground="green")
@@ -583,6 +604,11 @@ class BotGUI:
             "Settings have been saved. Please restart the application for changes to take effect.",
             parent=parent or self.root
         )
+
+    def open_overlay_url(self):
+        import webbrowser
+        webbrowser.open('http://127.0.0.1:5000')
+        info("Opened overlay URL in default browser.")
 
     def run(self):
         """Run the Tkinter GUI loop"""

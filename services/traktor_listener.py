@@ -16,7 +16,7 @@ import json
 from datetime import datetime
 from config.settings import Settings
 
-COLLECTION_PATH = Settings.COLLECTION_JSON_FILE
+COLLECTION_PATH: str = Settings.COLLECTION_JSON_FILE
 
 def create_traktor_handler(status_queue, shutdown_event):
     class TraktorListenerHandler(http.server.BaseHTTPRequestHandler):

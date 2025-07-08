@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TraCord DJ - Now Playing Overlay</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Arial', sans-serif;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            overflow: hidden;
+        }
+        
+        .overlay-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        
+        .song-info {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 20px;
+            border-radius: 8px;
+            border-left: 4px solid #ff6b35;
+            transition: all 0.5s ease;
+            opacity: 0;
+            transform: translateX(-100px);
+        }
+        
+        .song-info.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .artist {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffffff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            margin-bottom: 5px;
+        }
+        
+        .title {
+            font-size: 32px;
+            font-weight: bold;
+            color: #ff6b35;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            margin-bottom: 10px;
+        }
+        
+        .album {
+            font-size: 18px;
+            color: #cccccc;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+        
+        .metadata {
+            display: flex;
+            gap: 20px;
+            font-size: 16px;
+            color: #aaaaaa;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+        
+        .bpm, .key {
+            background: rgba(255, 107, 53, 0.2);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        
+        .connection-status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .connection-status.connected {
+            background: rgba(0, 255, 0, 0.3);
+            color: #00ff00;
+        }
+        
+        .connection-status.disconnected {
+            background: rgba(255, 0, 0, 0.3);
+            color: #ff0000;
+        }
+        
+        .no-song {
+            opacity: 0.5;
+        }
+        
+        .no-song .title {
+            color: #666666;
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay-container">
+        <div class="connection-status disconnected" id="connectionStatus">
+            Disconnected
+        </div>
+        
+        <div class="song-info" id="songInfo">
+            <div class="artist" id="artist">No Artist</div>
+            <div class="title" id="title">No Song Playing</div>
+            <div class="album" id="album"></div>
+            <div class="metadata">
+                <div class="bpm" id="bpm" style="display: none;">
+                    <span id="bpmValue">-- BPM</span>
+                </div>
+                <div class="key" id="key" style="display: none;">
+                    <span id="keyValue">-- Key</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // WebSocket connection
+        const socket = io();
+        
+        // DOM elements
+        const songInfo = document.getElementById('songInfo');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const artist = document.getElementById('artist');
+        const title = document.getElementById('title');
+        const album = document.getElementById('album');
+        const bpmElement = document.getElementById('bpm');
+        const bpmValue = document.getElementById('bpmValue');
+        const keyElement = document.getElementById('key');
+        const keyValue = document.getElementById('keyValue');
+        
+        // Connection status handlers
+        socket.on('connect', function() {
+            console.log('Connected to overlay server');
+            connectionStatus.textContent = 'Connected';
+            connectionStatus.className = 'connection-status connected';
+        });
+        
+        socket.on('disconnect', function() {
+            console.log('Disconnected from overlay server');
+            connectionStatus.textContent = 'Disconnected';
+            connectionStatus.className = 'connection-status disconnected';
+        });
+        
+        // Song update handler
+        socket.on('song_update', function(data) {
+            console.log('Song update received:', data);
+            updateOverlay(data);
+        });
+        
+        function updateOverlay(songData) {
+            // Check if we have song data
+            const hasSong = songData.artist && songData.title;
+            
+            if (hasSong) {
+                // Update song information
+                artist.textContent = songData.artist;
+                title.textContent = songData.title;
+                album.textContent = songData.album || '';
+                
+                // Update BPM if provided
+                if (songData.bpm) {
+                    bpmValue.textContent = songData.bpm + ' BPM';
+                    bpmElement.style.display = 'block';
+                } else {
+                    bpmElement.style.display = 'none';
+                }
+                
+                // Update Key if provided
+                if (songData.key) {
+                    keyValue.textContent = songData.key;
+                    keyElement.style.display = 'block';
+                } else {
+                    keyElement.style.display = 'none';
+                }
+                
+                // Remove no-song class and show
+                songInfo.classList.remove('no-song');
+                songInfo.classList.add('visible');
+            } else {
+                // No song playing
+                artist.textContent = 'No Artist';
+                title.textContent = 'No Song Playing';
+                album.textContent = '';
+                bpmElement.style.display = 'none';
+                keyElement.style.display = 'none';
+                
+                // Add no-song class
+                songInfo.classList.add('no-song');
+                songInfo.classList.add('visible');
+            }
+        }
+        
+        // Show overlay on page load
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                songInfo.classList.add('visible');
+            }, 500);
+        });
+    </script>
+</body>
+</html>

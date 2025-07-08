@@ -1,17 +1,39 @@
 # TODO & Feature Ideas
 
 ## Web Overlay for Now Playing (OBS Integration)
-- [ ] Flask-based local web server to serve overlay page
-- [ ] HTML/CSS/JS overlay page for OBS browser source
-- [ ] Start/Stop Overlay button in GUI, with status indicator
-- [ ] Flexible transition system (slide, fade, crossfade, swipe, typewriter, etc.)
-- [ ] User-selectable transition in settings
+
+### Stage 1: Basic Flask-SocketIO Server & WebSocket Overlay
+- [x] Flask-SocketIO app in `services/web_overlay.py`
+- [x] Basic routes: `/` (overlay page), WebSocket endpoint
+- [x] Simple HTML template with artist, title, album display
+- [x] JavaScript WebSocket client for real-time updates
+- [x] Basic CSS styling (white text, grey outline, dark background)
+- [x] Test with static data first
+
+### Stage 2: GUI Integration & Data Source
+- [ ] Start/Stop Overlay button in GUI with status indicator
+- [ ] Integrate with existing now-playing data source
+- [ ] Emit WebSocket events when song changes
+- [ ] Handle "no song playing" state gracefully
+- [ ] Test with real Traktor data
+
+### Stage 3: Basic Transitions & Core Features
+- [ ] Implement 2-3 basic CSS transitions (fade, slide)
+- [ ] Always show artist & title; others optional
+- [ ] Handle WebSocket connection/disconnection gracefully
+- [ ] Error handling for server downtime
+
+### Stage 4: Advanced Customization
+- [ ] User-selectable transition in settings (crossfade, swipe, typewriter, etc.)
 - [ ] Per-item visibility options (cover art, album, BPM, key, etc.) in settings
 - [ ] Adjustable font size and color for each item
-- [ ] Always show artist & title; others optional
-- [ ] CSS for white text, grey outline, black or translucent background
-- [ ] Overlay auto-updates with current song info
-- [ ] Future: Add websocket for real-time updates (optional)
+- [ ] Cover art integration (if available)
+
+### Stage 5: Production Polish
+- [ ] Optimize WebSocket performance
+- [ ] Auto-reconnection on connection loss
+- [ ] Graceful degradation when data unavailable
+- [ ] Documentation for OBS Browser Source setup
 
 ## Visual Enhancement Features
 - [ ] YouTube video integration for background visualizations
