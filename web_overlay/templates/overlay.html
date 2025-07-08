@@ -9,15 +9,14 @@
         /* Overlay Appearance Variables */
         :root {
             /* Overlay box */
-            --overlay-padding: 30px;
+            --overlay-padding: 10px;
             --overlay-bg-color: rgba(0, 0, 0, 0);
             --songinfo-bg-color: rgba(0, 0, 0, 0.8);
-            --songinfo-bg-color-nosong: #222;
             --songinfo-border-width: 2px;
-            --songinfo-border-radius: 8px;
-            --songinfo-padding: 15px 20px;
+            --songinfo-border-radius: 12px;
+            --songinfo-padding: 10px 10px;
             --songinfo-z-index: 1000;
-            --songinfo-max-width: 800px;
+            --songinfo-max-width: 1024px;
             /* Status colors */
             --status-connected-color: orange;
             --status-disconnected-color: red;
@@ -59,7 +58,7 @@
         .song-info {
             position: fixed;
             left: var(--overlay-padding);
-            top: var(--overlay-padding);
+            bottom: var(--overlay-padding);
             background: var(--songinfo-bg-color);
             padding: var(--songinfo-padding);
             border-radius: var(--songinfo-border-radius);
@@ -74,9 +73,6 @@
             z-index: var(--songinfo-z-index);
             display: block;
             max-width: var(--songinfo-max-width);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
         
         .song-info.visible {
@@ -95,40 +91,36 @@
             --status-color: var(--status-disconnected-color);
         }
         
-        .song-info.no-song {
-            background: var(--songinfo-bg-color-nosong);
-        }
-        
-        .artist, .title, .album, .metadata {
+        .artist, .title, .album {
+            font-weight: bold;
             text-shadow: var(--shadow-size) var(--shadow-size) calc(2 * var(--shadow-size)) var(--shadow-color);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: block;
         }
-        
         .artist {
             font-size: var(--artist-font-size);
-            font-weight: bold;
             color: var(--artist-color);
             margin-bottom: var(--margins);
         }
-        
         .title {
             font-size: var(--title-font-size);
-            font-weight: bold;
             color: var(--title-color);
             margin-bottom: var(--margins);
         }
-        
         .album {
             font-size: var(--album-font-size);
             color: var(--album-color);
             margin-bottom: calc(1.5 * var(--margins));
             font-style: italic;
         }
-        
         .metadata {
             display: flex;
             gap: 20px;
             font-size: var(--metadata-font-size);
             color: var(--metadata-color);
+            text-shadow: var(--shadow-size) var(--shadow-size) calc(2 * var(--shadow-size)) var(--shadow-color);
         }
         
         .bpm, .key {
@@ -141,10 +133,6 @@
         
         .connection-status {
             display: none;
-        }
-        
-        .no-song .title {
-            color: var(--no-song-songinfo-bg-color-color);
         }
         
         #coverArt {
