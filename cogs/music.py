@@ -23,6 +23,7 @@ class MusicCog(commands.Cog, name="Music"):
     
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.active_song_waits = {}  # user_id: asyncio.Task
     
     @app_commands.command(name="song", description="Search for a song in the Traktor collection and optionally select one by replying.")
     @app_commands.describe(search="search query")
@@ -110,68 +111,82 @@ class MusicCog(commands.Cog, name="Music"):
         # Store only the fitted results in the result_dict
         result_dict = {str(i + 1): result.split(" | ", 1)[1] for i, result in enumerate(fitted_results)}
 
+        user_id = interaction.user.id
+
         def check(m):
             return m.author == interaction.user and m.channel == interaction.channel and m.content in result_dict.keys()
 
-        try:
-            # Wait for user input with a timeout
-            msg = await self.bot.wait_for("message", timeout=Settings.TIMEOUT, check=check)
-            selected_song = result_dict[msg.content]            # Save the selected song request to a JSON file
-            song_requests_file = Settings.SONG_REQUESTS_FILE
-            if song_requests_file:
-                try:
-                    # Ensure the directory exists
-                    os.makedirs(os.path.dirname(song_requests_file), exist_ok=True)
+        # Cancel any previous wait for this user
+        if user_id in self.active_song_waits:
+            self.active_song_waits[user_id].cancel()
+
+        async def wait_for_selection():
+            try:
+                msg = await self.bot.wait_for("message", timeout=Settings.TIMEOUT, check=check)
+                selected_song = result_dict[msg.content]            # Save the selected song request to a JSON file
+                song_requests_file = Settings.SONG_REQUESTS_FILE
+                if song_requests_file:
+                    try:
+                        # Ensure the directory exists
+                        os.makedirs(os.path.dirname(song_requests_file), exist_ok=True)
+                        
+                        # Load existing requests or initialize an empty list
+                        if os.path.exists(song_requests_file):
+                            with open(song_requests_file, "r", encoding="utf-8") as file:
+                                try:
+                                    song_requests = json.load(file)
+                                except json.JSONDecodeError:
+                                    song_requests = []  # Start fresh if JSON is invalid
+                                    warning(f"⚠️ Invalid JSON in {song_requests_file}, starting with empty list")
+                        else:
+                            song_requests = []
+                            info(f"📄 Creating new song requests file: {song_requests_file}")
+
+                        # Determine the next request number
+                        next_request_num = len(song_requests) + 1
+
+                        # Get the current system date and time
+                        current_time = datetime.now().strftime("%Y-%m-%d")
+
+                        # Construct request object
+                        new_request = {
+                            "RequestNumber": next_request_num,
+                            "Date": current_time,
+                            "User": str(interaction.user),
+                            "Song": selected_song
+                        }                    # Append the new request to the list
+                        song_requests.append(new_request)
+                        
+                        # Save back to the JSON file
+                        with open(song_requests_file, "w", encoding="utf-8") as file:
+                            json.dump(song_requests, file, indent=4)
+
+                        info(f"{interaction.user} selected and requested the song: {selected_song}")
+                        await interaction.followup.send(f"Added the song to the Song Request List: {selected_song}")
+                        emit("song_request_added", new_request)  # Emit event for new song request
+                        # Increment search counter for GUI tracking
+                        increment_stat("total_song_requests", 1)
+                        increment_stat("session_song_requests", 1)
+
+                        
+                    except Exception as e:
+                        error(f"❌ Error saving song request: {e}")
+                        await interaction.followup.send("❌ Error saving song request. Please try again.", ephemeral=True)
                     
-                    # Load existing requests or initialize an empty list
-                    if os.path.exists(song_requests_file):
-                        with open(song_requests_file, "r", encoding="utf-8") as file:
-                            try:
-                                song_requests = json.load(file)
-                            except json.JSONDecodeError:
-                                song_requests = []  # Start fresh if JSON is invalid
-                                warning(f"⚠️ Invalid JSON in {song_requests_file}, starting with empty list")
-                    else:
-                        song_requests = []
-                        info(f"📄 Creating new song requests file: {song_requests_file}")
+            except asyncio.TimeoutError:
+                warning(f"{interaction.user} did not respond in time for song selection.")
+            except asyncio.CancelledError:
+                # Optionally notify user their previous selection was cancelled
+                pass
+            except KeyError:
+                await interaction.followup.send("Invalid input for song selection.")
+                warning(f"{interaction.user} entered invalid input for song selection.")
+            finally:
+                if user_id in self.active_song_waits:
+                    del self.active_song_waits[user_id]
 
-                    # Determine the next request number
-                    next_request_num = len(song_requests) + 1
-
-                    # Get the current system date and time
-                    current_time = datetime.now().strftime("%Y-%m-%d")
-
-                    # Construct request object
-                    new_request = {
-                        "RequestNumber": next_request_num,
-                        "Date": current_time,
-                        "User": str(interaction.user),
-                        "Song": selected_song
-                    }                    # Append the new request to the list
-                    song_requests.append(new_request)
-                    
-                    # Save back to the JSON file
-                    with open(song_requests_file, "w", encoding="utf-8") as file:
-                        json.dump(song_requests, file, indent=4)
-
-                    info(f"{interaction.user} selected and requested the song: {selected_song}")
-                    await interaction.followup.send(f"Added the song to the Song Request List: {selected_song}")
-                    emit("song_request_added", new_request)  # Emit event for new song request
-                    # Increment search counter for GUI tracking
-                    increment_stat("total_song_requests", 1)
-                    increment_stat("session_song_requests", 1)
-
-                    
-                except Exception as e:
-                    error(f"❌ Error saving song request: {e}")
-                    await interaction.followup.send("❌ Error saving song request. Please try again.", ephemeral=True)
-                    
-        except asyncio.TimeoutError:
-            warning(f"{interaction.user} did not respond in time for song selection.")
-        except KeyError:
-            await interaction.followup.send("Invalid input for song selection.")
-            warning(f"{interaction.user} entered invalid input for song selection.")
-
+        self.active_song_waits[user_id] = asyncio.create_task(wait_for_selection())
+        
 
 async def setup(bot: commands.Bot):
     """Add the MusicCog to the bot"""

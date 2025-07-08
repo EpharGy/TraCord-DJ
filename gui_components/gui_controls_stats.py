@@ -102,7 +102,7 @@ class ControlsStatsPanel(ttk.LabelFrame):
             self,
             text="⚙️ Settings",
             width=optimal_width,
-            command=lambda: None  # No-op by default
+            command=lambda: None
         )
         self.settings_button.grid(row=4, column=0, pady=self.STANDARD_PADY)
 
@@ -161,6 +161,9 @@ class ControlsStatsPanel(ttk.LabelFrame):
 
     def set_settings_command(self, cmd):
         self.settings_button.config(command=cmd)
+
+    def set_overlay_command(self, cmd):
+        pass  # No longer needed, overlay button is now in NowPlayingPanel
 
 # Add a custom style for Red.TButton
 from tkinter import ttk

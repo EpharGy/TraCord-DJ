@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TraCord DJ - Now Playing Overlay</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.js"></script>
+    <style>
+        /* Overlay Appearance Variables */
+        :root {
+            /* Overlay box */
+            --overlay-padding: 0px;
+            --overlay-bg-color: rgba(0, 0, 0, 0);
+            --songinfo-bg-color: rgba(0, 0, 0, 0.95);
+            --songinfo-border-width: 2px;
+            --songinfo-border-radius: 12px;
+            --songinfo-padding: 25px 25px;
+            --songinfo-z-index: 1000;
+            --songinfo-max-width: 1020px;  /* 1024 - 2*(border-width + padding) */
+            /* Status colors */
+            --status-connected-color: orange;
+            --status-disconnected-color: red;
+            /* Base Shadow size (multiplier used for text and cover art) */
+            --shadow-size: 3px;
+            --shadow-color: rgba(0, 0, 0, 1);
+            /* Cover art (single value, used for width/height) cover art is sent at COVER_SIZE resolution*/
+            --coverart-size: 200px;
+            --coverart-radius: 8px;
+            /* Artist */
+            --artist-font-size: 46px;   /* 40px when using 200px and metadata */
+            --artist-color: #ffffff;
+            /* Title */
+            --title-font-size: 52px;   /* 44px when using 200px and metadata */
+            --title-color: #ff6b35;
+            /* Album */
+            --album-font-size: 40px;   /* 36px when using 200px and metadata */
+            --album-color: #cccccc;
+            /* Metadata (bpm/key) */
+            --metadata-font-size: 28px;   /* 28px when using 200px and metadata */
+            --metadata-color: #aaaaaa;
+            --bpm-key-bg: rgba(255, 107, 53, 0.2);
+            --bpm-key-color: #fff;
+            /* No song */
+            --no-song-title-color: #666666;
+            /* Margins */
+            --margins: 5px;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background: var(--overlay-bg-color);
+            color: white;
+            overflow: hidden;
+        }
+        
+        .song-info {
+            position: fixed;
+            left: var(--overlay-padding);
+            bottom: var(--overlay-padding);
+            background: var(--songinfo-bg-color);
+            padding: var(--songinfo-padding);
+            border-radius: var(--songinfo-border-radius);
+            border-left: var(--songinfo-border-width) solid var(--status-color, var(--status-connected-color));
+            border-right: var(--songinfo-border-width) solid var(--status-color, var(--status-connected-color));
+            border-top: var(--songinfo-border-width) solid var(--status-color, var(--status-connected-color));
+            border-bottom: var(--songinfo-border-width) solid var(--status-color, var(--status-connected-color));
+            transition: all 0.5s ease;
+            opacity: 1;
+            transform: none;
+            pointer-events: auto;
+            z-index: var(--songinfo-z-index);
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            max-width: var(--songinfo-max-width);
+            min-width: 0;
+        }
+        
+        .song-info:not(.visible) {
+            display: none;
+        }
+        
+        .song-info.connected {
+            --status-color: var(--status-connected-color);
+        }
+        
+        .song-info.disconnected {
+            --status-color: var(--status-disconnected-color);
+        }
+        
+        .artist, .title, .album {
+            font-weight: bold;
+            text-shadow: var(--shadow-size) var(--shadow-size) calc(2 * var(--shadow-size)) var(--shadow-color);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            /* white-space: nowrap; */
+            /*  Removed white-space: nowrap to allow multiline text */
+            display: block;
+            min-width: 0;
+        }
+        .artist {
+            font-size: var(--artist-font-size);
+            color: var(--artist-color);
+            margin-bottom: var(--margins);
+        }
+        .title {
+            font-size: var(--title-font-size);
+            color: var(--title-color);
+            margin-bottom: var(--margins);
+        }
+        .album {
+            font-size: var(--album-font-size);
+            color: var(--album-color);
+            margin-bottom: calc(1.5 * var(--margins));
+            font-style: italic;
+        }
+        .metadata {
+            /*  Hiding Metadata (bpm/key)
+            display: flex;
+            gap: 20px;
+            font-size: var(--metadata-font-size);
+            color: var(--metadata-color);
+            text-shadow: var(--shadow-size) var(--shadow-size) calc(2 * var(--shadow-size)) var(--shadow-color);*/
+            display: none;
+        }
+        
+        .bpm, .key {
+            background: var(--bpm-key-bg);
+            color: var(--bpm-key-color);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        
+        .connection-status {
+            display: none;
+        }
+        
+        #coverArt {
+            display: block;
+            max-width: var(--coverart-size);
+            max-height: var(--coverart-size);
+            border-radius: var(--coverart-radius);
+            margin-right: calc(3 * var(--margins));
+            margin-bottom: 0;
+            box-shadow: calc(2 * var(--shadow-size)) calc(2 * var(--shadow-size)) calc(4 * var(--shadow-size)) var(--shadow-color);
+            flex-shrink: 0;
+        }
+        .song-info > .text-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-width: 0;
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay-container">
+        <div class="song-info" id="songInfo">
+            <img id="coverArt" src="" alt="Cover Art">
+            <div class="text-content">
+                <div class="artist" id="artist">No Artist</div>
+                <div class="title" id="title">No Song Playing</div>
+                <div class="album" id="album"></div>
+                <div class="metadata">
+                    <div class="bpm" id="bpm" style="display: none;">
+                        <span id="bpmValue">-- BPM</span>
+                    </div>
+                    <div class="key" id="key" style="display: none;">
+                        <span id="keyValue">-- Key</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // WebSocket connection
+        const socket = io();
+        
+        // DOM elements
+        const songInfo = document.getElementById('songInfo');
+        const artist = document.getElementById('artist');
+        const title = document.getElementById('title');
+        const album = document.getElementById('album');
+        const bpmElement = document.getElementById('bpm');
+        const bpmValue = document.getElementById('bpmValue');
+        const keyElement = document.getElementById('key');
+        const keyValue = document.getElementById('keyValue');
+        const coverArt = document.getElementById('coverArt');
+        
+        // Connection status handlers
+        socket.on('connect', function() {
+            console.log('Connected to overlay server');
+            songInfo.classList.remove('disconnected');
+            songInfo.classList.add('connected');
+        });
+        socket.on('disconnect', function() {
+            console.log('Disconnected from overlay server');
+            songInfo.classList.remove('connected');
+            songInfo.classList.add('disconnected');
+        });
+        
+        // Song update handler
+        socket.on('song_update', function(data) {
+            console.log('Song update received:', data);
+            updateOverlay(data);
+        });
+        
+        function updateOverlay(songData) {
+            // Always update all fields, even if the song is the same
+            artist.textContent = songData.artist || 'No Artist';
+            title.textContent = songData.title || 'No Song Playing';
+            album.textContent = songData.album || '';
+
+            // Cover art: always update
+            if (songData.coverart_base64) {
+                coverArt.src = 'data:image/png;base64,' + songData.coverart_base64;
+                coverArt.style.display = 'block';
+            } else {
+                coverArt.src = '';
+                coverArt.style.display = 'none';
+            }
+
+            // BPM and Key (optional, can be hidden)
+            if (songData.bpm) {
+                bpmValue.textContent = songData.bpm + ' BPM';
+                bpmElement.style.display = 'block';
+            } else {
+                bpmElement.style.display = 'none';
+            }
+            if (songData.key) {
+                keyValue.textContent = songData.key;
+                keyElement.style.display = 'block';
+            } else {
+                keyElement.style.display = 'none';
+            }
+
+            // Show/hide song info
+            if (songData.artist && songData.title) {
+                songInfo.classList.remove('no-song');
+                songInfo.classList.add('visible');
+            } else {
+                songInfo.classList.add('no-song');
+                songInfo.classList.add('visible');
+            }
+        }
+        
+        // Show overlay on page load
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                songInfo.classList.add('visible');
+            }, 500);
+        });
+    </script>
+</body>
+</html>
