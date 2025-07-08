@@ -19,7 +19,7 @@ def find_song_in_collection(artist, title, collection):
     return None
 
 def get_song_info(artist, title, collection):
-    """Return the full dict from the collection if found, else a minimal dict."""
+    """Return a dict with Artist, Title, and Album (if found) from the collection."""
     match = find_song_in_collection(artist, title, collection)
     if match:
         return match  # Return the full song dict

@@ -531,10 +531,9 @@ def get_new_songs_json(songs: List[Dict[str, Any]], days: int, max_songs: int, d
 
 def get_collection_import_date(collection_file: str):
     """Get the modification date and time of the collection.json file."""
-    collection_path = os.path.join(Settings.USER_DATA_DIR, 'collection.json')
     try:
-        if os.path.exists(collection_path):
-            mod_time = os.path.getmtime(collection_path)
+        if os.path.exists(collection_file):
+            mod_time = os.path.getmtime(collection_file)
             dt = datetime.fromtimestamp(mod_time)
             date_str = dt.strftime("%Y-%m-%d")
             time_str = dt.strftime("%H:%M:%S")
