@@ -23,20 +23,20 @@
             /* Base Shadow size (multiplier used for text and cover art) */
             --shadow-size: 2px;
             --shadow-color: rgba(0, 0, 0, 0.8);
-            /* Cover art (single value, used for width/height) */
-            --coverart-size: 150px;
+            /* Cover art (single value, used for width/height) cover art is sent at COVER_SIZE resolution*/
+            --coverart-size: 200px;
             --coverart-radius: 8px;
             /* Artist */
-            --artist-font-size: 28px;
+            --artist-font-size: 40px;
             --artist-color: #ffffff;
             /* Title */
-            --title-font-size: 32px;
+            --title-font-size: 44px;
             --title-color: #ff6b35;
             /* Album */
-            --album-font-size: 24px;
+            --album-font-size: 36px;
             --album-color: #cccccc;
             /* Metadata (bpm/key) */
-            --metadata-font-size: 16px;
+            --metadata-font-size: 28px;
             --metadata-color: #aaaaaa;
             --bpm-key-bg: rgba(255, 107, 53, 0.2);
             --bpm-key-color: #fff;
@@ -71,12 +71,15 @@
             transform: none;
             pointer-events: auto;
             z-index: var(--songinfo-z-index);
-            display: block;
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
             max-width: var(--songinfo-max-width);
+            min-width: 0;
         }
         
         .song-info.visible {
-            display: block;
+            /* display: block; removed to preserve flex layout */
         }
         
         .song-info:not(.visible) {
@@ -98,6 +101,7 @@
             text-overflow: ellipsis;
             white-space: nowrap;
             display: block;
+            min-width: 0;
         }
         .artist {
             font-size: var(--artist-font-size);
@@ -136,12 +140,21 @@
         }
         
         #coverArt {
-            display: none;
+            display: block;
             max-width: var(--coverart-size);
             max-height: var(--coverart-size);
             border-radius: var(--coverart-radius);
-            margin-bottom: calc(2 * var(--margins));
+            margin-right: calc(3 * var(--margins));
+            margin-bottom: 0;
             box-shadow: calc(2 * var(--shadow-size)) calc(2 * var(--shadow-size)) calc(4 * var(--shadow-size)) var(--shadow-color);
+            flex-shrink: 0;
+        }
+        .song-info > .text-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-width: 0;
+            flex: 1;
         }
     </style>
 </head>
@@ -149,15 +162,17 @@
     <div class="overlay-container">
         <div class="song-info" id="songInfo">
             <img id="coverArt" src="" alt="Cover Art">
-            <div class="artist" id="artist">No Artist</div>
-            <div class="title" id="title">No Song Playing</div>
-            <div class="album" id="album"></div>
-            <div class="metadata">
-                <div class="bpm" id="bpm" style="display: none;">
-                    <span id="bpmValue">-- BPM</span>
-                </div>
-                <div class="key" id="key" style="display: none;">
-                    <span id="keyValue">-- Key</span>
+            <div class="text-content">
+                <div class="artist" id="artist">No Artist</div>
+                <div class="title" id="title">No Song Playing</div>
+                <div class="album" id="album"></div>
+                <div class="metadata">
+                    <div class="bpm" id="bpm" style="display: none;">
+                        <span id="bpmValue">-- BPM</span>
+                    </div>
+                    <div class="key" id="key" style="display: none;">
+                        <span id="keyValue">-- Key</span>
+                    </div>
                 </div>
             </div>
         </div>
