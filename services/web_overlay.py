@@ -57,7 +57,11 @@ class WebOverlayServer:
     
     def on_song_played(self, song_info):
         """Handle song_played events and broadcast to overlay clients"""
-        info(f"[Overlay] Received song_played event: {song_info}")
+        # Log song info without full coverart_base64
+        log_info = dict(song_info)
+        if 'coverart_base64' in log_info:
+            log_info['coverart_base64'] = f"<base64 string, {len(log_info['coverart_base64'])} bytes>"
+        debug(f"[Overlay] Received song_played event: {log_info}")
         
         if not song_info:
             warning("[Overlay] Received empty song_info")
@@ -74,10 +78,15 @@ class WebOverlayServer:
             'key': song_info.get('musical_key', ''),  # Note: using 'musical_key' from your data
             'genre': song_info.get('genre', ''),
             'audio_file_path': song_info.get('audio_file_path', ''),
+            'coverart_base64': song_info.get('coverart_base64', ''),
             'timestamp': time.time()
         }
         
-        info(f"[Overlay] Formatted data: {overlay_data}")
+        # Log overlay_data without full coverart_base64
+        overlay_log = dict(overlay_data)
+        if 'coverart_base64' in overlay_log:
+            overlay_log['coverart_base64'] = f"<base64 string, {len(overlay_log['coverart_base64'])} bytes>"
+        debug(f"[Overlay] Formatted data: {overlay_log}")
         
         # Broadcast to all connected clients
         if self.is_running:
@@ -139,6 +148,7 @@ class WebOverlayServer:
                 'key': self.current_song.get('musical_key', ''),
                 'genre': self.current_song.get('genre', ''),
                 'audio_file_path': self.current_song.get('audio_file_path', ''),
+                'coverart_base64': self.current_song.get('coverart_base64', ''),
                 'timestamp': time.time()
             }
             self.socketio.emit('song_update', overlay_data)

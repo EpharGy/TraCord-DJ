@@ -73,12 +73,13 @@ class NowPlayingPanel(ttk.LabelFrame):
         wraplength = panel_width - COVER_SIZE - 14
         self.label = tk.Label(self, text="Now Playing info will appear here.", anchor="w", justify="left", font=("Arial", 16, "bold"), wraplength=wraplength, padx=8, pady=4)
         self.label.grid(row=1, column=1, sticky="nw")
-        subscribe("song_played", self.update_now_playing)
+        subscribe("song_played", self._on_song_played_event)
         self._coverart_img = None  # Keep reference to avoid garbage collection
         # Spout
         self.spout_sender = None
         self.spout_enabled = False
         self._last_spout_image = None
+        self._coverart_base64 = None  # Store last base64 coverart for event emission
 
     def set_traktor_listener_command(self, cmd):
         self.traktor_listener_btn.config(command=cmd)
@@ -107,6 +108,62 @@ class NowPlayingPanel(ttk.LabelFrame):
             self.spout_toggle_btn.config(text="⭕ Enable Spout", style="TButton")
             self._stop_spout_sender()
 
+    def emit_song_with_coverart(self, song_info):
+        """Extract cover art, add as base64, then emit song_played event with coverart_base64."""
+        audio_file_path = song_info.get('audio_file_path')
+        if audio_file_path and os.path.exists(audio_file_path):
+            def load_and_emit():
+                try:
+                    img_data = None
+                    ext = os.path.splitext(audio_file_path)[1].lower()
+                    if ext == '.flac':
+                        audio = FLAC(audio_file_path)
+                        if audio.pictures:
+                            img_data = audio.pictures[0].data
+                    elif ext in ('.mp3', '.m4a', '.aac', '.ogg'):
+                        audio = MutagenFile(audio_file_path)
+                        if audio is not None and hasattr(audio, 'tags') and audio.tags:
+                            if ext == '.m4a' and 'covr' in audio.tags:
+                                covr = audio.tags['covr']
+                                if isinstance(covr, list) and len(covr) > 0:
+                                    img_data = covr[0]
+                            elif isinstance(audio, MP3) and isinstance(audio.tags, ID3):
+                                for tag in audio.tags.values():
+                                    if isinstance(tag, APIC):
+                                        img_data = getattr(tag, 'data', None)
+                                        break
+                            else:
+                                for tag in audio.tags.values():
+                                    if hasattr(tag, 'data'):
+                                        img_data = tag.data
+                                        break
+                                    elif isinstance(tag, bytes):
+                                        img_data = tag
+                                        break
+                    else:
+                        audio = MutagenFile(audio_file_path)
+                        if audio is not None and hasattr(audio, 'pictures') and audio.pictures:
+                            img_data = audio.pictures[0].data
+                    if img_data:
+                        from PIL import Image
+                        import base64
+                        import io
+                        img_original = Image.open(io.BytesIO(img_data))
+                        img_resized = img_original.resize((COVER_SIZE, COVER_SIZE), resample=3).copy()
+                        buffered = io.BytesIO()
+                        img_resized.save(buffered, format="PNG")
+                        song_info['coverart_base64'] = base64.b64encode(buffered.getvalue()).decode('ascii')
+                    else:
+                        song_info['coverart_base64'] = ''
+                except Exception as e:
+                    warning(f"[CoverArt] Error extracting cover art for overlay emit: {e}")
+                    song_info['coverart_base64'] = ''
+                emit("song_played", song_info)
+            threading.Thread(target=load_and_emit, daemon=True).start()
+        else:
+            song_info['coverart_base64'] = ''
+            emit("song_played", song_info)
+
     def play_random_song(self):
         songs = load_collection_json(Settings.COLLECTION_JSON_FILE)
         if not songs:
@@ -116,7 +173,7 @@ class NowPlayingPanel(ttk.LabelFrame):
         from utils.song_matcher import get_song_info
         # Use get_song_info to standardize the song dict
         song_info = get_song_info(song.get('artist', ''), song.get('title', ''), songs)
-        emit("song_played", song_info)
+        self.emit_song_with_coverart(song_info)
 
     def _start_spout_sender(self):
         if not SPOUTGL_AVAILABLE:
@@ -160,8 +217,13 @@ class NowPlayingPanel(ttk.LabelFrame):
             except Exception as e:
                 warning(f"[SpoutGL] Error sending blank image: {e}")
 
+    def _on_song_played_event(self, song_info):
+        # Only update GUI, never emit or trigger another event
+        self.update_now_playing(song_info)
+
     def update_now_playing(self, song_info):
         debug(f"[NowPlayingPanel] update_now_playing called with song_info: {song_info}")
+        self._coverart_base64 = None
         if not song_info:
             self.label.config(text="No song info available.")
             self.coverart_label.config(image='', bg="#222")
@@ -175,11 +237,11 @@ class NowPlayingPanel(ttk.LabelFrame):
         bpm = song_info.get('bpm', '')
         key_int = song_info.get('musical_key', None)
         key_str = open_key_int_to_str(key_int) if key_int is not None else ''
-        display = f"{artist}\n{title}" #Confirm before changing
+        display = f"{artist}\n{title}"
         if album:
             display += f"\n[{album}]" 
         if bpm or key_str:
-            display += f"\n{bpm}BPM | {key_str}" #Confirm before changing
+            display += f"\n{bpm}BPM | {key_str}"
         self.label.config(text=display)
         # Update cover art from audio file in a background thread
         audio_file_path = song_info.get('audio_file_path')
@@ -198,17 +260,14 @@ class NowPlayingPanel(ttk.LabelFrame):
                         if audio is not None and hasattr(audio, 'tags') and audio.tags:
                             if ext == '.m4a' and 'covr' in audio.tags:
                                 covr = audio.tags['covr']
-                                # covr may be a list of images, take the first
                                 if isinstance(covr, list) and len(covr) > 0:
                                     img_data = covr[0]
-                            # For MP3 with ID3 tags
                             elif isinstance(audio, MP3) and isinstance(audio.tags, ID3):
                                 for tag in audio.tags.values():
                                     if isinstance(tag, APIC):
                                         img_data = getattr(tag, 'data', None)
                                         break
                             else:
-                                # For other formats, try to find a tag with 'data'
                                 for tag in audio.tags.values():
                                     if hasattr(tag, 'data'):
                                         img_data = tag.data
@@ -217,30 +276,33 @@ class NowPlayingPanel(ttk.LabelFrame):
                                         img_data = tag
                                         break
                     else:
-                        # Fallback for other formats
                         audio = MutagenFile(audio_file_path)
                         if audio is not None and hasattr(audio, 'pictures') and audio.pictures:
                             img_data = audio.pictures[0].data
                     if img_data:
                         img_original = Image.open(io.BytesIO(img_data))
                         debug(f"[CoverArt] Extracted image file type: {img_original.format}")
-                        # For Spout: always resize to 1080x1080 and copy
                         img_for_spout = img_original.resize((1080, 1080), resample=3).copy()
-                        # For GUI: resize to COVER_SIZE and copy
                         img_resized = img_original.resize((COVER_SIZE, COVER_SIZE), resample=3).copy()
                         cover_img = ImageTk.PhotoImage(img_resized)
+                        # Encode to base64 for overlay
+                        import base64
+                        buffered = io.BytesIO()
+                        img_resized.save(buffered, format="PNG")
+                        self._coverart_base64 = base64.b64encode(buffered.getvalue()).decode('ascii')
                         def update_gui():
                             self._coverart_img = cover_img
                             self.coverart_label.config(image=self._coverart_img, bg="#111")
-                            # Spout: send 1080x1080 image if enabled
                             self._last_spout_image = img_for_spout
                             if self.spout_enabled and self.spout_sender is not None:
                                 self._send_spout_image(img_for_spout)
                         self.coverart_label.after(0, update_gui)
+                        # Also update song_info for overlay event
+                        song_info['coverart_base64'] = self._coverart_base64
+                        # DO NOT emit("song_played", song_info) here! Only update GUI/overlay on actual song change.
                         return
                     else:
                         warning(f"[CoverArt] Song had no cover art to extract: {audio_file_path}")
-                        # Spout: send blank if enabled
                         if self.spout_enabled and self.spout_sender is not None:
                             self._send_blank_spout_image()
                 except Exception as e:
@@ -250,7 +312,6 @@ class NowPlayingPanel(ttk.LabelFrame):
                             debug_file.write(f"Error extracting cover art for {audio_file_path}: {e}\n")
                     except Exception as log_error:
                         error(f"[CoverArt] Failed to log error to Debug_unmatched_songs.txt: {log_error}")
-                    # Spout: send blank if enabled
                     if self.spout_enabled and self.spout_sender is not None:
                         self._send_blank_spout_image()
                 def clear_gui():
@@ -259,6 +320,5 @@ class NowPlayingPanel(ttk.LabelFrame):
             threading.Thread(target=load_cover_art, daemon=True).start()
         else:
             self.coverart_label.config(image='', bg="#222")
-            # Spout: send blank if enabled
             if self.spout_enabled and self.spout_sender is not None:
                 self._send_blank_spout_image()

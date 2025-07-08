@@ -106,6 +106,15 @@
         .no-song .title {
             color: #666666;
         }
+        
+        #coverArt {
+            display: none;
+            max-width: 150px;
+            max-height: 150px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 8px #000;
+        }
     </style>
 </head>
 <body>
@@ -115,6 +124,7 @@
         </div>
         
         <div class="song-info" id="songInfo">
+            <img id="coverArt" src="" alt="Cover Art">
             <div class="artist" id="artist">No Artist</div>
             <div class="title" id="title">No Song Playing</div>
             <div class="album" id="album"></div>
@@ -143,6 +153,7 @@
         const bpmValue = document.getElementById('bpmValue');
         const keyElement = document.getElementById('key');
         const keyValue = document.getElementById('keyValue');
+        const coverArt = document.getElementById('coverArt');
         
         // Connection status handlers
         socket.on('connect', function() {
@@ -189,6 +200,15 @@
                     keyElement.style.display = 'none';
                 }
                 
+                // Cover art
+                if (songData.coverart_base64) {
+                    coverArt.src = 'data:image/png;base64,' + songData.coverart_base64;
+                    coverArt.style.display = 'block';
+                } else {
+                    coverArt.src = '';
+                    coverArt.style.display = 'none';
+                }
+                
                 // Remove no-song class and show
                 songInfo.classList.remove('no-song');
                 songInfo.classList.add('visible');
@@ -199,6 +219,7 @@
                 album.textContent = '';
                 bpmElement.style.display = 'none';
                 keyElement.style.display = 'none';
+                coverArt.style.display = 'none';
                 
                 // Add no-song class
                 songInfo.classList.add('no-song');
