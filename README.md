@@ -29,6 +29,7 @@ Any application that supports Spout can receive cover art from this bot, allowin
 ![Spout Integration](https://raw.githubusercontent.com/EpharGy/TraCord-DJ/main/assets/screenshots/gui_spout_integration.png)
 
 # Overlay Screenshots
+Current workflow, Traktor -> TraCord DJ -> Spout/Web Overlay -> Nest Drop -> OBS
 ![Spout Integration](https://raw.githubusercontent.com/EpharGy/TraCord-DJ/main/assets/screenshots/overlay_coverart_1.png)
 ![Spout Integration](https://raw.githubusercontent.com/EpharGy/TraCord-DJ/main/assets/screenshots/overlay_coverart_2.png)
 ![Spout Integration](https://raw.githubusercontent.com/EpharGy/TraCord-DJ/main/assets/screenshots/overlay_coverart_3.png)
