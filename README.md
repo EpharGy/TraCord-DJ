@@ -1,6 +1,6 @@
 # TraCord DJ
 
-A comprehensive Discord bot for managing music requests, interacting with Traktor DJ software collections, and enhancing DJ workflow automation. This is a standalone GUI application suitable for personal DJ environments. Spout integration is included for cover art display in other supported applications. Automatically creates a flask webserver for web overlays, allowing real-time song updates in OBS or other streaming software.
+A comprehensive Discord bot for managing music requests, interacting with Traktor DJ software collections, and enhancing DJ workflow automation. This is a standalone GUI application suitable for personal DJ environments. Spout integration is included for cover art display in other supported applications. Automatically creates a flask webserver for web overlays, allowing real-time song updates in OBS or other streaming software. MIDI support is included for song transitions, when enabled, a simple note is played when a song is played, allowing you to use this with other MIDI listeners. (recommend Free software for non-commercial, LoopBe1 - https://www.nerds.de/en/download.html)
 
 > **📝 Version **: Current version in [`version.py`](version.py)
 
@@ -10,6 +10,7 @@ A comprehensive Discord bot for managing music requests, interacting with Trakto
 - **🎧 Now Playing Song**: Traktor Broadcast Listening for Song/Artist details, integrated with collection details for advanced meta data (coverart, BPM, Key)
 - **🖼️ Spout Cover Art Integration**: Send cover art to other applications via Spout (Windows only)
 - **🖼️ Webpage for OBS/Overlays**: Flask webserver with Current Song Playing details. http://127.0.0.1:5000/
+- **🖥️ MIDI**: Simple MIDI note played on song change (can use this to trigger things via MIDI)
 - **🎵 Dynamic Song Search**: Intelligent search with interactive selection
 - **📋 Song Request Management**: Full CRUD operations with user permissions
 - **📂 Collection Integration**: Automatic Traktor collection integration for data
@@ -27,8 +28,13 @@ A comprehensive Discord bot for managing music requests, interacting with Trakto
 Any application that supports Spout can receive cover art from this bot, allowing you to display it in OBS or other software. (OBS does support spout directly via plugin)
 ![Spout Integration](https://raw.githubusercontent.com/EpharGy/TraCord-DJ/main/assets/screenshots/gui_spout_integration.png)
 
+# Overlay Screenshots
+![Spout Integration](https://raw.githubusercontent.com/EpharGy/TraCord-DJ/main/assets/screenshots/overlay_coverart_1.png)
+![Spout Integration](https://raw.githubusercontent.com/EpharGy/TraCord-DJ/main/assets/screenshots/overlay_coverart_2.png)
+![Spout Integration](https://raw.githubusercontent.com/EpharGy/TraCord-DJ/main/assets/screenshots/overlay_coverart_3.png)
+
 ## Quick Start
-**You must setup Various settings, settings.json will be created on first launch, these can then be set via the Settings button, Traktor path is the path with out the version folders, ie (C:/Users/user)/Documents/Native Instruments/). Discord Token, ID's etc**
+**You must setup Various settings, settings.json will be created on first launch, these can then be set via the Settings button, Traktor path is the path with out the version folders, ie (C:/Users/{user}/Documents/Native Instruments/). Discord Token, ID's etc**
 To Launch:
 Python run_bot.py
 Debug mode:
@@ -135,6 +141,7 @@ TraCord-DJ/
 │   │   ├── harmonic_keys.py
 │   │   ├── helpers.py
 │   │   ├── logger.py
+│   │   ├── midi_helper.py
 │   │   ├── song_matcher.py
 │   │   ├── spout_sender_helper.py
 │   │   ├── stats.py

@@ -7,7 +7,7 @@ class ControlsStatsPanel(ttk.LabelFrame):
     def __init__(self, parent, button_texts, optimal_width, clear_log_cmd, refresh_collection_cmd, reset_global_stats_cmd, clear_track_history_cmd, on_stop_press, on_stop_release, on_toggle_traktor_listener=lambda: None):
         super().__init__(parent, text="Controls & Stats", padding=self.STANDARD_PADY)
         self.columnconfigure(0, weight=0)
-        self.grid_columnconfigure(0, minsize=200)
+        self.grid_columnconfigure(0, minsize=100)
         # Stop All & Close button (now with red text)
         self.stop_button = ttk.Button(
             self,
@@ -25,7 +25,7 @@ class ControlsStatsPanel(ttk.LabelFrame):
         self.status_label = ttk.Label(self.status_frame, text="⚪ Bot Stopped")
         self.status_label.grid(row=0, column=0, sticky="w")  # No padding
         # Traktor Listener status label
-        self.traktor_listener_status_label = ttk.Label(self.status_frame, text="🔴 Traktor Listener Offline")
+        self.traktor_listener_status_label = ttk.Label(self.status_frame, text="🔴 Listener Off")
         self.traktor_listener_status_label.grid(row=1, column=0, sticky="w")  # No padding
         # Bot info section
         self.info_frame = ttk.LabelFrame(self, text="Bot Information", padding=self.STANDARD_PADY)
@@ -78,7 +78,7 @@ class ControlsStatsPanel(ttk.LabelFrame):
         # Refresh session stats button
         self.refresh_button = ttk.Button(
             self,
-            text="🔄 Refresh Session Stats",
+            text="🔄 Reset Session Stats",
             command=refresh_collection_cmd,
             width=optimal_width
         )
@@ -108,13 +108,15 @@ class ControlsStatsPanel(ttk.LabelFrame):
 
     @staticmethod
     def calculate_optimal_button_width(button_texts):
-        # Remove Clear NP Track Info from width calculation
-        filtered = [t for t in button_texts if t != "🧹 Clear NP Track Info"]
+       # Remove Clear NP Track Info from width calculation
+        filtered = [t for t in button_texts]
         max_length = 0
         for text in filtered:
             text_length = len(text)
             max_length = max(max_length, text_length)
-        optimal_width = max(max_length, 12)
+        optimal_width = max(max_length - 6 , 10)
+        # optimal_width = max_length
+        # optimal_width = 3
         return optimal_width
 
     @staticmethod
@@ -123,7 +125,7 @@ class ControlsStatsPanel(ttk.LabelFrame):
         button_texts = [
             "🛑 Stop All & Close",
             "🗑️ Clear Log", 
-            "🔄 Refresh Session Stats"
+            "🔄 Reset Session Stats"
         ]
         button_width = ControlsStatsPanel.calculate_optimal_button_width(button_texts)
         max_width = max(max_width, button_width)
@@ -133,12 +135,12 @@ class ControlsStatsPanel(ttk.LabelFrame):
         ]
         for text in stats_texts:
             max_width = max(max_width, len(text))
-        return max_width + 2
+        return max_width + 2 #+extra padding for aesthetics
 
     def update_controls_frame_sizing(self):
         try:
             optimal_width = ControlsStatsPanel.calculate_controls_frame_width()
-            pixel_width = optimal_width * 7
+            pixel_width = optimal_width * 8 # 8 pixels per character is a common approximation 
             self.grid_columnconfigure(0, minsize=pixel_width)
         except Exception as e:
             from utils.logger import error

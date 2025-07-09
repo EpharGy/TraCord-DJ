@@ -17,6 +17,7 @@ from mutagen._file import File as MutagenFile
 from PIL import Image, ImageTk
 import io
 from utils.spout_sender_helper import SpoutGLHelper, SPOUTGL_AVAILABLE
+from utils.midi_helper import MidiHelper
 
 info("[NowPlayingPanel] File loaded and logger is active.")
 
@@ -37,28 +38,34 @@ class NowPlayingPanel(ttk.LabelFrame):
         self.button_row.columnconfigure(0, weight=0)
         self.button_row.columnconfigure(1, weight=0)
         self.button_row.columnconfigure(2, weight=0)
-        self.button_row.columnconfigure(3, weight=1)
-        self.button_row.columnconfigure(4, weight=0)
+        self.button_row.columnconfigure(3, weight=0)
+        self.button_row.columnconfigure(4, weight=1)
+        self.button_row.columnconfigure(5, weight=0)
 
         # Traktor Listener Toggle Button (left)
-        self.traktor_listener_btn = ttk.Button(self.button_row, text="⭕ Enable Traktor Listener", width=25, style="TButton")
+        self.traktor_listener_btn = ttk.Button(self.button_row, text="⭕ Enable Listener", width=16, style="TButton")
         self.traktor_listener_btn.grid(row=0, column=0, padx=(0, 4))
 
         # Spout Cover Art Toggle Button (center left)
-        self.spout_toggle_btn = ttk.Button(self.button_row, text="⭕ Enable Spout", width=25, style="TButton")
+        self.spout_toggle_btn = ttk.Button(self.button_row, text="⭕ Enable Spout", width=15, style="TButton")
         self.spout_toggle_btn.grid(row=0, column=1, padx=(0, 4))
 
         # Open Overlay Button (center right)
-        self.overlay_button = ttk.Button(self.button_row, text="🌐 Open Overlay", width=25, command=lambda: None)
+        self.overlay_button = ttk.Button(self.button_row, text="🌐 Open Overlay", width=15, command=lambda: None)
         self.overlay_button.grid(row=0, column=2, padx=(0, 4))
+
+        # MIDI Toggle Button (right of Overlay)
+        self.midi_helper = MidiHelper(preferred_port_name=Settings.MIDI_DEVICE)
+        self.midi_toggle_btn = ttk.Button(self.button_row, text="⭕ Enable MIDI", width=15, command=self.toggle_midi)
+        self.midi_toggle_btn.grid(row=0, column=3, padx=(0, 4))
 
         # Spacer (expandable)
         spacer = tk.Frame(self.button_row)
-        spacer.grid(row=0, column=3, sticky="ew")
+        spacer.grid(row=0, column=4, sticky="ew")
 
         # Random Song Button (far right)
         self.random_button = ttk.Button(self.button_row, text="🎲", width=3, command=self.play_random_song)
-        self.random_button.grid(row=0, column=4, sticky="e", padx=(0, 2))
+        self.random_button.grid(row=0, column=5, sticky="e", padx=(0, 2))
 
         # --- End Button Row ---
 
@@ -98,9 +105,9 @@ class NowPlayingPanel(ttk.LabelFrame):
 
     def set_traktor_listener_state(self, on: bool):
         if on:
-            self.traktor_listener_btn.config(text="⭕ Disable Traktor Listener", style="Red.TButton")
+            self.traktor_listener_btn.config(text="⭕ Disable Listener", style="Red.TButton")
         else:
-            self.traktor_listener_btn.config(text="⭕ Enable Traktor Listener", style="TButton")
+            self.traktor_listener_btn.config(text="⭕ Enable Listener", style="TButton")
 
     def set_spout_toggle_state(self, on: bool):
         self.spout_enabled = on
@@ -289,9 +296,25 @@ class NowPlayingPanel(ttk.LabelFrame):
             except Exception as e:
                 warning(f"[SpoutGL] Error sending blank image: {e}")
 
+    def toggle_midi(self):
+        import tkinter.messagebox as mb
+        if not self.midi_helper.enabled:
+            if not self.midi_helper.enable():
+                mb.showerror("MIDI Not Available", self.midi_helper.get_error() or "Unknown error.")
+                self.midi_toggle_btn.config(text="⭕ MIDI Off", style="TButton")
+                return
+            self.midi_toggle_btn.config(text="⭕ MIDI On", style="Red.TButton")
+            info("MIDI output enabled.")
+        else:
+            self.midi_helper.disable()
+            self.midi_toggle_btn.config(text="⭕ MIDI Off", style="TButton")
+            info("MIDI output disabled.")
+
     def _on_song_played_event(self, song_info):
         # Only update the GUI, do not emit or call handle_song_play here!
         self.update_now_playing(song_info)
+        if self.midi_helper.enabled:
+            self.midi_helper.send_song_change()
 
     # earmark: update_now_playing is now only needed for GUI updates, not for event emission
     # earmark: any direct emit("song_played", ...) outside emit_song_with_coverart/handle_song_play should be removed after confirming

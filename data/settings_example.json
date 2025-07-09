@@ -22,5 +22,6 @@
   "FADE_STYLE": "fade",
   "FADE_FRAMES": 30,
   "FADE_DURATION": 2,
-  "SPOUT_BORDER_PX": 216
+  "SPOUT_BORDER_PX": 216,
+  "MIDI_DEVICE": ""
 }
