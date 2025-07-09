@@ -144,7 +144,7 @@ class BotGUI:
             self.root.after(1000, self.auto_start_bot)
         else:
             info("Debug mode (no Discord): Bot will not connect to Discord.")
-            self.status_label.config(text="🟡 Debug Mode (Bot Not Connected)", foreground="orange")
+            self.status_label.config(text="🟡 Debug Mode", foreground="orange")
             # Optionally, load collection stats and other features for testing
             self.load_collection_stats()
         
@@ -476,21 +476,21 @@ class BotGUI:
 
     def on_discord_bot_ready(self, bot):
         """Update bot information in the UI when the Discord bot is ready."""
-        self.status_label.config(text="🟢 Discord Bot Online", foreground="green")
+        self.status_label.config(text="🟢 Discord On", foreground="green")
         self.bot_name_label.config(text=f"Name: {bot.user}")
-        self.bot_id_label.config(text=f"ID: {bot.user.id}")
+        self.bot_id_label.config(text=f"ID: ***{str(bot.user.id)[-3:]}")
         command_count = len([cmd for cmd in bot.tree.walk_commands()])
         self.commands_label.config(text=f"Commands: {command_count} loaded")
         self.load_collection_stats()
 
     def on_discord_bot_error(self, error_msg):
         """Handle Discord bot errors."""
-        self.status_label.config(text="🔴 Discord  Bot Error", foreground="red")
+        self.status_label.config(text="🔴 Discord Error", foreground="red")
         messagebox.showerror("Bot Error", f"Bot encountered an error:\n{error_msg}")
 
     def on_discord_bot_stopped(self):
         """Handle Discord bot stopping."""
-        self.status_label.config(text="⚪ Discord  Bot Stopped", foreground="gray")
+        self.status_label.config(text="⚪ Discord Off", foreground="gray")
         self.stop_button.config(state='disabled')
         self.bot_name_label.config(text="Name: Not connected")
         self.bot_id_label.config(text="ID: Not connected")
@@ -546,12 +546,12 @@ class BotGUI:
             self.traktor_listener.start()
             info("Traktor Listener started.")
             self.nowplaying_panel.set_traktor_listener_state(True)
-            self.controls_stats_panel.set_traktor_listener_status("🟢 Traktor Listener Online", foreground="green")
+            self.controls_stats_panel.set_traktor_listener_status("🟢 Listener On", foreground="green")
         else:
             self.traktor_listener.stop()
             info("Traktor Listener stopped.")
             self.nowplaying_panel.set_traktor_listener_state(False)
-            self.controls_stats_panel.set_traktor_listener_status("🔴 Traktor Listener Offline", foreground="red")
+            self.controls_stats_panel.set_traktor_listener_status("🔴 Listener Off", foreground="red")
 
     def toggle_spout_coverart(self):
         self.spout_coverart_on = not getattr(self, 'spout_coverart_on', False)
@@ -576,9 +576,9 @@ class BotGUI:
 
     def _on_traktor_listener_status(self, status):
         if status == 'starting' or status == 'listening':
-            self.controls_stats_panel.set_traktor_listener_status("🟢 Traktor Listener Online", foreground="green")
+            self.controls_stats_panel.set_traktor_listener_status("🟢 Listener On", foreground="green")
         else:
-            self.controls_stats_panel.set_traktor_listener_status("🔴 Traktor Listener Offline", foreground="red")
+            self.controls_stats_panel.set_traktor_listener_status("🔴 Listener Off", foreground="red")
 
     def open_settings_dialog(self):
         from config.settings import Settings

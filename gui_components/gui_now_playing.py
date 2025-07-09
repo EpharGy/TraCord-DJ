@@ -41,15 +41,15 @@ class NowPlayingPanel(ttk.LabelFrame):
         self.button_row.columnconfigure(4, weight=0)
 
         # Traktor Listener Toggle Button (left)
-        self.traktor_listener_btn = ttk.Button(self.button_row, text="⭕ Enable Traktor Listener", width=25, style="TButton")
+        self.traktor_listener_btn = ttk.Button(self.button_row, text="⭕ Enable Listener", width=16, style="TButton")
         self.traktor_listener_btn.grid(row=0, column=0, padx=(0, 4))
 
         # Spout Cover Art Toggle Button (center left)
-        self.spout_toggle_btn = ttk.Button(self.button_row, text="⭕ Enable Spout", width=25, style="TButton")
+        self.spout_toggle_btn = ttk.Button(self.button_row, text="⭕ Enable Spout", width=15, style="TButton")
         self.spout_toggle_btn.grid(row=0, column=1, padx=(0, 4))
 
         # Open Overlay Button (center right)
-        self.overlay_button = ttk.Button(self.button_row, text="🌐 Open Overlay", width=25, command=lambda: None)
+        self.overlay_button = ttk.Button(self.button_row, text="🌐 Open Overlay", width=15, command=lambda: None)
         self.overlay_button.grid(row=0, column=2, padx=(0, 4))
 
         # Spacer (expandable)
@@ -98,9 +98,9 @@ class NowPlayingPanel(ttk.LabelFrame):
 
     def set_traktor_listener_state(self, on: bool):
         if on:
-            self.traktor_listener_btn.config(text="⭕ Disable Traktor Listener", style="Red.TButton")
+            self.traktor_listener_btn.config(text="⭕ Disable Listener", style="Red.TButton")
         else:
-            self.traktor_listener_btn.config(text="⭕ Enable Traktor Listener", style="TButton")
+            self.traktor_listener_btn.config(text="⭕ Enable Listener", style="TButton")
 
     def set_spout_toggle_state(self, on: bool):
         self.spout_enabled = on

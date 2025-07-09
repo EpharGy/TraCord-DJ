@@ -27,7 +27,7 @@ class SongRequestsPanel(ttk.LabelFrame):
         style = ttk.Style()
         style.configure("Danger.TButton", foreground="#b22222")  # Use same Firebrick red as Stop & Close
         self.remove_all_btn = ttk.Button(
-            topbar, text="❌ Remove All Song Requests", command=self.remove_all_requests, style="Danger.TButton"
+            topbar, text="❌ Remove All", command=self.remove_all_requests, style="Danger.TButton"
         )
         self.remove_all_btn.grid(row=0, column=0, padx=(0, 10), sticky="w")
         # Toggle Clean List button
