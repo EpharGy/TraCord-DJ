@@ -41,6 +41,7 @@ DESCRIPTIONS = {
     "FADE_FRAMES": "Number of frames for Spout transitions.",
     "FADE_DURATION": "Duration (in seconds) for Spout transitions.",
     "SPOUT_BORDER_PX": "Border size (in pixels) for Spout output.",
+    "MIDI_DEVICE": "Preferred MIDI output device name (leave blank for default).",
 }
 
 class SettingsDialog(tk.Toplevel):

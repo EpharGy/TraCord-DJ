@@ -74,6 +74,7 @@ class Settings:
     FADE_FRAMES: int = 30
     FADE_DURATION: float = 1.0
     SPOUT_BORDER_PX: int = 0
+    MIDI_DEVICE: str = ""
 
     @classmethod
     def initialize(cls) -> None:
@@ -106,6 +107,7 @@ class Settings:
         cls.FADE_FRAMES = safe_int(cls.get('FADE_FRAMES'), 30)
         cls.FADE_DURATION = safe_float(cls.get('FADE_DURATION'), 1.0)
         cls.SPOUT_BORDER_PX = safe_int(cls.get('SPOUT_BORDER_PX'), 216)
+        cls.MIDI_DEVICE = str(cls.get('MIDI_DEVICE', ""))
         # Validate required settings
         required_vars = [
             cls.get('DISCORD_TOKEN'),
