@@ -162,7 +162,7 @@
         <div class="song-info" id="songInfo">
             <img id="coverArt" src="" alt="Cover Art">
             <div class="text-content">
-                <div class="artist" id="artist">No Artist</div>
+                <div class="artist" id="artist">""No Artist""</div> 
                 <div class="title" id="title">No Song Playing</div>
                 <div class="album" id="album"></div>
                 <div class="metadata">
@@ -212,8 +212,8 @@
         
         function updateOverlay(songData) {
             // Always update all fields, even if the song is the same
-            artist.textContent = songData.artist || 'No Artist';
-            title.textContent = songData.title || 'No Song Playing';
+            artist.textContent = songData.artist || '';
+            title.textContent = songData.title || '';
             album.textContent = songData.album || '';
 
             // Cover art: always update
