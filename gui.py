@@ -95,8 +95,8 @@ class BotGUI:
         self.root = tk.Tk()
         app_title = title or f"TraCord DJ v{__version__} - Control Panel"
         self.root.title(app_title)
-        self.root.geometry("1400x825")  # Widened for new layout DO NOT CHANGE
-        self.root.minsize(1000, 500)
+        self.root.geometry("1190x795")  # Widened for new layout DO NOT CHANGE
+        self.root.minsize(1190, 795) # self.root.minsize(600, 400)
         # Set window icon - remove the janky black diamond/question mark icon
         try:
             icon_path = os.path.join('assets', 'app_icon.ico')
@@ -251,7 +251,7 @@ class BotGUI:
         # Song Requests Panel (new, right of console/log)
         from gui_components.gui_songrequests import SongRequestsPanel
         self.song_requests_panel = SongRequestsPanel(main_frame)
-        self.song_requests_panel.grid(row=1, column=2, sticky="nsew", padx=(15, 0))  # Add left padding
+        self.song_requests_panel.grid(row=1, column=2, sticky="nw", padx=(15, 0))  # Top-left only, no vertical expansion
         # Bring window to front on song request add/delete
         from utils.events import subscribe
         subscribe("song_request_added", lambda _: self.bring_to_front())
