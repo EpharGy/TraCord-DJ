@@ -191,6 +191,11 @@ This app supports sending cover art to other applications via Spout (Windows onl
    cd Python-SpoutGL
    pip install .
    ```
+3. Delete Python-SpoutGL source files after installation to avoid including them in your own repo:
+   ```powershell
+   cd ..
+   Remove-Item -Recurse -Force Python-SpoutGL
+   ```
 
 **Do not include the Python-SpoutGL source in your own repo.** Just document these steps for users who want Spout support.
 
