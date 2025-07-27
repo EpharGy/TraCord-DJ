@@ -18,7 +18,7 @@ class WebOverlayServer:
         self.port = port
         self.app = Flask(__name__, template_folder='../web_overlay/templates')
         self.app.config['SECRET_KEY'] = 'tracord_dj_overlay_secret'
-        self.socketio = SocketIO(self.app, cors_allowed_origins="*")
+        self.socketio = SocketIO(self.app, cors_allowed_origins="*", async_mode="threading")
         self.is_running = False
         self.server_thread = None
         self.current_song = None  # Store current song data
@@ -131,7 +131,8 @@ class WebOverlayServer:
                 port=self.port,
                 debug=False,
                 use_reloader=False,
-                log_output=False
+                log_output=False,
+                allow_unsafe_werkzeug=True
             )
         except Exception as e:
             error(f"Web overlay server error: {e}")

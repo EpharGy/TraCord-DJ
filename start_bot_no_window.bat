@@ -31,9 +31,4 @@ echo Starting TraCord DJ GUI...
 echo.
 
 REM Start the GUI application
-python run_bot.py
-
-REM If we get here, the application has closed
-echo.
-echo Bot application closed.
-pause
+start "" pythonw.exe run_bot.py
