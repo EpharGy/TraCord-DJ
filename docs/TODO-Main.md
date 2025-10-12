@@ -32,36 +32,36 @@
 ## Visual Enhancement Features
 
 - [ ] YouTube video integration for background visualizations
-    - [ ] Research VLC -> NDI -> Spout pipeline for OBS (see: <https://resolume.com/forum/viewtopic.php?t=14201>, <https://www.youtube.com/watch?v=LrNi3ZSNN6w>)
-    - [ ] Test local video player integration with `yt-dlp` + `opencv-python` or VLC
-    - [ ] Implement local caching system for downloaded videos
+  - [ ] Research VLC -> NDI -> Spout pipeline for OBS (see: <https://resolume.com/forum/viewtopic.php?t=14201>, <https://www.youtube.com/watch?v=LrNi3ZSNN6w>)
+  - [ ] Test local video player integration with `yt-dlp` + `opencv-python` or VLC
+  - [ ] Implement local caching system for downloaded videos
 - [ ] Google Images integration as alternative/fallback
-    - [ ] Set up Google Custom Search API
-    - [ ] Implement image caching and random selection
-    - [ ] Create franchise-based image organization
+  - [ ] Set up Google Custom Search API
+  - [ ] Implement image caching and random selection
+  - [ ] Create franchise-based image organization
 - [ ] Smart caching system:
-    - [ ] Priority downloading for most-played tracks
-    - [ ] Background downloads during idle time
-    - [ ] Auto-cleanup of old/unused content
-    - [ ] Size limits and storage management
+  - [ ] Priority downloading for most-played tracks
+  - [ ] Background downloads during idle time
+  - [ ] Auto-cleanup of old/unused content
+  - [ ] Size limits and storage management
 
 ## Song Request Auto-Removal
 
 - [ ] When a song is played (live or random), check if it matches any entry in the song request list.
-    - [ ] Normalize both played song and request entry as "Artist - Title" (ignore album/extra info, use normalize_string logic).
-    - [ ] If a match is found, call the standard delete function to remove the request (updates GUI and JSON, reorders RequestNumbers).
-    - [ ] Ensure this works for both live and random playback.
-    - [ ] (Future) Optionally send a Discord message to the requester when their song is played.
+  - [ ] Normalize both played song and request entry as "Artist - Title" (ignore album/extra info, use normalize_string logic).
+  - [ ] If a match is found, call the standard delete function to remove the request (updates GUI and JSON, reorders RequestNumbers).
+  - [ ] Ensure this works for both live and random playback.
+  - [ ] (Future) Optionally send a Discord message to the requester when their song is played.
 
 ## Song Requests Overlay & Always-On-Top Popup
 
 - [ ] Add a new web overlay page (e.g., `/requests`) to display the song requests list in a clean, browser-based UI
-    - [ ] Create `requests_overlay.html` in the templates folder
-    - [ ] Add Flask route `/requests` in `web_overlay.py`
-    - [ ] Use Flask-SocketIO to send live song request updates to this overlay
+  - [ ] Create `requests_overlay.html` in the templates folder
+  - [ ] Add Flask route `/requests` in `web_overlay.py`
+  - [ ] Use Flask-SocketIO to send live song request updates to this overlay
 - [ ] Move the main GUI song requests panel to the popup window replacing the current requests panel and requests popup
-    - [ ] Make the popup always-on-top (for use over Traktor)
-    - [ ] Keep the popup in sync with the web overlay and JSON data
+  - [ ] Make the popup always-on-top (for use over Traktor)
+  - [ ] Keep the popup in sync with the web overlay and JSON data
 - [ ] Allow the overlay and popup to be used independently (browser or GUI)
 - [ ] (Optional) Add filtering, search, or highlight for urgent/priority requests
 

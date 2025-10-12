@@ -1,6 +1,6 @@
 # TraCord DJ
 
-A comprehensive Discord bot for managing music requests, interacting with Traktor DJ software collections, and enhancing DJ workflow automation. This is a standalone GUI application suitable for personal DJ environments. Spout integration is included for cover art display in other supported applications. Automatically creates a flask webserver for web overlays, allowing real-time song updates in OBS or other streaming software. MIDI support is included for song transitions, when enabled, a simple note is played when a song is played, allowing you to use this with other MIDI listeners. (recommend Free software for non-commercial, LoopBe1 - https://www.nerds.de/en/download.html)
+A comprehensive Discord bot for managing music requests, interacting with Traktor DJ software collections, and enhancing DJ workflow automation. This is a standalone GUI application suitable for personal DJ environments. Spout integration is included for cover art display in other supported applications. Automatically creates a flask webserver for web overlays, allowing real-time song updates in OBS or other streaming software. MIDI support is included for song transitions, when enabled, a simple note is played when a song is played, allowing you to use this with other MIDI listeners. (recommend Free software for non-commercial, LoopBe1 - <https://www.nerds.de/en/download.html>)
 
 > **📝 Version**: Current version in [`version.py`](../version.py)
 > Was monstly built in Python 3.11 but recently updated to 3.13, so may not work with 3.11 anymore.
@@ -48,7 +48,6 @@ Debug mode:
 add --debug
 Debug with no Discord connection:
 add --debugd or --nodiscord
-
 
 ## Commands
 
