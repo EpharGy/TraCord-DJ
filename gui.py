@@ -25,9 +25,13 @@ from datetime import datetime
 import asyncio
 import io
 
+from tracord.infra.logging import setup_for_environment
+
 # Set debug mode and discord disable mode as early as possible
 DEBUG_MODE = '--debug' in sys.argv or '--debugd' in sys.argv or '--nodiscord' in sys.argv
 DISCORD_DISABLED = '--debugd' in sys.argv or '--nodiscord' in sys.argv
+
+setup_for_environment()
 
 from utils.logger import set_gui_callback, set_debug_mode, info, debug, warning, error
 set_debug_mode(DEBUG_MODE)

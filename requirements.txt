@@ -6,3 +6,4 @@ mido
 python-rtmidi
 pillow
 mutagen
+pydantic

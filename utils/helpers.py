@@ -1,13 +1,24 @@
 """
 Permission and utility helper functions
 """
-from typing import List
+from typing import Any, Dict, List
 import discord
 from utils.logger import info, warning
 from utils.stats import (
     STATS_FILE, load_stats, save_stats, increment_stat, reset_session_stats, reset_global_stats
 )
 
+def wrap_text(text: str, max_length: int, *, ellipsis: str = "…") -> str:
+    """Return *text* trimmed to *max_length* characters (including ellipsis)."""
+
+    if max_length <= 0:
+        return ""
+    if len(text) <= max_length:
+        return text
+    cutoff = max_length - len(ellipsis)
+    if cutoff <= 0:
+        return ellipsis[:max_length]
+    return text[:cutoff] + ellipsis
 
 def check_permissions(user_id: int, allowed_user_ids: List[int]) -> bool:
     """Check if a user has permission based on their ID"""

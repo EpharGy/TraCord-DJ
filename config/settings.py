@@ -3,10 +3,10 @@ Configuration settings for TraCord DJ
 Handles settings.json variables, constants, and validation
 """
 import os
-import json
 from pathlib import Path
 from typing import List, Optional
 from utils.logger import debug, info, warning, error
+from tracord.infra.settings import SettingsModel, load_settings
 
 # Path to settings.json (always in project root or config/data dir)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -17,11 +17,13 @@ SETTINGS_PATH = os.path.join(USER_DATA_DIR, 'settings.json')
 class Settings:
     """Centralized configuration management loaded from settings.json"""
     _settings = {}
+    _model: Optional[SettingsModel] = None
 
     @classmethod
     def load(cls):
-        with open(SETTINGS_PATH, 'r', encoding='utf-8') as f:
-            cls._settings = json.load(f)
+        model = load_settings(path=Path(SETTINGS_PATH))
+        cls._model = model
+        cls._settings = model.dict(by_alias=True, exclude_none=True)
         # Set all keys as class attributes for easy reference
         for key, value in cls._settings.items():
             setattr(cls, key, value)
@@ -74,6 +76,7 @@ class Settings:
     FADE_FRAMES: int = 30
     FADE_DURATION: float = 1.0
     SPOUT_BORDER_PX: int = 0
+    SPOUT_COVER_SIZE: int = 0
     MIDI_DEVICE: str = ""
 
     @classmethod
@@ -86,7 +89,7 @@ class Settings:
         cls.CHANNEL_IDS = [int(id) for id in channel_ids]
         cls.ADMIN_IDS = [int(id) for id in admin_ids]
         cls.DISCORD_LIVE_NOTIFICATION_ROLES = [str(role).strip() for role in roles]
-        cls.DEBUG = bool(cls.get('DEBUG', False))
+        cls.DEBUG = bool(cls._model.debug if cls._model else cls.get('DEBUG', False))
         # Import additional variables from settings.json
         def safe_int(val, default):
             try:
@@ -107,6 +110,7 @@ class Settings:
         cls.FADE_FRAMES = safe_int(cls.get('FADE_FRAMES'), 30)
         cls.FADE_DURATION = safe_float(cls.get('FADE_DURATION'), 1.0)
         cls.SPOUT_BORDER_PX = safe_int(cls.get('SPOUT_BORDER_PX'), 216)
+        cls.SPOUT_COVER_SIZE = safe_int(cls.get('SPOUT_COVER_SIZE'), 1080)
         cls.MIDI_DEVICE = str(cls.get('MIDI_DEVICE', ""))
         # Validate required settings
         required_vars = [

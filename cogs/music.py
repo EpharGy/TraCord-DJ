@@ -8,108 +8,59 @@ import asyncio
 import json
 import os
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, List, Tuple
 
 from config.settings import Settings
-from utils.traktor import parse_traktor_collection, load_collection_json, search_collection_json
-from utils.helpers import check_channel_permissions, truncate_response
+from utils.helpers import check_channel_permissions, wrap_text
 from utils.logger import debug, info, warning, error
 from utils.stats import increment_stat
 from utils.events import emit
+from tracord.core.services.search import JsonSearchBackend
 
 
 class MusicCog(commands.Cog, name="Music"):
-    """Cog for music search and song request functionality"""
-    
+    """Cog for music search and song request functionality."""
+
+    MAX_MESSAGE_LENGTH = 2000
+
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.active_song_waits = {}  # user_id: asyncio.Task
+        self.active_song_waits: Dict[int, asyncio.Task] = {}
+        self.search_backend = JsonSearchBackend.from_settings(Settings)
     
     @app_commands.command(name="song", description="Search for a song in the Traktor collection and optionally select one by replying.")
     @app_commands.describe(search="search query")
     async def song(self, interaction: discord.Interaction, search: str):
         """Search for songs in the Traktor collection with interactive selection"""
-        if not check_channel_permissions(interaction, Settings.CHANNEL_IDS):
+        if not self._is_channel_allowed(interaction):
             await interaction.response.send_message(
-                "This command can only be used in the designated channels.", 
-                ephemeral=True
+                "This command can only be used in the designated channels.",
+                ephemeral=True,
             )
-            return        # Load collection JSON for fast searching
-        songs = load_collection_json(Settings.COLLECTION_JSON_FILE)
-        # Increment search counter for GUI tracking
-        increment_stat("total_song_searches", 1)
-        increment_stat("session_song_searches", 1)
+            return
 
-        if not songs:
-            await interaction.response.send_message("Collection not available. Please refresh the collection.", ephemeral=True)
-            warning(f"Collection JSON not found or empty for {interaction.user}'s search")
-            return        # Fast JSON-based search (get all matches, we'll fit what we can in Discord's limit)
-        results, total_matches = search_collection_json(songs, search)  # No artificial limit
+        if not await self._ensure_collection_loaded(interaction):
+            return
 
-        if not results:
+        self._record_search()
+
+        search_result = self.search_backend.search(search)
+        matches = search_result.matches or []
+        total_matches = search_result.total_matches
+
+        if not matches:
             await interaction.response.send_message("No matching results found.")
             info(f"{interaction.user}'s search '{search}' matched 0 songs")
             return
-              # Dynamically fit as many results as possible within Discord's 2000 character limit
-        base_message = "Search Results:\n"
-        instruction_message = "\nTo request a song, immediately REPLY with the # of the song, e.g. 6."        # Calculate message endings dynamically
-        no_truncation_ending = f"\n� Showing {len(results)} results.{instruction_message}"
-        
-        # Format: "\n🎶 Showing XXX of YYY results.\nTo request a song..." (when truncation needed)  
-        truncation_ending_template = f"\n🎶 Showing {{}} of {total_matches} results.{instruction_message}"
-        
-        # Calculate available space - try without truncation first
-        available_space_no_truncation = 2000 - len(base_message) - len(no_truncation_ending) - 2  # 2 char buffer
-        
-        # Fit as many results as possible
-        fitted_results = []
-        current_length = 0
-        
-        for result in results:
-            result_line = result + "\n"
-            if current_length + len(result_line) > available_space_no_truncation:
-                break
-            fitted_results.append(result)
-            current_length += len(result_line)
-        
-        # Build the message
-        results_text = "\n".join(fitted_results)
-        
-        # Check if we need truncation
-        if len(fitted_results) < total_matches:
-            # We need truncation - recalculate with truncation ending
-            truncation_ending = truncation_ending_template.format(len(fitted_results))
-            
-            # Recalculate available space with truncation ending
-            available_space_truncation = 2000 - len(base_message) - len(truncation_ending) - 2  # 2 char buffer
-            
-            # Re-fit results with truncation space
-            fitted_results = []
-            current_length = 0
-            
-            for result in results:
-                result_line = result + "\n"
-                if current_length + len(result_line) > available_space_truncation:
-                    break
-                fitted_results.append(result)
-                current_length += len(result_line)
-              # Rebuild results text and final message
-            results_text = "\n".join(fitted_results)
-            truncation_ending = truncation_ending_template.format(len(fitted_results))  # Update count
-            results_message = base_message + results_text + truncation_ending
-        else:
-            # No truncation needed
-            no_truncation_ending = f"\n🎶 Showing {len(fitted_results)} results.{instruction_message}"
-            results_message = base_message + results_text + no_truncation_ending
-        
-        debug(f"Message length: {len(results_message)}/2000 characters")
-        debug(f"Showing {len(fitted_results)} results out of {total_matches} total matches")
-        
-        await interaction.response.send_message(results_message)
+
+        message, displayed_results = self._build_search_response(matches, total_matches)
+        await interaction.response.send_message(message)
         info(f"{interaction.user}'s search '{search}' matched {total_matches} songs")
-        
-        # Store only the fitted results in the result_dict
-        result_dict = {str(i + 1): result.split(" | ", 1)[1] for i, result in enumerate(fitted_results)}
+
+        result_dict: Dict[str, str] = {}
+        for index, original in enumerate(displayed_results, start=1):
+            _, _, detail = original.partition(" | ")
+            result_dict[str(index)] = detail or original
 
         user_id = interaction.user.id
 
@@ -187,6 +138,75 @@ class MusicCog(commands.Cog, name="Music"):
 
         self.active_song_waits[user_id] = asyncio.create_task(wait_for_selection())
         
+    def _is_channel_allowed(self, interaction: discord.Interaction) -> bool:
+        return check_channel_permissions(interaction, Settings.CHANNEL_IDS)
+
+    async def _ensure_collection_loaded(self, interaction: discord.Interaction) -> bool:
+        if self.search_backend.song_count() == 0:
+            self.search_backend.reload()
+        if self.search_backend.song_count() > 0:
+            return True
+
+        message = "Collection not available. Please refresh the collection."
+        warning(f"Collection JSON not found or empty for {interaction.user}'s search")
+        if interaction.response.is_done():
+            await interaction.followup.send(message, ephemeral=True)
+        else:
+            await interaction.response.send_message(message, ephemeral=True)
+        return False
+
+    def _record_search(self) -> None:
+        increment_stat("total_song_searches", 1)
+        increment_stat("session_song_searches", 1)
+
+    def _footer_text(self, shown: int, total: int) -> str:
+        total_display = max(total, shown)
+        return (
+            f"\n🎶 Showing {shown} of {total_display} results."
+            "\nTo request a song, reply with the # (e.g. 6)."
+        )
+
+    def _build_search_response(self, matches: List[str], total_matches: int) -> Tuple[str, List[str]]:
+        base = "Search Results:\n"
+        display_lines: List[str] = []
+        originals: List[str] = []
+
+        for original in matches:
+            candidate_lines = display_lines + [original]
+            candidate_body = "\n".join(candidate_lines)
+            candidate_footer = self._footer_text(len(candidate_lines), total_matches)
+            candidate_message = base + candidate_body + candidate_footer
+
+            if len(candidate_message) <= self.MAX_MESSAGE_LENGTH:
+                display_lines.append(original)
+                originals.append(original)
+                continue
+
+            if not display_lines:
+                footer = self._footer_text(1, total_matches)
+                available = self.MAX_MESSAGE_LENGTH - len(base) - len(footer)
+                trimmed = wrap_text(original, max(0, available))
+                display_lines.append(trimmed)
+                originals.append(original)
+            break
+
+        if not display_lines and matches:
+            footer = self._footer_text(1, total_matches)
+            available = self.MAX_MESSAGE_LENGTH - len(base) - len(footer)
+            trimmed = wrap_text(matches[0], max(0, available))
+            display_lines.append(trimmed)
+            originals.append(matches[0])
+
+        shown = len(display_lines)
+        footer = self._footer_text(shown, total_matches)
+        message_body = "\n".join(display_lines)
+        message = base + message_body + footer
+        debug(
+            f"[MusicCog] song results message length: {len(message)}/{self.MAX_MESSAGE_LENGTH}; "
+            f"showing {shown} of {total_matches}"
+        )
+        return message, originals
+
 
 async def setup(bot: commands.Bot):
     """Add the MusicCog to the bot"""

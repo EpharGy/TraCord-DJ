@@ -8,6 +8,8 @@ import shutil
 import subprocess
 import tkinter as tk
 from tkinter import messagebox
+
+from tracord.infra.logging import setup_for_environment
 from utils.logger import info, warning, error
 
 def ensure_settings_file():
@@ -36,6 +38,7 @@ def ensure_settings_file():
 
 def main():
     """Main launcher function"""
+    setup_for_environment()
     ensure_settings_file()
     # Create a minimal window for error messages
     root = tk.Tk()

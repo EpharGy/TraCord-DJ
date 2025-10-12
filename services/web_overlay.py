@@ -3,12 +3,63 @@ Flask-SocketIO Web Overlay Server for OBS Integration
 Provides real-time now playing information via WebSocket
 """
 from flask import Flask, render_template
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO
 import threading
 import time
+from dataclasses import dataclass
+from typing import Any, Dict, Optional
+
 from utils.logger import info, debug, warning, error
-from utils.events import subscribe, unsubscribe
+from utils.events import subscribe
 from utils.harmonic_keys import open_key_int_to_str
+
+@dataclass(slots=True)
+class OverlaySong:
+    artist: str
+    title: str
+    album: str
+    bpm: str
+    key: str
+    genre: str
+    audio_file_path: str
+    coverart_base64: str
+    timestamp: float
+
+    @classmethod
+    def from_song_info(cls, song_info: Dict[str, Any]) -> "OverlaySong":
+        musical_key = song_info.get('musical_key', '')
+        key_str = open_key_int_to_str(musical_key) if musical_key not in ('', None) else ''
+        return cls(
+            artist=song_info.get('artist', ''),
+            title=song_info.get('title', ''),
+            album=song_info.get('album', ''),
+            bpm=str(song_info.get('bpm', '')),
+            key=key_str,
+            genre=song_info.get('genre', ''),
+            audio_file_path=song_info.get('audio_file_path', ''),
+            coverart_base64=song_info.get('coverart_base64', ''),
+            timestamp=time.time(),
+        )
+
+    def to_payload(self) -> Dict[str, Any]:
+        return {
+            'artist': self.artist,
+            'title': self.title,
+            'album': self.album,
+            'bpm': self.bpm,
+            'key': self.key,
+            'genre': self.genre,
+            'audio_file_path': self.audio_file_path,
+            'coverart_base64': self.coverart_base64,
+            'timestamp': self.timestamp,
+        }
+
+    def masked_log(self) -> Dict[str, Any]:
+        payload = self.to_payload()
+        if payload.get('coverart_base64'):
+            payload['coverart_base64'] = f"<base64 string, {len(self.coverart_base64)} bytes>"
+        return payload
+
 
 class WebOverlayServer:
     """Flask-SocketIO server for web overlay functionality"""
@@ -20,8 +71,10 @@ class WebOverlayServer:
         self.app.config['SECRET_KEY'] = 'tracord_dj_overlay_secret'
         self.socketio = SocketIO(self.app, cors_allowed_origins="*", async_mode="threading")
         self.is_running = False
-        self.server_thread = None
-        self.current_song = None  # Store current song data
+        self.server_thread = None  # type: Optional[threading.Thread]
+        self.current_song = None  # type: Optional[OverlaySong]
+        self._latest_payload = None  # type: Optional[Dict[str, Any]]
+
         self.setup_routes()
         self.setup_socket_events()
         self.setup_event_subscriptions()
@@ -56,45 +109,25 @@ class WebOverlayServer:
         info("[Overlay] Subscribed to song_played events")
         debug("Web overlay subscribed to song_played events")
     
-    def on_song_played(self, song_info):
+    def on_song_played(self, song_info: Optional[Dict[str, Any]]):
         """Handle song_played events and broadcast to overlay clients"""
-        # Log song info without full coverart_base64
-        log_info = dict(song_info)
-        if 'coverart_base64' in log_info:
-            log_info['coverart_base64'] = f"<base64 string, {len(log_info['coverart_base64'])} bytes>"
-        debug(f"[Overlay] Received song_played event: {log_info}")
-        
         if not song_info:
             warning("[Overlay] Received empty song_info")
             return
-            
-        self.current_song = song_info
-        
-        # Format song data for overlay
-        overlay_data = {
-            'artist': song_info.get('artist', ''),
-            'title': song_info.get('title', ''),
-            'album': song_info.get('album', ''),
-            'bpm': song_info.get('bpm', ''),
-            'key': open_key_int_to_str(song_info.get('musical_key', '')) if song_info.get('musical_key', '') != '' else '',
-            'genre': song_info.get('genre', ''),
-            'audio_file_path': song_info.get('audio_file_path', ''),
-            'coverart_base64': song_info.get('coverart_base64', ''),
-            'timestamp': time.time()
-        }
-        
-        # Log overlay_data without full coverart_base64
-        overlay_log = dict(overlay_data)
-        if 'coverart_base64' in overlay_log:
-            overlay_log['coverart_base64'] = f"<base64 string, {len(overlay_log['coverart_base64'])} bytes>"
-        debug(f"[Overlay] Formatted data: {overlay_log}")
-        
-        # Broadcast to all connected clients
-        if self.is_running:
-            self.socketio.emit('song_update', overlay_data)
-            info(f"[Overlay] Broadcasting: {overlay_data['artist']} - {overlay_data['title']}")
-        else:
-            warning("[Overlay] Server not running, skipping broadcast")
+
+        overlay_song = OverlaySong.from_song_info(song_info)
+        debug(f"[Overlay] Received song_played event: {overlay_song.masked_log()}")
+        self.current_song = overlay_song
+
+        payload = overlay_song.to_payload()
+        self._latest_payload = payload
+
+        if not self.is_running:
+            debug("[Overlay] Received song update while server stopped; cached payload only")
+            return
+
+        self.socketio.emit('song_update', payload)
+        info(f"[Overlay] Broadcasting: {overlay_song.artist} - {overlay_song.title}")
     
     def start_server(self):
         """Start the web overlay server in a background thread"""
@@ -110,15 +143,14 @@ class WebOverlayServer:
         )
         self.server_thread.start()
         info(f"Web overlay server starting on http://{self.host}:{self.port}")
+        if self.current_song and not self._latest_payload:
+            self._latest_payload = self.current_song.to_payload()
     
     def stop_server(self):
         """Stop the web overlay server"""
         if not self.is_running:
             return
             
-        # Unsubscribe from events
-        unsubscribe("song_played", self.on_song_played)
-        
         self.is_running = False
         info("Web overlay server stopped")
     
@@ -140,21 +172,12 @@ class WebOverlayServer:
     
     def send_current_song(self):
         """Send current song data to newly connected clients"""
-        if self.current_song:
-            # Send the current song to newly connected client
-            overlay_data = {
-                'artist': self.current_song.get('artist', ''),
-                'title': self.current_song.get('title', ''),
-                'album': self.current_song.get('album', ''),
-                'bpm': self.current_song.get('bpm', ''),
-                'key': open_key_int_to_str(self.current_song.get('musical_key', '')) if self.current_song.get('musical_key', '') != '' else '',
-                'genre': self.current_song.get('genre', ''),
-                'audio_file_path': self.current_song.get('audio_file_path', ''),
-                'coverart_base64': self.current_song.get('coverart_base64', ''),
-                'timestamp': time.time()
-            }
-            self.socketio.emit('song_update', overlay_data)
-            debug(f"Sent current song to new client: {overlay_data['artist']} - {overlay_data['title']}")
+        payload = self._latest_payload or (self.current_song.to_payload() if self.current_song else None)
+        if payload:
+            if payload is not self._latest_payload:
+                self._latest_payload = payload
+            self.socketio.emit('song_update', payload)
+            debug(f"Sent current song to new client: {payload['artist']} - {payload['title']}")
         else:
             # No current song, send empty data
             self.send_no_song_playing()
@@ -173,7 +196,7 @@ class WebOverlayServer:
             'key': song_data.get('key', ''),
             'timestamp': time.time()
         }
-        
+        self._latest_payload = overlay_data
         self.socketio.emit('song_update', overlay_data)
         debug(f"Broadcasting song update: {overlay_data['artist']} - {overlay_data['title']}")
     
@@ -188,8 +211,12 @@ class WebOverlayServer:
             'album': '',
             'bpm': '',
             'key': '',
+            'genre': '',
+            'audio_file_path': '',
+            'coverart_base64': '',
             'timestamp': time.time()
         }
         
+        self._latest_payload = empty_data
         self.socketio.emit('song_update', empty_data)
         debug("Broadcasting no song playing")

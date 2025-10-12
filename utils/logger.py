@@ -1,52 +1,46 @@
-"""
-Centralized logging system for Traktor DJ NowPlaying Discord Bot
-Provides consistent logging to both terminal and GUI with configurable debug levels
-"""
-import os
-import sys
-from datetime import datetime
-from typing import Optional, Any
+"""Legacy-friendly logging wrapper backed by the stdlib logging module."""
+from __future__ import annotations
+
+import logging
 from threading import Lock
+from typing import Any, Optional
 
 
 class BotLogger:
-    """
-    Centralized logger that outputs to both terminal and GUI
-    Supports different log levels and debug mode configuration
-    """
-    
-    # Log levels
-    DEBUG = 10
-    INFO = 20
-    WARNING = 30
-    ERROR = 40
-    
-    _instance = None
+    """Centralized logger with optional GUI callbacks."""
+
+    DEBUG = logging.DEBUG
+    INFO = logging.INFO
+    WARNING = logging.WARNING
+    ERROR = logging.ERROR
+
+    _instance: Optional["BotLogger"] = None
     _lock = Lock()
-    
+
     def __new__(cls):
-        """Singleton pattern to ensure only one logger instance"""
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
                     cls._instance = super().__new__(cls)
         return cls._instance
-    
+
     def __init__(self):
-        """Initialize the logger with default settings"""
-        if hasattr(self, '_initialized'):
+        if getattr(self, "_initialized", False):
             return
-        
+
         self._initialized = True
         self._gui_callback = None
         self._debug_enabled = False
         self._level = self.INFO
-        
-        # Debug mode is now set only via set_debug_mode(), not auto-detected
+        self._logger = logging.getLogger("tracord")
+        self._logger.setLevel(self._level)
+        self._logger.propagate = True
+
     def set_debug_mode(self, enabled: bool):
         """Programmatically enable or disable debug mode"""
         self._debug_enabled = enabled
         self._level = self.DEBUG if enabled else self.INFO
+        self._logger.setLevel(self._level)
     
     def set_gui_callback(self, callback):
         """Set the GUI callback function for displaying messages in GUI"""
@@ -83,15 +77,14 @@ class BotLogger:
         """Internal logging method"""
         if not self._should_log(level):
             return
-        
+
         formatted_message = self._format_message(message, level)
-        
-        # Always output to terminal
-        print(formatted_message)
-        
+
+        # Send to stdlib logging
+        self._logger.log(level, formatted_message)
+
         # Also send to GUI if callback is set
         if self._gui_callback:
-            # Determine GUI log level based on message content and level
             if level == self.ERROR:
                 gui_level = "error"
             elif level == self.WARNING:
@@ -100,11 +93,10 @@ class BotLogger:
                 gui_level = "success"
             else:
                 gui_level = "info"
-            
+
             try:
                 self._gui_callback(formatted_message, gui_level)
             except Exception:
-                # Don't let GUI callback failures break logging
                 pass
     
     def debug(self, message: str):

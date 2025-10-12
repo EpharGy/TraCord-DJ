@@ -12,10 +12,14 @@ import shutil
 import discord
 from discord.ext import commands
 
+from tracord.infra.logging import setup_for_environment
+
 # Import configuration and utilities
 from config.settings import Settings
 from utils.traktor import refresh_collection_json, load_collection_json, count_songs_in_collection_json, get_new_songs_json
 from utils.logger import debug, info, warning, error
+
+setup_for_environment()
 
 
 class DJBot(commands.Bot):

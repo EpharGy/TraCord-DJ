@@ -2,8 +2,7 @@
 
 Branch: `ref_gui`
 
-Target Initial GUI Platform: **PySide6 (Qt)**  
-Long-term Optional Evolution: **Tauri (Web/Rust)** if remote/web-first UI becomes priority.
+Target GUI Platform: **PySide6 (Qt)** (modernized modular desktop shell).
 
 ---
 
@@ -26,7 +25,7 @@ Long-term Optional Evolution: **Tauri (Web/Rust)** if remote/web-first UI become
 - Action affordances (refresh, reset, listener toggle) not grouped logically.
 - Status feedback is text-only with color; could be semantic icons + subtle badges.
 
-### Proposed Structure (3 Primary Regions)
+### Proposed Structure (Modular Dynamic Layout)
 
 1. **Left Sidebar (Navigation/Status)**
    - Sections: Bot Status, Listener Status, Session Stats, Total Stats, Controls.
@@ -35,9 +34,49 @@ Long-term Optional Evolution: **Tauri (Web/Rust)** if remote/web-first UI become
    - Tabs: Now Playing | Requests | Logs.
    - Now Playing shows cover art (adaptive size), metadata, harmonic key, BPM.
    - Requests: interactive list with filters, moderation (future), queue.
-3. **Right Utility / Overlay Panel (Optional)**
+3. **Dynamic Attachment Zone (Right Expansion)**
+   - Optional panels attach in activation order (user toggle sequence) or fallback to default ordering.
    - Overlay preview (render cover + meta as OBS-style bounding region).
    - Quick toggles: Spout, Overlay Server, MIDI.
+
+### Dynamic Panel System (New Design)
+
+We introduce a Panel Manager that controls optional sections as attachable modules to the right of a stable core column.
+
+Core window (always visible):
+
+- Status (bot + listener)
+- Core controls (start/stop, refresh, reset stats)
+- Compact stats summary
+- Log (either embedded or tabbed)
+
+Attachment zone (horizontally expanding):
+
+- Panels enabled by toolbar / toggle buttons.
+- Order = click order (append); persisted between sessions.
+- Each panel defines: `id`, `title`, `factory()`, `preferred_width`, `min_width`.
+
+Implementation approach:
+
+- Base layout: QHBoxLayout with left core + QSplitter (hidden when empty) for dynamic panels.
+- On enable: create widget via factory, add to splitter, apply size distribution.
+- On disable: remove widget, if no panels left hide splitter & shrink window via `adjustSize()`.
+- Persistence: QSettings keys `panels/enabled`, `panels/order`, `panels/sizes`.
+- Future animations (optional): slide in/out using `QPropertyAnimation` on `maximumWidth`.
+
+Panel candidates:
+
+- now_playing
+- requests
+- overlay_preview
+- advanced_stats (later)
+- settings (remains a dialog for now; convert only if inline editing desired)
+
+Benefits:
+
+- Avoids overwhelming initial layout.
+- User-driven customization without complex docking UI.
+- Natural path to remote or web mirroring (panel contracts already formalized).
 
 ### Visual Enhancements
 
@@ -95,11 +134,12 @@ Long-term Optional Evolution: **Tauri (Web/Rust)** if remote/web-first UI become
 - Live overlay preview (rendered QPixmap from same data path).
 - Non-blocking modal dialogs (replace blocking messageboxes with layered toasts / notifications).
 
-### Phase 4 – Optional Evolution Path
+### Phase 4 – Optional Extensions
 
-- Expose WebSocket endpoint for events (paving way for Tauri/web UI).
+- Expose WebSocket endpoint for events (optional remote control / future web shell).
 - Add REST endpoints for control actions.
-- Evaluate Tauri front-end using existing API; incremental replacement of Qt shell if desired.
+- Advanced panel persistence features (layout presets, export/import).
+- Optional remote overlay panel inspector.
 
 ## 5. Sequence Dependencies
 
@@ -182,13 +222,14 @@ DiscordBot / TraktorListener / SearchBackend
 - Add `USE_SQLITE_SEARCH`: bool.
 - Add `OVERLAY_PREVIEW_ENABLED`: bool.
 
-## 13. Future Tauri Bridge (Forward Compatibility)
+## 13. Forward Compatibility (Generic Remote / Web Hooks)
 
-Design contracts now:
+Design contracts now (agnostic of any specific framework):
 
 - Event serialization schema (JSON): `{type, timestamp, payload}`.
 - Control actions mapping: `POST /control/{action}` (start_bot, stop_bot, refresh_collection, reset_stats).
 - WebSocket channel `/ws/events` for NowPlaying, StatsUpdate, RequestsChange.
+- Panel state sync endpoint: `GET /panels` returns enabled/order; `PUT /panels` updates arrangement.
 
 ## 14. Open Questions (To Resolve Later)
 
