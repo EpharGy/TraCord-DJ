@@ -14,7 +14,7 @@ from config.settings import Settings
 from utils.helpers import check_channel_permissions, wrap_text
 from utils.logger import get_logger
 from utils.stats import increment_stat
-from utils.events import emit
+from tracord.core.events import EventTopic, emit_event
 from tracord.core.services.search import JsonSearchBackend
 
 
@@ -125,7 +125,7 @@ class MusicCog(commands.Cog, name="Music"):
                         await interaction.followup.send(
                             f"Added the song to the Song Request List: {selected_song}"
                         )
-                        emit("song_request_added", new_request)  # Emit event for new song request
+                        emit_event(EventTopic.SONG_REQUEST_ADDED, new_request)  # Emit event for new song request
                         # Increment search counter for GUI tracking
                         increment_stat("total_song_requests", 1)
                         increment_stat("session_song_requests", 1)

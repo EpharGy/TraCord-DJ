@@ -1,19 +1,19 @@
 import tkinter as tk
 from tkinter import ttk
-from utils.events import subscribe, emit
 import random
-from config.settings import Settings
-from utils.traktor import load_collection_json
-from utils.harmonic_keys import open_key_int_to_str
 import os
-from typing import Optional
+import threading
+from typing import Callable, List, Optional
 
 from PIL import ImageTk
+from tracord.core.events import EventTopic, emit_event, subscribe_event
 from utils.logger import get_logger
-import threading
 from utils.spout_sender_helper import SpoutGLHelper, SPOUTGL_AVAILABLE
 from utils.midi_helper import MidiHelper
 from tracord.utils.coverart import CoverArtResult, blank_image, ensure_variants
+from config.settings import Settings
+from utils.traktor import load_collection_json
+from utils.harmonic_keys import open_key_int_to_str
 
 logger = get_logger(__name__)
 
@@ -83,8 +83,10 @@ class NowPlayingPanel(ttk.LabelFrame):
         wraplength = panel_width - COVER_SIZE - 14
         self.label = tk.Label(self, text="Now Playing info will appear here.", anchor="w", justify="left", font=("Arial", 16, "bold"), wraplength=wraplength, padx=8, pady=4)
         self.label.grid(row=1, column=1, sticky="nw")
-        subscribe("song_played", self._on_song_played_event)
-        subscribe("traktor_song", self.handle_song_play)  # Subscribe to custom event from Traktor
+        self._event_unsubscribes: List[Callable[[], None]] = [
+            subscribe_event(EventTopic.SONG_PLAYED, self._on_song_played_event),
+            subscribe_event(EventTopic.TRAKTOR_SONG, self.handle_song_play),
+        ]
         self._coverart_img = None  # Keep reference to avoid garbage collection
         # Spout
         self.spout_sender = None
@@ -202,7 +204,7 @@ class NowPlayingPanel(ttk.LabelFrame):
         """Extract cover art, add as base64, then emit song_played event."""
 
         def on_complete(info_with_art, _):
-            emit("song_played", info_with_art)
+            emit_event(EventTopic.SONG_PLAYED, info_with_art)
 
         self._augment_song_info_with_cover_art(
             song_info,
@@ -214,7 +216,7 @@ class NowPlayingPanel(ttk.LabelFrame):
         """Unified handler for any song play event (Traktor or random)."""
         def after_coverart_extracted(song_info_with_art):
             # Only emit the event, do not call update_now_playing directly
-            self.label.after(0, lambda: emit("song_played", song_info_with_art))
+            self.label.after(0, lambda: emit_event(EventTopic.SONG_PLAYED, song_info_with_art))
         self.extract_coverart_and_continue(song_info, after_coverart_extracted)
 
     def extract_coverart_and_continue(self, song_info, callback):
@@ -305,6 +307,12 @@ class NowPlayingPanel(ttk.LabelFrame):
 
     # earmark: update_now_playing is now only needed for GUI updates, not for event emission
     # earmark: any direct emit("song_played", ...) outside emit_song_with_coverart/handle_song_play should be removed after confirming
+
+    def destroy(self):
+        for unsubscribe in self._event_unsubscribes:
+            unsubscribe()
+        self._event_unsubscribes.clear()
+        super().destroy()
 
     def update_now_playing(self, song_info):
         # Mask coverart_base64 in debug log

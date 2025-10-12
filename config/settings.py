@@ -3,7 +3,6 @@ Configuration settings for TraCord DJ
 Handles settings.json variables, constants, and validation
 """
 import os
-import logging
 from pathlib import Path
 from typing import List, Optional
 

@@ -4,7 +4,6 @@ import http.server
 import io
 import os
 import json
-import logging
 import struct
 import codecs
 import queue
@@ -14,7 +13,7 @@ from datetime import datetime
 
 from utils.logger import get_logger
 
-from utils.events import emit
+from tracord.core.events import EventTopic, emit_event
 from utils.song_matcher import get_song_info
 from utils.stats import increment_stat
 from services.web_overlay import OverlaySong
@@ -31,8 +30,8 @@ def _broadcast_song(song_info: Dict[str, Any]) -> None:
     song_copy.setdefault('audio_file_path', '')
     overlay_song = OverlaySong.from_song_info(song_copy)
     payload = overlay_song.to_payload()
-    emit("song_played", payload)
-    emit("traktor_song", payload)
+    emit_event(EventTopic.SONG_PLAYED, payload)
+    emit_event(EventTopic.TRAKTOR_SONG, payload)
 
 def create_traktor_handler(status_queue, shutdown_event):
     class TraktorListenerHandler(http.server.BaseHTTPRequestHandler):

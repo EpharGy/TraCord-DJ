@@ -1,14 +1,16 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
+import functools
 import json
 import os
 from copy import deepcopy
-from utils.events import subscribe
+from typing import Callable, List
+
+from tracord.core.events import EventTopic, subscribe_event
 from utils.helpers import update_request_numbers
 from utils.logger import get_logger
 from config.settings import Settings
-import functools
 
 SONG_REQUESTS_FILE = Settings.SONG_REQUESTS_FILE
 
@@ -43,11 +45,12 @@ class SongRequestsPanel(ttk.LabelFrame):
         self._last_requests = []
         self.clean_list_window = None
         self.load_requests()
-        subscribe("song_request_added", self.handle_song_added)
-        subscribe("song_request_deleted", self.handle_song_deleted)
-        # Subscribe popout refresh to events
-        subscribe("song_request_added", lambda _: self.refresh_clean_list_window())
-        subscribe("song_request_deleted", lambda _: self.refresh_clean_list_window())
+        self._event_unsubscribes: List[Callable[[], None]] = [
+            subscribe_event(EventTopic.SONG_REQUEST_ADDED, self.handle_song_added),
+            subscribe_event(EventTopic.SONG_REQUEST_DELETED, self.handle_song_deleted),
+            subscribe_event(EventTopic.SONG_REQUEST_ADDED, lambda _: self.refresh_clean_list_window()),
+            subscribe_event(EventTopic.SONG_REQUEST_DELETED, lambda _: self.refresh_clean_list_window()),
+        ]
 
 
     def get_request_id(self, req):
@@ -106,6 +109,12 @@ class SongRequestsPanel(ttk.LabelFrame):
         logger.info("All song requests removed")
         self.load_requests()
         self.refresh_clean_list_window()
+
+    def destroy(self):
+        for unsubscribe in self._event_unsubscribes:
+            unsubscribe()
+        self._event_unsubscribes.clear()
+        super().destroy()
 
     def toggle_clean_list_window(self):
         if self.clean_list_window and tk.Toplevel.winfo_exists(self.clean_list_window):

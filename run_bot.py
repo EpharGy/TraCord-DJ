@@ -6,7 +6,6 @@ import sys
 import os
 import shutil
 import subprocess
-import logging
 import tkinter as tk
 from tkinter import messagebox
 

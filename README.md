@@ -2,7 +2,7 @@
 
 A comprehensive Discord bot for managing music requests, interacting with Traktor DJ software collections, and enhancing DJ workflow automation. This is a standalone GUI application suitable for personal DJ environments. Spout integration is included for cover art display in other supported applications. Automatically creates a flask webserver for web overlays, allowing real-time song updates in OBS or other streaming software. MIDI support is included for song transitions, when enabled, a simple note is played when a song is played, allowing you to use this with other MIDI listeners. (recommend Free software for non-commercial, LoopBe1 - <https://www.nerds.de/en/download.html>)
 
-> **📝 Version**: Current version in [`version.py`](../version.py)
+> **📝 Version**: Current version in [`version.py`](version.py)
 > Was monstly built in Python 3.11 but recently updated to 3.13, so may not work with 3.11 anymore.
 
 ## Features
@@ -41,13 +41,20 @@ Current workflow, Traktor -> TraCord DJ -> Spout/Web Overlay -> Nest Drop -> OBS
 
 ## Quick Start
 
-**You must setup Various settings, settings.json will be created on first launch, these can then be set via the Settings button, Traktor path is the path with out the version folders, ie (C:/Users/{user}/Documents/Native Instruments/). Discord Token, ID's etc**
-To Launch:
-Python run_bot.py
-Debug mode:
-add --debug
-Debug with no Discord connection:
-add --debugd or --nodiscord
+**Setup notes:** the first launch creates `settings.json`. Update it (or use the GUI Settings dialog) with your Traktor base path (for example `C:/Users/<user>/Documents/Native Instruments/`), Discord token, and channel IDs before connecting the bot.
+
+Common launch commands:
+
+- `python run_bot.py`
+- `python run_bot.py --debug`
+- `python run_bot.py --debugd` (skip Discord connection)
+- `python run_bot.py --nodiscord`
+
+### Documentation
+
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — future-facing architecture blueprint
+- [`docs/REFACTOR.md`](docs/REFACTOR.md) — GUI modernization checklist
+- [`docs/TODO-Main.md`](docs/TODO-Main.md) — active roadmap items
 
 ## Commands
 
@@ -161,6 +168,10 @@ TraCord-DJ/
 │   │   ├── stats.py
 │   │   └── traktor.py
 │   ├── version.py
+├── docs/
+│   ├── ARCHITECTURE.md
+│   ├── REFACTOR.md
+│   └── TODO-Main.md
 ├── assets/
 │   ├── app_icon.ico
 │   ├── icon.png
@@ -173,7 +184,6 @@ TraCord-DJ/
 ├── requirements.txt
 ├── LICENSE
 ├── README.md
-├── TODO-Main.md
 └── TraCord DJ.code-workspace
 ```
 

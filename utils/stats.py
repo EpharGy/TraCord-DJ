@@ -3,10 +3,9 @@ Stats management utilities for Traktor DJ NowPlaying Discord Bot
 """
 import json
 import os
-import logging
 
 from config.settings import Settings
-from utils.events import emit
+from tracord.core.events import EventTopic, emit_event
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -55,7 +54,7 @@ def increment_stat(stat_name, amount=1, stats_file=STATS_FILE):
     stats = load_stats(stats_file)
     stats[stat_name] = stats.get(stat_name, 0) + amount
     save_stats(stats, stats_file)
-    emit("stats_updated")
+    emit_event(EventTopic.STATS_UPDATED)
     return stats[stat_name]
 
 def reset_session_stats(stats_file=STATS_FILE):
@@ -67,7 +66,7 @@ def reset_session_stats(stats_file=STATS_FILE):
             stats[k] = 0
             logger.info(f"{k}: Reset to 0 (was {old})")
     save_stats(stats, stats_file)
-    emit("stats_updated")
+    emit_event(EventTopic.STATS_UPDATED)
     return stats
 
 def reset_global_stats(stats_file=STATS_FILE):
@@ -78,5 +77,5 @@ def reset_global_stats(stats_file=STATS_FILE):
     for k, v in DEFAULT_GLOBAL_STATS.items():
         if k in before:
             logger.info(f"{k}: Reset to 0 (was {before[k]})")
-    emit("stats_updated")
+    emit_event(EventTopic.STATS_UPDATED)
     return after

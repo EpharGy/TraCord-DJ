@@ -7,10 +7,9 @@ from flask_socketio import SocketIO
 import threading
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
-import logging
+from typing import Any, Callable, Dict, List, Optional
 
-from utils.events import subscribe
+from tracord.core.events import EventTopic, subscribe_event
 from utils.harmonic_keys import open_key_int_to_str
 from utils.logger import get_logger
 
@@ -78,6 +77,7 @@ class WebOverlayServer:
         self.server_thread = None  # type: Optional[threading.Thread]
         self.current_song = None  # type: Optional[OverlaySong]
         self._latest_payload = None  # type: Optional[Dict[str, Any]]
+        self._event_unsubscribers: List[Callable[[], None]] = []
 
         self.setup_routes()
         self.setup_socket_events()
@@ -109,7 +109,9 @@ class WebOverlayServer:
     
     def setup_event_subscriptions(self):
         """Subscribe to song_played events from the Traktor listener"""
-        subscribe("song_played", self.on_song_played)
+        self._event_unsubscribers.append(
+            subscribe_event(EventTopic.SONG_PLAYED, self.on_song_played)
+        )
         logger.info("[Overlay] Subscribed to song_played events")
         logger.debug("Web overlay subscribed to song_played events")
     
@@ -157,6 +159,9 @@ class WebOverlayServer:
             
         self.is_running = False
         logger.info("Web overlay server stopped")
+        while self._event_unsubscribers:
+            unsubscribe = self._event_unsubscribers.pop()
+            unsubscribe()
     
     def _run_server(self):
         """Run the Flask-SocketIO server"""

@@ -24,6 +24,9 @@ import os
 from datetime import datetime
 import asyncio
 import io
+from typing import Callable
+
+from tracord.core.events import EventTopic, subscribe_event
 
 from tracord.infra.logging import setup_for_environment
 
@@ -135,6 +138,7 @@ class BotGUI:
         self.bot_thread = None
         self.search_count = 0
         self.output_queue = queue.Queue()
+        self._event_unsubscribes: list[Callable[[], None]] = []
         self.setup_gui()
         self.setup_output_capture()
         set_gui_callback(self.add_log)
@@ -158,8 +162,9 @@ class BotGUI:
         # info("Session stats reset on startup.")
 
         # Subscribe to stats_updated event to update GUI when stats change
-        from utils.events import subscribe
-        subscribe("stats_updated", lambda _: self.update_search_count_display())
+        self._event_unsubscribes.append(
+            subscribe_event(EventTopic.STATS_UPDATED, lambda _: self.update_search_count_display())
+        )
 
     def setup_gui(self):
         """Set up the GUI elements"""
@@ -257,9 +262,12 @@ class BotGUI:
         self.song_requests_panel = SongRequestsPanel(main_frame)
         self.song_requests_panel.grid(row=1, column=2, sticky="nw", padx=(15, 0))  # Top-left only, no vertical expansion
         # Bring window to front on song request add/delete
-        from utils.events import subscribe
-        subscribe("song_request_added", lambda _: self.bring_to_front())
-        subscribe("song_request_deleted", lambda _: self.bring_to_front())
+        self._event_unsubscribes.append(
+            subscribe_event(EventTopic.SONG_REQUEST_ADDED, lambda _: self.bring_to_front())
+        )
+        self._event_unsubscribes.append(
+            subscribe_event(EventTopic.SONG_REQUEST_DELETED, lambda _: self.bring_to_front())
+        )
 
         # Add initial message
         logger.info("🎛️ TraCord DJ Control Panel initialized")
@@ -381,6 +389,13 @@ class BotGUI:
         if hasattr(self, 'nowplaying_panel') and getattr(self.nowplaying_panel, 'spout_enabled', False):
             logger.info("🔄 Stopping Spout sender...")
             self.nowplaying_panel._stop_spout_sender()
+        # Unsubscribe any event listeners registered by the GUI
+        while self._event_unsubscribes:
+            unsubscribe = self._event_unsubscribes.pop()
+            try:
+                unsubscribe()
+            except Exception as exc:
+                logger.debug(f"[Shutdown] Error unsubscribing event handler: {exc}")
         # Wait for clean shutdown then close
         def force_destroy():
             logger.info("[Shutdown] Forcing root.destroy() after timeout.")

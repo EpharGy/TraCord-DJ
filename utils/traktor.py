@@ -4,7 +4,6 @@ Traktor-specific utilities for collection management and parsing
 import os
 import json
 import shutil
-import logging
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 from pathlib import Path

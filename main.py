@@ -9,7 +9,6 @@ This bot uses Discord.py Cogs for modular organization.
 import asyncio
 import os
 import shutil
-import logging
 
 import discord
 from discord.ext import commands

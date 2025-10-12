@@ -11,7 +11,7 @@ from typing import List, Dict, Any
 from config.settings import Settings
 from utils.helpers import check_permissions, format_song_requests
 from utils.logger import get_logger
-from utils.events import emit
+from tracord.core.events import EventTopic, emit_event
 
 
 logger = get_logger(__name__)
@@ -88,7 +88,7 @@ class RequestsCog(commands.Cog, name="Requests"):
                 # Clear all requests
                 song_requests = []
                 self._save_song_requests(song_requests)
-                emit("song_request_deleted", None)  # Emit event for any deletion
+                emit_event(EventTopic.SONG_REQUEST_DELETED, None)  # Emit event for any deletion
 
                 await interaction.response.send_message("All song requests have been deleted.")
                 logger.info(f"{interaction.user} deleted all song requests.")
@@ -108,7 +108,7 @@ class RequestsCog(commands.Cog, name="Requests"):
                 # Update RequestNumbers
                 self._update_request_numbers(song_requests)
                 self._save_song_requests(song_requests)
-                emit("song_request_deleted", None)  # Emit event for any deletion
+                emit_event(EventTopic.SONG_REQUEST_DELETED, None)  # Emit event for any deletion
 
                 # Format the updated song list
                 updated_list = format_song_requests(song_requests)
@@ -142,7 +142,7 @@ class RequestsCog(commands.Cog, name="Requests"):
                 song_requests.pop(request_num - 1)
                 self._update_request_numbers(song_requests)
                 self._save_song_requests(song_requests)
-                emit("song_request_deleted", None)  # Emit event for any deletion
+                emit_event(EventTopic.SONG_REQUEST_DELETED, None)  # Emit event for any deletion
 
                 # Format the deleted song details
                 deleted_song_details = f"#{request_number} | {request_to_delete['Date']} | {request_to_delete['User']} | {request_to_delete['Song']} has been deleted."
@@ -180,7 +180,7 @@ class RequestsCog(commands.Cog, name="Requests"):
                 # Update RequestNumbers
                 self._update_request_numbers(song_requests)
                 self._save_song_requests(song_requests)
-                emit("song_request_deleted", None)  # Emit event for any deletion
+                emit_event(EventTopic.SONG_REQUEST_DELETED, None)  # Emit event for any deletion
 
                 # Format the updated song list
                 updated_list = format_song_requests(song_requests)
