@@ -8,10 +8,13 @@ import threading
 import time
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
+import logging
 
-from utils.logger import info, debug, warning, error
 from utils.events import subscribe
 from utils.harmonic_keys import open_key_int_to_str
+
+
+logger = logging.getLogger(__name__)
 
 @dataclass(slots=True)
 class OverlaySong:
@@ -95,44 +98,44 @@ class WebOverlayServer:
         """Set up SocketIO event handlers"""
         @self.socketio.on('connect')
         def handle_connect():
-            debug("WebSocket client connected")
+            logger.debug("WebSocket client connected")
             # Send current song data to newly connected client
             self.send_current_song()
             
         @self.socketio.on('disconnect')
         def handle_disconnect():
-            debug("WebSocket client disconnected")
+            logger.debug("WebSocket client disconnected")
     
     def setup_event_subscriptions(self):
         """Subscribe to song_played events from the Traktor listener"""
         subscribe("song_played", self.on_song_played)
-        info("[Overlay] Subscribed to song_played events")
-        debug("Web overlay subscribed to song_played events")
+        logger.info("[Overlay] Subscribed to song_played events")
+        logger.debug("Web overlay subscribed to song_played events")
     
     def on_song_played(self, song_info: Optional[Dict[str, Any]]):
         """Handle song_played events and broadcast to overlay clients"""
         if not song_info:
-            warning("[Overlay] Received empty song_info")
+            logger.warning("[Overlay] Received empty song_info")
             return
 
         overlay_song = OverlaySong.from_song_info(song_info)
-        debug(f"[Overlay] Received song_played event: {overlay_song.masked_log()}")
+        logger.debug(f"[Overlay] Received song_played event: {overlay_song.masked_log()}")
         self.current_song = overlay_song
 
         payload = overlay_song.to_payload()
         self._latest_payload = payload
 
         if not self.is_running:
-            debug("[Overlay] Received song update while server stopped; cached payload only")
+            logger.debug("[Overlay] Received song update while server stopped; cached payload only")
             return
 
         self.socketio.emit('song_update', payload)
-        info(f"[Overlay] Broadcasting: {overlay_song.artist} - {overlay_song.title}")
+        logger.info(f"[Overlay] Broadcasting: {overlay_song.artist} - {overlay_song.title}")
     
     def start_server(self):
         """Start the web overlay server in a background thread"""
         if self.is_running:
-            warning("Web overlay server is already running")
+            logger.warning("Web overlay server is already running")
             return
             
         self.is_running = True
@@ -142,7 +145,7 @@ class WebOverlayServer:
             name="WebOverlayServer"
         )
         self.server_thread.start()
-        info(f"Web overlay server starting on http://{self.host}:{self.port}")
+        logger.info(f"Web overlay server starting on http://{self.host}:{self.port}")
         if self.current_song and not self._latest_payload:
             self._latest_payload = self.current_song.to_payload()
     
@@ -152,7 +155,7 @@ class WebOverlayServer:
             return
             
         self.is_running = False
-        info("Web overlay server stopped")
+        logger.info("Web overlay server stopped")
     
     def _run_server(self):
         """Run the Flask-SocketIO server"""
@@ -167,7 +170,7 @@ class WebOverlayServer:
                 allow_unsafe_werkzeug=True
             )
         except Exception as e:
-            error(f"Web overlay server error: {e}")
+            logger.error(f"Web overlay server error: {e}")
             self.is_running = False
     
     def send_current_song(self):
@@ -177,7 +180,7 @@ class WebOverlayServer:
             if payload is not self._latest_payload:
                 self._latest_payload = payload
             self.socketio.emit('song_update', payload)
-            debug(f"Sent current song to new client: {payload['artist']} - {payload['title']}")
+            logger.debug(f"Sent current song to new client: {payload['artist']} - {payload['title']}")
         else:
             # No current song, send empty data
             self.send_no_song_playing()
@@ -198,7 +201,7 @@ class WebOverlayServer:
         }
         self._latest_payload = overlay_data
         self.socketio.emit('song_update', overlay_data)
-        debug(f"Broadcasting song update: {overlay_data['artist']} - {overlay_data['title']}")
+        logger.debug(f"Broadcasting song update: {overlay_data['artist']} - {overlay_data['title']}")
     
     def send_no_song_playing(self):
         """Send empty/no song data to clients"""
@@ -219,4 +222,5 @@ class WebOverlayServer:
         
         self._latest_payload = empty_data
         self.socketio.emit('song_update', empty_data)
-        debug("Broadcasting no song playing")
+        logger.debug("Broadcasting no song playing")
+

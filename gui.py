@@ -67,8 +67,6 @@ class BotGUI:
     """GUI application for the TraCord DJ bot"""
     
     def __init__(self, title=None):
-        from utils.stats import reset_session_stats
-        reset_session_stats()
         from services.discord_bot import DiscordBotController
         from main import DJBot
         from config.settings import Settings

@@ -8,16 +8,30 @@ import codecs
 import queue
 import sys
 from typing import Optional
-from utils.logger import info, warning, error, debug
+import json
+from datetime import datetime
+from typing import Dict, Any
+import logging
+
 from utils.events import emit
 from utils.song_matcher import get_song_info
 from utils.stats import increment_stat
-import json
-from datetime import datetime
+from services.web_overlay import OverlaySong
 from config.settings import Settings
-from gui_components.gui_now_playing import NowPlayingPanel
 
 COLLECTION_PATH: str = Settings.COLLECTION_JSON_FILE
+
+logger = logging.getLogger(__name__)
+
+
+def _broadcast_song(song_info: Dict[str, Any]) -> None:
+    song_copy = dict(song_info)
+    song_copy.setdefault('genre', '')
+    song_copy.setdefault('audio_file_path', '')
+    overlay_song = OverlaySong.from_song_info(song_copy)
+    payload = overlay_song.to_payload()
+    emit("song_played", payload)
+    emit("traktor_song", payload)
 
 def create_traktor_handler(status_queue, shutdown_event):
     class TraktorListenerHandler(http.server.BaseHTTPRequestHandler):
@@ -26,7 +40,7 @@ def create_traktor_handler(status_queue, shutdown_event):
                 status_queue.put('listening')
             self.send_response(200)
             self.end_headers()
-            info("[Traktor] Traktor connected, receiving stream...")
+            logger.info("[Traktor] Traktor connected, receiving stream...")
             try:
                 # Load collection once per connection.
                 try:
@@ -34,7 +48,7 @@ def create_traktor_handler(status_queue, shutdown_event):
                         collection = json.load(f)
                 except Exception as e:
                     collection = []
-                    warning(f"[Traktor] Could not load collection.json: {e}")
+                    logger.warning(f"[Traktor] Could not load collection.json: {e}")
                 while not shutdown_event.is_set():
                     header_data = self.rfile.read(27)
                     if not header_data or len(header_data) < 27:
@@ -70,7 +84,7 @@ def create_traktor_handler(status_queue, shutdown_event):
                                             tags[key.upper()] = value
                                     # Only process as a song if there is at least one tag other than ENCODER
                                     tag_keys = set(tags.keys())
-                                    debug(f"[Traktor] Parsed tags: {tags}")
+                                    logger.debug(f"[Traktor] Parsed tags: {tags}")
                                     # Only skip if the ONLY tag is ENCODER
                                     if tag_keys == {"ENCODER"}:
                                         total = 0
@@ -86,25 +100,21 @@ def create_traktor_handler(status_queue, shutdown_event):
                                     match = find_song_in_collection(artist, title, collection)
                                     song_info = get_song_info(artist, title, collection)
                                     if match:
-                                        info(f"[Traktor] Song Played: {song_info['artist']} - {song_info['title']} [{song_info.get('album','')}]" )
+                                        logger.info(f"[Traktor] Song Played: {song_info['artist']} - {song_info['title']} [{song_info.get('album','')}]")
                                     else:
-                                        warning(f"[Traktor] Unable to Match Song: {artist} | {title}")
+                                        logger.warning(f"[Traktor] Unable to Match Song: {artist} | {title}")
                                         try:
                                             dt = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
                                             unmatched_path = os.path.join(os.path.dirname(Settings.SONG_REQUESTS_FILE), "Debug_unmatched_songs.txt")
                                             with open(unmatched_path, "a", encoding="utf-8") as f:
                                                 f.write(f"{dt} {artist} - {title}\n")
                                         except Exception as e:
-                                            warning(f"[Traktor] Could not write unmatched song: {e}")
-                                    # Replace direct emit("song_played", song_info) with a call to the GUI workflow
-                                    # You must have a reference to your NowPlayingPanel instance, e.g., now_playing_panel
-                                    # Example: now_playing_panel.handle_song_play(song_info)
-                                    # If you do not have direct access, emit a custom event (e.g., emit("traktor_song", song_info)) and subscribe in the GUI to call handle_song_play
-                                    emit("traktor_song", song_info)
+                                            logger.warning(f"[Traktor] Could not write unmatched song: {e}")
+                                    _broadcast_song(song_info)
                                     increment_stat("total_song_plays", 1)
                                     increment_stat("session_song_plays", 1)
                                 except Exception as e:
-                                    warning(f"[Traktor] Error parsing Vorbis comment: {e}")
+                                    logger.warning(f"[Traktor] Error parsing Vorbis comment: {e}")
                             total = 0
                     if total != 0:
                         if total % 255 == 0:
@@ -112,7 +122,7 @@ def create_traktor_handler(status_queue, shutdown_event):
                         else:
                             self.rfile.read(total)
             except Exception as e:
-                warning(f"[Traktor] Handler error: {e}")
+                logger.warning(f"[Traktor] Handler error: {e}")
 
         def log_request(self, code='-', size='-'):
             pass
@@ -142,17 +152,19 @@ class TraktorBroadcastListener:
         self.thread.start()
         if self.status_callback:
             self.status_callback('starting')
+        logger.debug(f"[Traktor] Listener started on port {self.port}")
 
     def _serve(self):
         try:
             while not self.shutdown_event.is_set():
                 self.httpd.handle_request()  # type: ignore[union-attr]
         except Exception as e:
-            error(f"[Traktor] Listener error: {e}")
+            logger.error(f"[Traktor] Listener error: {e}")
         finally:
             self.running = False
             if self.status_callback:
                 self.status_callback('offline')
+            logger.debug("[Traktor] Listener stopped")
 
     def stop(self):
         if self.httpd:
@@ -162,6 +174,7 @@ class TraktorBroadcastListener:
         self.running = False
         if self.status_callback:
             self.status_callback('offline')
+        logger.debug("[Traktor] Listener stop requested")
 
     def poll_status(self):
         try:
