@@ -81,22 +81,6 @@ def set_gui_callback(callback) -> None:
     _gui_handler.callback = callback
 
 
-def debug(message: str) -> None:
-    BASE_LOGGER.debug(message)
-
-
-def info(message: str) -> None:
-    BASE_LOGGER.info(message)
-
-
-def warning(message: str) -> None:
-    BASE_LOGGER.warning(message)
-
-
-def error(message: str) -> None:
-    BASE_LOGGER.error(message)
-
-
 class OutputCapture:
     """
     Captures output from stdout/stderr and routes it to both the original stream and a queue or callback (e.g., for GUI log panel).
