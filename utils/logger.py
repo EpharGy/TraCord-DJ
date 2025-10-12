@@ -68,6 +68,16 @@ def set_gui_callback(callback) -> None:
     if _gui_handler is None:
         _gui_handler = GuiHandler()
         BASE_LOGGER.addHandler(_gui_handler)
+        BASE_LOGGER.propagate = False
+    root_logger = logging.getLogger()
+    if _gui_handler not in root_logger.handlers:
+        root_logger.addHandler(_gui_handler)
+    # Remove stream handlers to avoid writing to closed stdout/stderr when the GUI captures logs.
+    for handler in list(root_logger.handlers):
+        if handler is _gui_handler:
+            continue
+        if isinstance(handler, logging.StreamHandler):
+            root_logger.removeHandler(handler)
     _gui_handler.callback = callback
 
 

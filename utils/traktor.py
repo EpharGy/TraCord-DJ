@@ -4,15 +4,16 @@ Traktor-specific utilities for collection management and parsing
 import os
 import json
 import shutil
+import logging
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Tuple, Optional, Dict, Any
-from utils.logger import debug, info, warning, error
-from config.settings import Settings
 
-# Import our centralized logger
-from utils.logger import debug, info, warning, error
+from config.settings import Settings
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def get_latest_traktor_folder(root_path: str) -> str:
@@ -74,7 +75,7 @@ def count_songs_in_collection(collection_file_path: str, excluded_items: dict) -
         return count
         
     except ET.ParseError as e:
-        error(f"Error parsing XML file: {e}")
+        logger.error(f"Error parsing XML file: {e}")
         return 0
 
 
@@ -161,7 +162,7 @@ def get_new_songs(collection_file_path: str, days: int, excluded_items: dict,
     """
     if not os.path.exists(collection_file_path):
         if debug_mode:
-            warning(f"File not found: {collection_file_path}")
+            logger.warning(f"File not found: {collection_file_path}")
         return [f"File not found: {collection_file_path}"], 0
     
     try:
@@ -169,7 +170,7 @@ def get_new_songs(collection_file_path: str, days: int, excluded_items: dict,
         root = tree.getroot()
     except ET.ParseError as e:
         if debug_mode:
-            error(f"Error parsing XML file: {e}")
+            logger.error(f"Error parsing XML file: {e}")
         return [f"Error parsing XML file: {e}"], 0
     
     results = []
@@ -201,7 +202,7 @@ def get_new_songs(collection_file_path: str, days: int, excluded_items: dict,
             import_date = datetime.strptime(import_date_str, "%Y/%m/%d")
         except ValueError as ve:
             if debug_mode:
-                error(f"Error parsing date {import_date_str}: {ve}")
+                logger.error(f"Error parsing date {import_date_str}: {ve}")
             continue
         
         if import_date >= cutoff_date:
@@ -218,13 +219,13 @@ def get_new_songs(collection_file_path: str, days: int, excluded_items: dict,
             result_str = f"{import_date_str} | {artist} - {title} [{album_title}]" if album_title else f"{import_date_str} | {artist} - {title}"
             
             if debug_mode:
-                debug(f"Adding song: {result_str}")
+                logger.debug(f"Adding song: {result_str}")
                 
             results.append((import_date, artist, title, result_str))
             total_new_songs += 1
     
     if debug_mode:
-        debug(f"Total new songs added: {total_new_songs}")
+        logger.debug(f"Total new songs added: {total_new_songs}")
     
     # Sort results by date (descending), then by artist and title
     results.sort(key=lambda x: (-x[0].timestamp(), x[1] if x[1] is not None else '', x[2] if x[2] is not None else ''))
@@ -234,7 +235,7 @@ def get_new_songs(collection_file_path: str, days: int, excluded_items: dict,
         sorted_results.append(f"**Displaying latest {max_songs} songs of {total_new_songs} recently imported songs.**")
     
     if debug_mode:
-        debug(f"Sorted results: {sorted_results}")
+        logger.debug(f"Sorted results: {sorted_results}")
     
     return sorted_results, total_new_songs
 
@@ -250,7 +251,7 @@ def convert_collection_xml_to_json(xml_file_path: str, json_file_path: str, excl
         excluded_items = Settings.EXCLUDED_ITEMS
     try:
         if debug_mode:
-            debug(f"🔄 Parsing XML file: {xml_file_path}")
+            logger.debug(f"🔄 Parsing XML file: {xml_file_path}")
         
         tree = ET.parse(xml_file_path)
         root = tree.getroot()
@@ -317,17 +318,17 @@ def convert_collection_xml_to_json(xml_file_path: str, json_file_path: str, excl
             processed_count += 1
             
             if debug_mode and processed_count % 1000 == 0:
-                debug(f"Processed {processed_count} songs...")
+                logger.debug(f"Processed {processed_count} songs...")
         
         # Write to JSON file
         if debug_mode:
-            debug(f"💾 Writing {len(songs)} songs to JSON: {json_file_path}")
+            logger.debug(f"💾 Writing {len(songs)} songs to JSON: {json_file_path}")
             
         with open(json_file_path, 'w', encoding='utf-8') as f:
             json.dump(songs, f, ensure_ascii=False, indent=2)
         
         if debug_mode:
-            debug(f"✅ Successfully converted {processed_count} songs to JSON")
+            logger.debug(f"✅ Successfully converted {processed_count} songs to JSON")
             
         return processed_count
         
@@ -346,40 +347,40 @@ def refresh_collection_json(original_traktor_path: str, json_file_path: str, exc
     working_nml_path = "collection.nml"  # The .nml file that gets created in working directory
     
     try:
-        debug(f"Looking for Traktor collection at: {original_traktor_path}")
-        
+        logger.debug(f"Looking for Traktor collection at: {original_traktor_path}")
+
         # Step 1: Copy the original collection file to temp location
-        debug("Copying collection.nml to temporary file")
+        logger.debug("Copying collection.nml to temporary file")
         shutil.copyfile(original_traktor_path, temp_xml_path)
-        
+
         # Step 2: Convert XML to JSON
-        debug("Converting XML to JSON format")
+        logger.debug("Converting XML to JSON format")
         song_count = convert_collection_xml_to_json(temp_xml_path, json_file_path, excluded_items, debug_mode)
-        debug(f"Processed {song_count} tracks from collection")
-        
+        logger.debug(f"Processed {song_count} tracks from collection")
+
         # Step 3: Clean up temporary XML file
-        debug("Cleaning up temporary files")
+        logger.debug("Cleaning up temporary files")
         if os.path.exists(temp_xml_path):
             os.remove(temp_xml_path)
-            debug("Removed temporary collection file")
+            logger.debug("Removed temporary collection file")
           # Step 4: Clean up working directory .nml file if it exists
         # (This file sometimes gets created during processing and is no longer needed)
         if os.path.exists(working_nml_path):
             os.remove(working_nml_path)
-            debug("Removed working directory collection.nml file (no longer needed)")
+            logger.debug("Removed working directory collection.nml file (no longer needed)")
         
         # Return count for caller to handle success messaging
-        debug(f"Collection refresh completed successfully: {song_count} songs processed")
+        logger.debug(f"Collection refresh completed successfully: {song_count} songs processed")
         return song_count
         
     except Exception as e:
-        error(f"Collection import failed: {e}")
+        logger.error(f"Collection import failed: {e}")
         # Clean up any temp files if they exist
         for cleanup_path in [temp_xml_path, working_nml_path]:
             if os.path.exists(cleanup_path):
                 try:
                     os.remove(cleanup_path)
-                    debug(f"Cleaned up {cleanup_path} after error")
+                    logger.debug(f"Cleaned up {cleanup_path} after error")
                 except:
                     pass
         raise e
@@ -391,14 +392,14 @@ def load_collection_json(json_file_path: str) -> List[Dict[str, Any]]:
     Returns the list of song records.
     """
     if not os.path.exists(json_file_path):
-        warning(f"Collection JSON file not found: {json_file_path}")
+        logger.warning(f"Collection JSON file not found: {json_file_path}")
         return []
         
     try:
         with open(json_file_path, 'r', encoding='utf-8') as f:
             return json.load(f)
     except (json.JSONDecodeError, IOError) as e:
-        error(f"Error loading collection JSON: {e}")
+        logger.error(f"Error loading collection JSON: {e}")
         return []
 
 
@@ -408,10 +409,10 @@ def search_collection_json(songs: List[Dict[str, Any]], search_query: str, max_s
     Returns a tuple of (formatted_results, total_matches).
     If max_songs is None or greater than matches found, returns all matches.
     """
-    debug(f"Searching for '{search_query}' in {len(songs)} songs")
+    logger.debug(f"Searching for '{search_query}' in {len(songs)} songs")
     
     if not songs:
-        warning("No songs loaded in collection")
+        logger.warning("No songs loaded in collection")
         return ["Collection not loaded"], 0
     
     results = []
@@ -451,7 +452,7 @@ def search_collection_json(songs: List[Dict[str, Any]], search_query: str, max_s
             result_str = f"{display_artist} - {display_title} [{display_album}]" if display_album else f"{display_artist} - {display_title}"
             results.append((priority_score, sort_key, result_str))
     
-    debug(f"Search complete. Found {matches_found} matches out of {songs_checked} songs")
+    logger.debug(f"Search complete. Found {matches_found} matches out of {songs_checked} songs")
     
     # Sort results by priority and then by sort key
     results.sort(key=lambda x: (x[0], x[1]))
@@ -462,7 +463,7 @@ def search_collection_json(songs: List[Dict[str, Any]], search_query: str, max_s
         f"{i + 1} | {result[2]}" for i, result in enumerate(results[:limit])
     ]
     
-    debug(f"Returning {len(sorted_results)} formatted results out of {len(results)} total matches")
+    logger.debug(f"Returning {len(sorted_results)} formatted results out of {len(results)} total matches")
     return sorted_results, len(results)
 
 
@@ -492,7 +493,7 @@ def get_new_songs_json(songs: List[Dict[str, Any]], days: int, max_songs: int, d
             import_date = datetime.strptime(import_date_str, "%Y/%m/%d")
         except ValueError:
             if debug_mode:
-                error(f"Error parsing date {import_date_str}")
+                logger.error(f"Error parsing date {import_date_str}")
             continue
         
         if import_date >= cutoff_date:
@@ -508,13 +509,13 @@ def get_new_songs_json(songs: List[Dict[str, Any]], days: int, max_songs: int, d
             result_str = f"{import_date_str} | {display_artist} - {display_title} [{display_album}]" if display_album else f"{import_date_str} | {display_artist} - {display_title}"
             
             if debug_mode:
-                debug(f"Adding new song: {result_str}")
+                logger.debug(f"Adding new song: {result_str}")
                 
             results.append((import_date, artist, title, result_str))
             total_new_songs += 1
     
     if debug_mode:
-        debug(f"Total new songs found: {total_new_songs}")
+        logger.debug(f"Total new songs found: {total_new_songs}")
     
     # Sort results by date (descending), then by artist and title
     results.sort(key=lambda x: (-x[0].timestamp(), x[1], x[2]))
@@ -524,7 +525,7 @@ def get_new_songs_json(songs: List[Dict[str, Any]], days: int, max_songs: int, d
         sorted_results.append(f"**Displaying latest {max_songs} songs of {total_new_songs} recently imported songs.**")
     
     if debug_mode:
-        debug(f"Sorted results: {sorted_results}")
+        logger.debug(f"Sorted results: {sorted_results}")
     
     return sorted_results, total_new_songs
 
@@ -541,7 +542,7 @@ def get_collection_import_date(collection_file: str):
         else:
             return "Not available", ""
     except Exception as e:
-        error(f"Error getting collection import date: {e}")
+        logger.error(f"Error getting collection import date: {e}")
         return "Error", ""
 
 
@@ -551,15 +552,15 @@ def initialize_collection(traktor_path, collection_json_file, excluded_items, ne
     Returns a dict with keys: success, total_songs, total_new_songs, date_str, time_str, error_msg
     """
     try:
-        info("🔄 Importing collection from Traktor...")
-        info("📁 Converting XML to optimized JSON format...")
+        logger.info("🔄 Importing collection from Traktor...")
+        logger.info("📁 Converting XML to optimized JSON format...")
         song_count = refresh_collection_json(
             traktor_path,
             collection_json_file,
             excluded_items,
             debug_mode=debug_mode
         )
-        info(f"✅ Collection imported successfully - {song_count:,} songs processed")
+        logger.info(f"✅ Collection imported successfully - {song_count:,} songs processed")
         songs = load_collection_json(collection_json_file)
         if songs:
             total_songs = count_songs_in_collection_json(songs)
@@ -584,7 +585,7 @@ def initialize_collection(traktor_path, collection_json_file, excluded_items, ne
             }
     except Exception as e:
         error_msg = f"Error initializing collection: {e}"
-        error(f"❌ {error_msg}")
+        logger.error(f"❌ {error_msg}")
         return {
             "success": False,
             "error_msg": error_msg,

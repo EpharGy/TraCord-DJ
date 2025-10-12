@@ -10,8 +10,11 @@ from typing import List, Dict, Any
 
 from config.settings import Settings
 from utils.helpers import check_permissions, format_song_requests
-from utils.logger import debug, info, warning, error
+from utils.logger import get_logger
 from utils.events import emit
+
+
+logger = get_logger(__name__)
 
 
 class RequestsCog(commands.Cog, name="Requests"):
@@ -39,8 +42,8 @@ class RequestsCog(commands.Cog, name="Requests"):
         try:
             with open(Settings.SONG_REQUESTS_FILE, "w", encoding="utf-8") as file:
                 json.dump(song_requests, file, indent=4)
-        except Exception as e:
-            error(f"Error saving song requests: {e}")
+        except Exception as exc:
+            logger.error(f"Error saving song requests: {exc}")
     
     def _update_request_numbers(self, song_requests: List[Dict[str, Any]]) -> None:
         """Update request numbers to be sequential"""
@@ -54,12 +57,12 @@ class RequestsCog(commands.Cog, name="Requests"):
         
         if not song_requests:
             await interaction.response.send_message("No song requests found.")
-            info(f"{interaction.user} viewed the song request list.")
+            logger.info(f"{interaction.user} viewed the song request list.")
             return
         
         response = format_song_requests(song_requests)
         await interaction.response.send_message(response)
-        info(f"{interaction.user} viewed the song request list.")
+        logger.info(f"{interaction.user} viewed the song request list.")
     
     @app_commands.command(name="srbreqdel", description="Delete a song request by RequestNumber, 'all', 'self', or a specific user")
     @app_commands.describe(request_number="RequestNumber to delete, 'all', 'self', or a specific user")
@@ -88,7 +91,7 @@ class RequestsCog(commands.Cog, name="Requests"):
                 emit("song_request_deleted", None)  # Emit event for any deletion
 
                 await interaction.response.send_message("All song requests have been deleted.")
-                info(f"{interaction.user} deleted all song requests.")
+                logger.info(f"{interaction.user} deleted all song requests.")
                 return
 
             # Handle 'self' deletion
@@ -111,7 +114,7 @@ class RequestsCog(commands.Cog, name="Requests"):
                 updated_list = format_song_requests(song_requests)
 
                 await interaction.response.send_message("All your song requests have been deleted.\nUpdated Song Request List:")
-                info(f"{interaction.user} deleted all their song requests.")
+                logger.info(f"{interaction.user} deleted all their song requests.")
                 await interaction.followup.send(updated_list)
                 return
 
@@ -149,7 +152,7 @@ class RequestsCog(commands.Cog, name="Requests"):
 
                 # Send the response
                 await interaction.response.send_message(f"Deleting Song Request\n({deleted_song_details})\nUpdated Song Request List:")
-                info(f"{interaction.user} deleted song request #{request_number}.")
+                logger.info(f"{interaction.user} deleted song request #{request_number}.")
                 await interaction.followup.send(updated_list)
                 return
 
@@ -183,13 +186,13 @@ class RequestsCog(commands.Cog, name="Requests"):
                 updated_list = format_song_requests(song_requests)
 
                 await interaction.response.send_message(f"All song requests from user '{target_user}' have been deleted.\nUpdated Song Request List:")
-                info(f"{interaction.user} deleted all song requests from user '{target_user}'.")
+                logger.info(f"{interaction.user} deleted all song requests from user '{target_user}'.")
                 await interaction.followup.send(updated_list)
                 return
 
-        except Exception as e:
-            error(f"Error deleting song request: {e}")
-            await interaction.response.send_message(f"Error deleting song request: {e}", ephemeral=True)
+        except Exception as exc:
+            logger.error(f"Error deleting song request: {exc}")
+            await interaction.response.send_message(f"Error deleting song request: {exc}", ephemeral=True)
 
 
 async def setup(bot: commands.Bot):

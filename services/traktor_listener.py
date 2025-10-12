@@ -3,15 +3,16 @@ import socketserver
 import http.server
 import io
 import os
+import json
+import logging
 import struct
 import codecs
 import queue
 import sys
-from typing import Optional
-import json
+from typing import Optional, Dict, Any
 from datetime import datetime
-from typing import Dict, Any
-import logging
+
+from utils.logger import get_logger
 
 from utils.events import emit
 from utils.song_matcher import get_song_info
@@ -21,7 +22,7 @@ from config.settings import Settings
 
 COLLECTION_PATH: str = Settings.COLLECTION_JSON_FILE
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def _broadcast_song(song_info: Dict[str, Any]) -> None:

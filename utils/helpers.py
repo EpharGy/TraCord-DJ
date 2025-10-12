@@ -3,7 +3,6 @@ Permission and utility helper functions
 """
 from typing import Any, Dict, List
 import discord
-from utils.logger import info, warning
 from utils.stats import (
     STATS_FILE, load_stats, save_stats, increment_stat, reset_session_stats, reset_global_stats
 )

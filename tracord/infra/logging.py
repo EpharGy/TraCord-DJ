@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 from typing import Iterable, Optional
 
 _DEFAULT_FORMAT = "[%(asctime)s] [%(levelname)s] %(name)s: %(message)s"
@@ -51,7 +52,9 @@ def _build_default_handler(*, rich: bool) -> logging.Handler:
             return handler
         except Exception:  # pragma: no cover - fallback to stdlib
             pass
-    handler = logging.StreamHandler()
+    # Always anchor the stream handler to the original stdout so GUI rewrites
+    # (which replace ``sys.stdout``) do not leave the handler with a closed/null stream.
+    handler = logging.StreamHandler(stream=getattr(sys, "__stdout__", sys.stdout))
     handler.setFormatter(logging.Formatter(_DEFAULT_FORMAT, datefmt=_DEFAULT_DATEFMT))
     return handler
 

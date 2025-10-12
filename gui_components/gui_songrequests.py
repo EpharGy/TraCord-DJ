@@ -6,11 +6,13 @@ import os
 from copy import deepcopy
 from utils.events import subscribe
 from utils.helpers import update_request_numbers
-from utils.logger import info
+from utils.logger import get_logger
 from config.settings import Settings
 import functools
 
 SONG_REQUESTS_FILE = Settings.SONG_REQUESTS_FILE
+
+logger = get_logger(__name__)
 
 class SongRequestsPanel(ttk.LabelFrame):
     _instance = None  # Singleton instance for event-based access
@@ -83,7 +85,7 @@ class SongRequestsPanel(ttk.LabelFrame):
                     json.dump(self.requests, f, indent=4, ensure_ascii=False)
             except Exception:
                 pass
-            info(f"{removed.get('Song','')} removed from Song Requests")
+            logger.info(f"{removed.get('Song','')} removed from Song Requests")
             self.load_requests()
             self.refresh_clean_list_window()
 
@@ -101,7 +103,7 @@ class SongRequestsPanel(ttk.LabelFrame):
                 json.dump([], f, indent=4, ensure_ascii=False)
         except Exception:
             pass
-        info("All song requests removed")
+        logger.info("All song requests removed")
         self.load_requests()
         self.refresh_clean_list_window()
 

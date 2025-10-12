@@ -9,19 +9,21 @@ import os
 from typing import Optional
 
 from PIL import ImageTk
-from utils.logger import debug, info, warning, error
+from utils.logger import get_logger
 import threading
 from utils.spout_sender_helper import SpoutGLHelper, SPOUTGL_AVAILABLE
 from utils.midi_helper import MidiHelper
 from tracord.utils.coverart import CoverArtResult, blank_image, ensure_variants
 
-info("[NowPlayingPanel] File loaded and logger is active.")
+logger = get_logger(__name__)
+
+logger.info("[NowPlayingPanel] File loaded and logger is active.")
 
 COVER_SIZE = Settings.COVER_SIZE if hasattr(Settings, 'COVER_SIZE') and Settings.COVER_SIZE else 150  # px, square cover art dimension
 
 class NowPlayingPanel(ttk.LabelFrame):
     def __init__(self, parent, *args, **kwargs):
-        info("[NowPlayingPanel] __init__ called.")
+        logger.info("[NowPlayingPanel] __init__ called.")
         super().__init__(parent, text="Now Playing", padding="8", *args, **kwargs)
         self.columnconfigure(0, weight=0)  # Cover art column
         self.columnconfigure(1, weight=1)  # Info column
@@ -154,9 +156,9 @@ class NowPlayingPanel(ttk.LabelFrame):
                 )
                 song_info['coverart_base64'] = result.base64_png or ''
                 if not result.has_art:
-                    warning(f"[CoverArt] No embedded artwork found: {audio_file_path}")
+                    logger.warning(f"[CoverArt] No embedded artwork found: {audio_file_path}")
             except Exception as exc:  # pragma: no cover - guard threads
-                warning(f"[CoverArt] Unexpected error processing artwork: {exc}")
+                logger.warning(f"[CoverArt] Unexpected error processing artwork: {exc}")
                 self._record_cover_art_failure(audio_file_path, f"Error extracting cover art: {exc}")
                 result = None
                 song_info['coverart_base64'] = ''
@@ -189,12 +191,12 @@ class NowPlayingPanel(ttk.LabelFrame):
                 self._send_blank_spout_image()
 
     def _record_cover_art_failure(self, audio_file_path: str, message: str) -> None:
-        warning(f"[CoverArt] {message}: {audio_file_path}")
+        logger.warning(f"[CoverArt] {message}: {audio_file_path}")
         try:
             with open('data/Debug_unmatched_songs.txt', 'a', encoding='utf-8') as debug_file:
                 debug_file.write(f"{message}: {audio_file_path}\n")
         except Exception as log_error:  # pragma: no cover - diagnostics only
-            error(f"[CoverArt] Failed to log cover art issue: {log_error}")
+            logger.error(f"[CoverArt] Failed to log cover art issue: {log_error}")
 
     def emit_song_with_coverart(self, song_info):
         """Extract cover art, add as base64, then emit song_played event."""
@@ -240,13 +242,13 @@ class NowPlayingPanel(ttk.LabelFrame):
 
     def _start_spout_sender(self):
         if not SPOUTGL_AVAILABLE:
-            warning("SpoutGL is not installed. Cannot start Spout sender.")
+            logger.warning("SpoutGL is not installed. Cannot start Spout sender.")
             return
         if self.spout_sender is None:
             spout_size = getattr(Settings, "SPOUT_COVER_SIZE", 1080) or 1080
             self.spout_sender = SpoutGLHelper(sender_name="TraCordDJ CoverArt", width=spout_size, height=spout_size)
             self.spout_sender.start()
-            info("[SpoutGL] Sender started.")
+            logger.info("[SpoutGL] Sender started.")
             # Send blank image on startup
             self._send_blank_spout_image()
         # If we have a last cover image, send it
@@ -257,9 +259,9 @@ class NowPlayingPanel(ttk.LabelFrame):
         if self.spout_sender is not None:
             try:
                 self.spout_sender.stop()
-                info("[SpoutGL] Sender stopped.")
+                logger.info("[SpoutGL] Sender stopped.")
             except Exception as e:
-                warning(f"[SpoutGL] Error stopping sender: {e}")
+                logger.warning(f"[SpoutGL] Error stopping sender: {e}")
             self.spout_sender = None
 
     def _send_spout_image(self, pil_img):
@@ -267,9 +269,9 @@ class NowPlayingPanel(ttk.LabelFrame):
             return
         try:
             self.spout_sender.send_pil_image(pil_img)
-            info(f"[SpoutGL] Sent cover art via SpoutGL")
+            logger.info(f"[SpoutGL] Sent cover art via SpoutGL")
         except Exception as e:
-            warning(f"[SpoutGL] Error sending image: {e}")
+            logger.warning(f"[SpoutGL] Error sending image: {e}")
 
     def _send_blank_spout_image(self):
         if self.spout_sender is not None:
@@ -277,9 +279,9 @@ class NowPlayingPanel(ttk.LabelFrame):
                 spout_size = getattr(Settings, "SPOUT_COVER_SIZE", 1080) or 1080
                 img = blank_image((spout_size, spout_size))
                 self.spout_sender.send_pil_image(img)
-                info(f"[SpoutGL] Sent blank/transparent image via SpoutGL: {spout_size}x{spout_size}")
+                logger.info(f"[SpoutGL] Sent blank/transparent image via SpoutGL: {spout_size}x{spout_size}")
             except Exception as e:
-                warning(f"[SpoutGL] Error sending blank image: {e}")
+                logger.warning(f"[SpoutGL] Error sending blank image: {e}")
 
     def toggle_midi(self):
         import tkinter.messagebox as mb
@@ -289,11 +291,11 @@ class NowPlayingPanel(ttk.LabelFrame):
                 self.midi_toggle_btn.config(text="⭕ MIDI Off", style="TButton")
                 return
             self.midi_toggle_btn.config(text="⭕ MIDI On", style="Red.TButton")
-            info("MIDI output enabled.")
+            logger.info("MIDI output enabled.")
         else:
             self.midi_helper.disable()
             self.midi_toggle_btn.config(text="⭕ MIDI Off", style="TButton")
-            info("MIDI output disabled.")
+            logger.info("MIDI output disabled.")
 
     def _on_song_played_event(self, song_info):
         # Only update the GUI, do not emit or call handle_song_play here!
@@ -309,7 +311,7 @@ class NowPlayingPanel(ttk.LabelFrame):
         log_info = dict(song_info) if song_info else {}
         if 'coverart_base64' in log_info:
             log_info['coverart_base64'] = f"<base64 string, {len(log_info['coverart_base64'])} bytes>"
-        debug(f"[NowPlayingPanel] update_now_playing called with song_info: {log_info}")
+        logger.debug(f"[NowPlayingPanel] update_now_playing called with song_info: {log_info}")
         self._coverart_base64 = None
         if not song_info:
             self.label.config(text="No song info available.")

@@ -12,10 +12,13 @@ from typing import Dict, List, Tuple
 
 from config.settings import Settings
 from utils.helpers import check_channel_permissions, wrap_text
-from utils.logger import debug, info, warning, error
+from utils.logger import get_logger
 from utils.stats import increment_stat
 from utils.events import emit
 from tracord.core.services.search import JsonSearchBackend
+
+
+logger = get_logger(__name__)
 
 
 class MusicCog(commands.Cog, name="Music"):
@@ -50,12 +53,12 @@ class MusicCog(commands.Cog, name="Music"):
 
         if not matches:
             await interaction.response.send_message("No matching results found.")
-            info(f"{interaction.user}'s search '{search}' matched 0 songs")
+            logger.info(f"{interaction.user}'s search '{search}' matched 0 songs")
             return
 
         message, displayed_results = self._build_search_response(matches, total_matches)
         await interaction.response.send_message(message)
-        info(f"{interaction.user}'s search '{search}' matched {total_matches} songs")
+        logger.info(f"{interaction.user}'s search '{search}' matched {total_matches} songs")
 
         result_dict: Dict[str, str] = {}
         for index, original in enumerate(displayed_results, start=1):
@@ -74,13 +77,13 @@ class MusicCog(commands.Cog, name="Music"):
         async def wait_for_selection():
             try:
                 msg = await self.bot.wait_for("message", timeout=Settings.TIMEOUT, check=check)
-                selected_song = result_dict[msg.content]            # Save the selected song request to a JSON file
+                selected_song = result_dict[msg.content]
                 song_requests_file = Settings.SONG_REQUESTS_FILE
                 if song_requests_file:
                     try:
                         # Ensure the directory exists
                         os.makedirs(os.path.dirname(song_requests_file), exist_ok=True)
-                        
+
                         # Load existing requests or initialize an empty list
                         if os.path.exists(song_requests_file):
                             with open(song_requests_file, "r", encoding="utf-8") as file:
@@ -88,10 +91,12 @@ class MusicCog(commands.Cog, name="Music"):
                                     song_requests = json.load(file)
                                 except json.JSONDecodeError:
                                     song_requests = []  # Start fresh if JSON is invalid
-                                    warning(f"⚠️ Invalid JSON in {song_requests_file}, starting with empty list")
+                                    logger.warning(
+                                        f"⚠️ Invalid JSON in {song_requests_file}, starting with empty list"
+                                    )
                         else:
                             song_requests = []
-                            info(f"📄 Creating new song requests file: {song_requests_file}")
+                            logger.info(f"📄 Creating new song requests file: {song_requests_file}")
 
                         # Determine the next request number
                         next_request_num = len(song_requests) + 1
@@ -104,34 +109,41 @@ class MusicCog(commands.Cog, name="Music"):
                             "RequestNumber": next_request_num,
                             "Date": current_time,
                             "User": str(interaction.user),
-                            "Song": selected_song
-                        }                    # Append the new request to the list
+                            "Song": selected_song,
+                        }
+
+                        # Append the new request to the list
                         song_requests.append(new_request)
-                        
+
                         # Save back to the JSON file
                         with open(song_requests_file, "w", encoding="utf-8") as file:
                             json.dump(song_requests, file, indent=4)
 
-                        info(f"{interaction.user} selected and requested the song: {selected_song}")
-                        await interaction.followup.send(f"Added the song to the Song Request List: {selected_song}")
+                        logger.info(
+                            f"{interaction.user} selected and requested the song: {selected_song}"
+                        )
+                        await interaction.followup.send(
+                            f"Added the song to the Song Request List: {selected_song}"
+                        )
                         emit("song_request_added", new_request)  # Emit event for new song request
                         # Increment search counter for GUI tracking
                         increment_stat("total_song_requests", 1)
                         increment_stat("session_song_requests", 1)
 
-                        
-                    except Exception as e:
-                        error(f"❌ Error saving song request: {e}")
-                        await interaction.followup.send("❌ Error saving song request. Please try again.", ephemeral=True)
+                    except Exception as exc:
+                        logger.error(f"❌ Error saving song request: {exc}")
+                        await interaction.followup.send(
+                            "❌ Error saving song request. Please try again.", ephemeral=True
+                        )
                     
             except asyncio.TimeoutError:
-                warning(f"{interaction.user} did not respond in time for song selection.")
+                logger.warning(f"{interaction.user} did not respond in time for song selection.")
             except asyncio.CancelledError:
                 # Optionally notify user their previous selection was cancelled
                 pass
             except KeyError:
                 await interaction.followup.send("Invalid input for song selection.")
-                warning(f"{interaction.user} entered invalid input for song selection.")
+                logger.warning(f"{interaction.user} entered invalid input for song selection.")
             finally:
                 if user_id in self.active_song_waits:
                     del self.active_song_waits[user_id]
@@ -148,7 +160,7 @@ class MusicCog(commands.Cog, name="Music"):
             return True
 
         message = "Collection not available. Please refresh the collection."
-        warning(f"Collection JSON not found or empty for {interaction.user}'s search")
+        logger.warning(f"Collection JSON not found or empty for {interaction.user}'s search")
         if interaction.response.is_done():
             await interaction.followup.send(message, ephemeral=True)
         else:
@@ -201,7 +213,7 @@ class MusicCog(commands.Cog, name="Music"):
         footer = self._footer_text(shown, total_matches)
         message_body = "\n".join(display_lines)
         message = base + message_body + footer
-        debug(
+        logger.debug(
             f"[MusicCog] song results message length: {len(message)}/{self.MAX_MESSAGE_LENGTH}; "
             f"showing {shown} of {total_matches}"
         )

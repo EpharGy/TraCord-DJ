@@ -6,7 +6,10 @@ from pathlib import Path
 from typing import Any, List, Optional
 
 from utils.traktor import load_collection_json, search_collection_json
-from utils.logger import debug, warning
+from utils.logger import get_logger
+
+
+logger = get_logger(__name__)
 
 
 @dataclass(slots=True)
@@ -40,7 +43,7 @@ class JsonSearchBackend(SearchBackend):
             mtime = self.collection_path.stat().st_mtime
         except FileNotFoundError:
             if self._collection_mtime is not None:
-                warning(f"[Search] Collection file missing: {self.collection_path}")
+                logger.warning(f"[Search] Collection file missing: {self.collection_path}")
             self._collection_mtime = None
             self._songs = []
             return False
@@ -51,7 +54,7 @@ class JsonSearchBackend(SearchBackend):
 
     def reload(self) -> None:
         if not self.collection_path.exists():
-            warning(f"[Search] Collection JSON not found at {self.collection_path}")
+            logger.warning(f"[Search] Collection JSON not found at {self.collection_path}")
             self._songs = []
             self._collection_mtime = None
             return
@@ -60,7 +63,7 @@ class JsonSearchBackend(SearchBackend):
             self._collection_mtime = self.collection_path.stat().st_mtime
         except FileNotFoundError:
             self._collection_mtime = None
-        debug(f"[Search] Loaded {len(self._songs)} songs from {self.collection_path}")
+        logger.debug(f"[Search] Loaded {len(self._songs)} songs from {self.collection_path}")
 
     def _ensure_loaded(self) -> None:
         if self._needs_reload():

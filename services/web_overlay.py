@@ -12,9 +12,10 @@ import logging
 
 from utils.events import subscribe
 from utils.harmonic_keys import open_key_int_to_str
+from utils.logger import get_logger
 
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 @dataclass(slots=True)
 class OverlaySong:

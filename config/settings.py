@@ -3,12 +3,15 @@ Configuration settings for TraCord DJ
 Handles settings.json variables, constants, and validation
 """
 import os
+import logging
 from pathlib import Path
 from typing import List, Optional
-from utils.logger import debug, info, warning, error
+
 from tracord.infra.settings import SettingsModel, load_settings
+from utils.logger import get_logger
 
 # Path to settings.json (always in project root or config/data dir)
+logger = get_logger(__name__)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 USER_DATA_DIR = os.path.join(BASE_DIR, 'data')
 os.makedirs(USER_DATA_DIR, exist_ok=True)
@@ -134,7 +137,7 @@ class Settings:
             from pathlib import Path
             traktor_dirs = [d for d in Path(traktor_location).iterdir() if d.is_dir() and d.name.startswith("Traktor ")]
             if not traktor_dirs:
-                warning(f"No Traktor folders found in {traktor_location}. Please set the correct Traktor path in settings.")
+                logger.warning(f"No Traktor folders found in {traktor_location}. Please set the correct Traktor path in settings.")
                 cls.TRAKTOR_PATH = ""
                 return
             version_paths = []
@@ -146,10 +149,10 @@ class Settings:
             latest_traktor_folder = str(version_paths[0][1])
             cls.TRAKTOR_PATH = os.path.join(latest_traktor_folder, traktor_collection_filename)
             if not os.path.exists(cls.TRAKTOR_PATH):
-                warning(f"Collection file not found: {cls.TRAKTOR_PATH}. Please check your settings.")
+                logger.warning(f"Collection file not found: {cls.TRAKTOR_PATH}. Please check your settings.")
                 cls.TRAKTOR_PATH = ""
         except Exception as e:
-            error(f"Error setting up Traktor path: {e}")
+            logger.error(f"Error setting up Traktor path: {e}")
             cls.TRAKTOR_PATH = ""
 
 # Assign file paths as class variables after class definition

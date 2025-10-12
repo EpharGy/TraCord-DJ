@@ -19,7 +19,9 @@ from mutagen.id3 import ID3
 from mutagen.id3._frames import APIC
 from mutagen.mp3 import MP3
 
-from utils.logger import debug, warning
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 SizeDict = Dict[str, Tuple[int, int]]
 
@@ -70,7 +72,7 @@ def _extract_embedded_bytes(path: str) -> Optional[bytes]:
             if audio and getattr(audio, "pictures", None):
                 return audio.pictures[0].data
     except Exception as exc:  # pragma: no cover - preventing crashes is critical
-        warning(f"[CoverArt] Failed to extract image bytes from {path}: {exc}")
+        logger.warning(f"[CoverArt] Failed to extract image bytes from {path}: {exc}")
     return None
 
 
@@ -78,12 +80,12 @@ def _load_image(data: bytes) -> Optional[Image.Image]:
     try:
         with Image.open(io.BytesIO(data)) as img:
             converted = img.convert("RGBA")
-        debug(
+        logger.debug(
             "[CoverArt] Loaded embedded image",
         )
         return converted
     except Exception as exc:  # pragma: no cover
-        warning(f"[CoverArt] Invalid embedded image data: {exc}")
+        logger.warning(f"[CoverArt] Invalid embedded image data: {exc}")
         return None
 
 
@@ -92,7 +94,7 @@ def load_cover_image(path: str) -> Optional[Image.Image]:
 
     art_bytes = _extract_embedded_bytes(path)
     if not art_bytes:
-        debug(f"[CoverArt] No artwork found for {path}")
+        logger.debug(f"[CoverArt] No artwork found for {path}")
         return None
     return _load_image(art_bytes)
 
@@ -139,7 +141,7 @@ def build_cover_art(
     variants: Dict[str, Image.Image] = {}
     for key, size in sizes.items():
         variants[key] = _resize(original, size)
-        debug(f"[CoverArt] Prepared variant '{key}' at {size}")
+        logger.debug(f"[CoverArt] Prepared variant '{key}' at {size}")
 
     base64_png = None
     if base64_variant and base64_variant in variants:
@@ -158,7 +160,7 @@ def ensure_variants(
 
     result = build_cover_art(path, sizes=sizes, base64_variant=base64_variant)
     if not result.has_art:
-        debug(f"[CoverArt] No art assets generated for {path}")
+        logger.debug(f"[CoverArt] No art assets generated for {path}")
     return result
 
 

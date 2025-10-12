@@ -3,9 +3,13 @@ Stats management utilities for Traktor DJ NowPlaying Discord Bot
 """
 import json
 import os
-from utils.logger import warning
+import logging
+
 from config.settings import Settings
 from utils.events import emit
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 STATS_FILE = Settings.STATS_FILE
 DEFAULT_GLOBAL_STATS = {
@@ -37,7 +41,7 @@ def load_stats(stats_file=STATS_FILE):
                 stats[k] = v
         return stats
     except Exception as e:
-        warning(f"⚠️ Error loading stats: {e}")
+        logger.warning(f"⚠️ Error loading stats: {e}")
         return DEFAULT_GLOBAL_STATS.copy()
 
 def save_stats(stats, stats_file=STATS_FILE):
@@ -45,7 +49,7 @@ def save_stats(stats, stats_file=STATS_FILE):
         with open(stats_file, "w", encoding="utf-8") as f:
             json.dump(stats, f, indent=2)
     except Exception as e:
-        warning(f"⚠️ Error saving stats: {e}")
+        logger.warning(f"⚠️ Error saving stats: {e}")
 
 def increment_stat(stat_name, amount=1, stats_file=STATS_FILE):
     stats = load_stats(stats_file)
@@ -57,24 +61,22 @@ def increment_stat(stat_name, amount=1, stats_file=STATS_FILE):
 def reset_session_stats(stats_file=STATS_FILE):
     """Reset all session stats in the stats file and persist."""
     stats = load_stats(stats_file)
-    from utils.logger import info
     for k, v in DEFAULT_SESSION_STATS.items():
         if k in stats:
             old = stats[k]
             stats[k] = 0
-            info(f"{k}: Reset to 0 (was {old})")
+            logger.info(f"{k}: Reset to 0 (was {old})")
     save_stats(stats, stats_file)
     emit("stats_updated")
     return stats
 
 def reset_global_stats(stats_file=STATS_FILE):
     """Reset all global stats to their default values and persist."""
-    from utils.logger import info
     before = load_stats(stats_file)
     save_stats(DEFAULT_GLOBAL_STATS.copy(), stats_file)
     after = load_stats(stats_file)
     for k, v in DEFAULT_GLOBAL_STATS.items():
         if k in before:
-            info(f"{k}: Reset to 0 (was {before[k]})")
+            logger.info(f"{k}: Reset to 0 (was {before[k]})")
     emit("stats_updated")
     return after

@@ -1,6 +1,9 @@
 import tkinter as tk
 from tkinter import ttk
 
+from utils.logger import get_logger
+logger = get_logger(__name__)
+
 LIST_KEYS = [
     "DISCORD_BOT_CHANNEL_IDS",
     "DISCORD_BOT_ADMIN_IDS",
@@ -141,6 +144,5 @@ class SettingsDialog(tk.Toplevel):
         self.destroy()
 
     def on_cancel(self):
-        from utils.logger import info
-        info("[SettingsDialog] User cancelled settings dialog.")
+        logger.info("[SettingsDialog] User cancelled settings dialog.")
         self.destroy()

@@ -33,9 +33,11 @@ DISCORD_DISABLED = '--debugd' in sys.argv or '--nodiscord' in sys.argv
 
 setup_for_environment()
 
-from utils.logger import set_gui_callback, set_debug_mode, info, debug, warning, error
+from utils.logger import set_gui_callback, set_debug_mode, get_logger
+
+logger = get_logger(__name__)
 set_debug_mode(DEBUG_MODE)
-info("Debug mode is enabled" if DEBUG_MODE else "Debug mode is disabled")
+logger.info("Debug mode is enabled" if DEBUG_MODE else "Debug mode is disabled")
 
 # Import the bot and version
 try:
@@ -76,7 +78,7 @@ class BotGUI:
         # Initialize web overlay server
         self.web_overlay_server = WebOverlayServer(host='127.0.0.1', port=5000)
         self.web_overlay_server.start_server()
-        info("Web overlay server auto-started on http://127.0.0.1:5000")
+        logger.info("Web overlay server auto-started on http://127.0.0.1:5000")
         
         self.discord_bot_controller = DiscordBotController(
             bot_class=DJBot,
@@ -105,16 +107,16 @@ class BotGUI:
             png_icon_path = os.path.join('assets', 'icon.png')
             if os.path.exists(icon_path):
                 self.root.iconbitmap(icon_path)
-                info(f"✅ Using custom icon: {icon_path}")
+                logger.info(f"✅ Using custom icon: {icon_path}")
             elif os.path.exists(png_icon_path):
                 icon_image = tk.PhotoImage(file=png_icon_path)
                 self.root.iconphoto(True, icon_image)
-                info(f"✅ Using PNG icon: {png_icon_path}")
+                logger.info(f"✅ Using PNG icon: {png_icon_path}")
             else:
                 self.root.wm_iconbitmap('')
-                info("ℹ️  Removed default icon - no custom icon found")
+                logger.info("ℹ️  Removed default icon - no custom icon found")
         except Exception as e:
-            warning(f"⚠️  Could not set custom icon: {e}")
+            logger.warning(f"⚠️  Could not set custom icon: {e}")
             try:
                 self.root.wm_iconbitmap('')
             except:
@@ -145,7 +147,7 @@ class BotGUI:
         if not self.discord_disabled:
             self.root.after(1000, self.auto_start_bot)
         else:
-            info("Debug mode (no Discord): Bot will not connect to Discord.")
+            logger.info("Debug mode (no Discord): Bot will not connect to Discord.")
             self.status_label.config(text="🟡 Debug Mode", foreground="orange")
             # Optionally, load collection stats and other features for testing
             self.load_collection_stats()
@@ -260,9 +262,9 @@ class BotGUI:
         subscribe("song_request_deleted", lambda _: self.bring_to_front())
 
         # Add initial message
-        info("🎛️ TraCord DJ Control Panel initialized")
-        info("⏱️ Auto-startup scheduled in 1 second...")
-        
+        logger.info("🎛️ TraCord DJ Control Panel initialized")
+        logger.info("⏱️ Auto-startup scheduled in 1 second...")
+
         # Show GUI
         self.root.deiconify()  # Show the window
     
@@ -316,21 +318,22 @@ class BotGUI:
         
         # Update search count display
         self.update_search_count_display()
-        
-        # Schedule next check        self.root.after(100, self.check_output_queue)
+
+        # Schedule next check
+        self.root.after(100, self.check_output_queue)
 
     def auto_start_bot(self):
         """Automatically start the Discord bot on launch"""
         if self.is_running:
-            debug("Auto-startup skipped - bot already running")
+            logger.debug("Auto-startup skipped - bot already running")
             return
-        debug("Auto-startup enabled - initiating bot start")
+        logger.debug("Auto-startup enabled - initiating bot start")
         self.start_discord_bot()
 
     def start_discord_bot(self):
         """Start the Discord bot"""
         if getattr(self, 'discord_disabled', False):
-            info("Debug mode: Skipping Discord bot connection.")
+            logger.info("Debug mode: Skipping Discord bot connection.")
             self.status_label.config(text="🟡 Debug Mode (Bot Not Connected)", foreground="orange")
             return
         self.discord_bot_controller.start_discord_bot()
@@ -354,10 +357,10 @@ class BotGUI:
             "Are you sure you want to exit the application?\n\nIf the bot is running, it will be stopped."
         )
         if result:
-            info("🔄 User requested application close - stopping bot (if running)...")
+            logger.info("🔄 User requested application close - stopping bot (if running)...")
             self._shutdown_application()
         else:
-            info("Exit cancelled by user.")
+            logger.info("Exit cancelled by user.")
 
     def update_controls_frame_sizing(self):
         if hasattr(self, 'controls_stats_panel'):
@@ -365,29 +368,29 @@ class BotGUI:
 
     def _shutdown_application(self):
         """Common shutdown logic for both Stop button and X button"""
-        info("[Shutdown] _shutdown_application called. is_running=%s" % self.is_running)
+        logger.info("[Shutdown] _shutdown_application called. is_running=%s" % self.is_running)
         # Stop Discord bot
         if self.is_running:
-            info("🔄 User requested application close - stopping bot...")
+            logger.info("🔄 User requested application close - stopping bot...")
             self.stop_discord_bot()
         # Stop Traktor Listener if running
         if hasattr(self, 'traktor_listener') and self.traktor_listener and getattr(self.traktor_listener, 'running', False):
-            info("🔄 Stopping Traktor Listener...")
+            logger.info("🔄 Stopping Traktor Listener...")
             self.traktor_listener.stop()
         # Stop Spout if enabled
         if hasattr(self, 'nowplaying_panel') and getattr(self.nowplaying_panel, 'spout_enabled', False):
-            info("🔄 Stopping Spout sender...")
+            logger.info("🔄 Stopping Spout sender...")
             self.nowplaying_panel._stop_spout_sender()
         # Wait for clean shutdown then close
         def force_destroy():
-            info("[Shutdown] Forcing root.destroy() after timeout.")
+            logger.info("[Shutdown] Forcing root.destroy() after timeout.")
             try:
                 self.root.destroy()
             except Exception as e:
-                error(f"[Shutdown] Error during forced destroy: {e}")
+                logger.error(f"[Shutdown] Error during forced destroy: {e}")
         self.root.after(2000, force_destroy)  # 2 seconds fallback
         if not self.is_running:
-            info("🔄 Closing application...")
+            logger.info("🔄 Closing application...")
             self.root.destroy()
 
     def clear_log(self):
@@ -413,7 +416,7 @@ class BotGUI:
                     debug_mode=Settings.DEBUG
                 )
                 if result["success"]:
-                    info(f"✅ Collection refreshed successfully - {result['total_songs']:,} songs processed")
+                    logger.info(f"✅ Collection refreshed successfully - {result['total_songs']:,} songs processed")
                     self.update_search_count_display()
                     self.root.after(0, lambda: self.songs_label.config(text=f"Songs: {result['total_songs']:,}"))
                     self.root.after(0, lambda: self.new_songs_label.config(text=f"New Songs: {result['total_new_songs']:,}"))
@@ -421,12 +424,12 @@ class BotGUI:
                     self.root.after(0, lambda: self.import_time_label.config(text=result['time_str']))
                     self.root.after(50, self.update_controls_frame_sizing)
                 else:
-                    warning(f"⚠️ {result['error_msg']}")
+                    logger.warning(f"⚠️ {result['error_msg']}")
                     self.root.after(0, lambda: self.songs_label.config(text="Songs: Collection not found"))
                     self.root.after(0, lambda: self.new_songs_label.config(text="New Songs: Collection not found"))
             except Exception as e:
                 error_msg = f"Error refreshing collection: {e}"
-                error(error_msg)
+                logger.error(error_msg)
         threading.Thread(target=_refresh, daemon=True).start()
 
     def load_collection_stats(self):
@@ -438,7 +441,7 @@ class BotGUI:
                 import os
                 # Only load stats if JSON exists, otherwise refresh
                 if not os.path.exists(Settings.COLLECTION_JSON_FILE):
-                    warning("Collection JSON not found, creating from Traktor collection...")
+                    logger.warning("Collection JSON not found, creating from Traktor collection...")
                 result = initialize_collection(
                     Settings.TRAKTOR_PATH,
                     Settings.COLLECTION_JSON_FILE,
@@ -448,20 +451,23 @@ class BotGUI:
                     debug_mode=Settings.DEBUG
                 )
                 if result["success"]:
-                    info(f"📊 Collection stats: {result['total_songs']:,} total songs, {result['total_new_songs']:,} new songs (last {Settings.NEW_SONGS_DAYS} days)")
+                    logger.info(
+                        f"📊 Collection stats: {result['total_songs']:,} total songs, {result['total_new_songs']:,} new songs (last {Settings.NEW_SONGS_DAYS} days)"
+                    )
                     self.root.after(0, lambda: self.songs_label.config(text=f"Songs: {result['total_songs']:,}"))
                     self.root.after(0, lambda: self.new_songs_label.config(text=f"New Songs: {result['total_new_songs']:,}"))
                     self.root.after(0, lambda: self.import_date_label.config(text=result['date_str']))
                     self.root.after(0, lambda: self.import_time_label.config(text=result['time_str']))
                     self.root.after(50, self.update_controls_frame_sizing)
                 else:
-                    warning(f"⚠️ {result['error_msg']}")
+                    logger.warning(f"⚠️ {result['error_msg']}")
                     self.root.after(0, lambda: self.songs_label.config(text="Songs: Collection not found"))
                     self.root.after(0, lambda: self.new_songs_label.config(text="New Songs: Collection not found"))
                     self.root.after(0, lambda: self.import_date_label.config(text="Not available"))
                     self.root.after(0, lambda: self.import_time_label.config(text=""))
             except Exception as e:
                 error_msg = f"Error loading collection stats: {e}"
+                logger.error(error_msg)
                 print(f"❌ {error_msg}")
                 self.root.after(0, lambda: self.songs_label.config(text="Songs: Error loading"))
                 self.root.after(0, lambda: self.new_songs_label.config(text="New Songs: Error loading"))
@@ -511,26 +517,26 @@ class BotGUI:
     def refresh_session_stats(self):
         """Refresh Traktor collection, then reset session stats."""
         from utils.stats import reset_session_stats
-        info(f"🔄 Refresh Session Stats button pressed.")
+        logger.info("🔄 Refresh Session Stats button pressed.")
         reset_session_stats()
-        info("🔄 Refresh Session Stats - refreshing Traktor collection...")
+        logger.info("🔄 Refresh Session Stats - refreshing Traktor collection...")
         self.refresh_collection()
         self.update_search_count_display()
 
     def reset_global_stats(self):
         """Reset all global stats (persistent) with confirmation dialog."""
         from utils.stats import reset_global_stats
-        info(f"🔄 Reset of Global Stats button pressed.")
+        logger.info("🔄 Reset of Global Stats button pressed.")
         result = messagebox.askyesno(
             "Confirm Global Stats Reset",
             "Are you sure you want to reset ALL global stats?\n\nThis cannot be undone!"
         )
         if result:
-            info(f"🧹 Reset Global Stats button pressed.")
+            logger.info("🧹 Reset Global Stats button pressed.")
             reset_global_stats()
             self.update_search_count_display()
         else:
-            info("Reset Global Stats cancelled by user.")
+            logger.info("Reset Global Stats cancelled by user.")
 
     def bring_to_front(self):
         try:
@@ -542,16 +548,16 @@ class BotGUI:
 
     def toggle_traktor_listener(self):
         if not hasattr(self, 'traktor_listener') or self.traktor_listener is None:
-            info("Traktor Listener instance not initialized.")
+            logger.info("Traktor Listener instance not initialized.")
             return
         if not self.traktor_listener.running:
             self.traktor_listener.start()
-            info("Traktor Listener started.")
+            logger.info("Traktor Listener started.")
             self.nowplaying_panel.set_traktor_listener_state(True)
             self.controls_stats_panel.set_traktor_listener_status("🟢 Listener On", foreground="green")
         else:
             self.traktor_listener.stop()
-            info("Traktor Listener stopped.")
+            logger.info("Traktor Listener stopped.")
             self.nowplaying_panel.set_traktor_listener_state(False)
             self.controls_stats_panel.set_traktor_listener_status("🔴 Listener Off", foreground="red")
 
@@ -559,22 +565,22 @@ class BotGUI:
         self.spout_coverart_on = not getattr(self, 'spout_coverart_on', False)
         self.nowplaying_panel.set_spout_toggle_state(self.spout_coverart_on)
         if self.spout_coverart_on:
-            info("Spout Cover Art sharing enabled.")
+            logger.info("Spout Cover Art sharing enabled.")
         else:
-            info("Spout Cover Art sharing disabled.")
+            logger.info("Spout Cover Art sharing disabled.")
 
     def toggle_overlay_server(self):
         if not hasattr(self, 'web_overlay_server'):
-            warning("Web overlay server not initialized!")
+            logger.warning("Web overlay server not initialized!")
             return
         if not self.web_overlay_server.is_running:
             self.web_overlay_server.start_server()
             # self.controls_stats_panel.overlay_button.config(text="🌐 Stop Overlay")
-            info("Web overlay server started from GUI.")
+            logger.info("Web overlay server started from GUI.")
         else:
             self.web_overlay_server.stop_server()
             # self.controls_stats_panel.overlay_button.config(text="🌐 Start Overlay")
-            info("Web overlay server stopped from GUI.")
+            logger.info("Web overlay server stopped from GUI.")
 
     def _on_traktor_listener_status(self, status):
         if status == 'starting' or status == 'listening':
@@ -584,16 +590,14 @@ class BotGUI:
 
     def open_settings_dialog(self):
         from config.settings import Settings
-        from utils.logger import debug
-        debug("[SettingsDialog] Opening settings dialog.")
+        logger.debug("[SettingsDialog] Opening settings dialog.")
         Settings.load()  # Ensure latest
         SettingsDialog(self.root, Settings._settings, DESCRIPTIONS, on_save=self.on_settings_saved)
 
     def on_settings_saved(self, new_settings):
         from tkinter import messagebox
-        from utils.logger import info
         import tkinter as tk
-        info("[SettingsDialog] User saved settings.")
+        logger.info("[SettingsDialog] User saved settings.")
         # Center the messagebox over the settings dialog if possible
         parent = None
         try:
@@ -612,7 +616,7 @@ class BotGUI:
     def open_overlay_url(self):
         import webbrowser
         webbrowser.open('http://127.0.0.1:5000')
-        info("Opened overlay URL in default browser.")
+        logger.info("Opened overlay URL in default browser.")
 
     def run(self):
         """Run the Tkinter GUI loop"""

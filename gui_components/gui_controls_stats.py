@@ -2,6 +2,11 @@ import tkinter as tk
 from tkinter import ttk
 from typing import Optional
 
+from utils.logger import get_logger
+
+
+logger = get_logger(__name__)
+
 class ControlsStatsPanel(ttk.LabelFrame):
     STANDARD_PADY = 4
     def __init__(self, parent, button_texts, optimal_width, clear_log_cmd, refresh_collection_cmd, reset_global_stats_cmd, clear_track_history_cmd, on_stop_press, on_stop_release, on_toggle_traktor_listener=lambda: None):
@@ -143,8 +148,7 @@ class ControlsStatsPanel(ttk.LabelFrame):
             pixel_width = optimal_width * 8 # 8 pixels per character is a common approximation 
             self.grid_columnconfigure(0, minsize=pixel_width)
         except Exception as e:
-            from utils.logger import error
-            error(f"Error updating controls frame sizing: {e}")
+            logger.error(f"Error updating controls frame sizing: {e}")
 
     def set_traktor_listener_status(self, status: str, foreground: Optional[str] = None):
         """Update the Traktor Listener status indicator and color."""
@@ -168,7 +172,6 @@ class ControlsStatsPanel(ttk.LabelFrame):
         pass  # No longer needed, overlay button is now in NowPlayingPanel
 
 # Add a custom style for Red.TButton
-from tkinter import ttk
 style = ttk.Style()
 try:
     style.configure("Red.TButton", foreground="#b22222")  # Firebrick red text

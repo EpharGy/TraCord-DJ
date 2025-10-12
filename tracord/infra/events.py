@@ -5,7 +5,10 @@ import threading
 from collections import defaultdict
 from typing import Any, Callable, DefaultDict, Iterable, List, Protocol
 
-from utils.logger import debug, warning
+from utils.logger import get_logger
+
+
+logger = get_logger(__name__)
 
 
 class Subscriber(Protocol):
@@ -24,7 +27,7 @@ class EventBus:
         with self._lock:
             if callback not in self._subscribers[event]:
                 self._subscribers[event].append(callback)
-                debug(f"[EventBus] Subscribed to '{event}': {callback}")
+                logger.debug(f"[EventBus] Subscribed to '{event}': {callback}")
 
     def unsubscribe(self, event: str, callback: Subscriber) -> None:
         with self._lock:
@@ -33,7 +36,7 @@ class EventBus:
                 return
             try:
                 callbacks.remove(callback)
-                debug(f"[EventBus] Unsubscribed from '{event}': {callback}")
+                logger.debug(f"[EventBus] Unsubscribed from '{event}': {callback}")
             except ValueError:
                 pass
             if not callbacks:
@@ -48,7 +51,7 @@ class EventBus:
             try:
                 callback(payload)
             except Exception as exc:  # pragma: no cover - keep bus alive
-                warning(f"[EventBus] Subscriber error for '{event}': {exc}")
+                logger.warning(f"[EventBus] Subscriber error for '{event}': {exc}")
 
     def listeners(self, event: str) -> Iterable[Subscriber]:
         with self._lock:
