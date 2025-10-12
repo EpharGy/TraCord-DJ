@@ -241,10 +241,10 @@ Design contracts now (agnostic of any specific framework):
 
 (Will update as we progress)
 
-- [ ] Phase 0: Add `utils/coverart.py` helper
+- [x] Phase 0: Add `utils/coverart.py` helper
 - [x] Phase 0: Add thread-safe `core/event_bus.py`
-- [ ] Phase 0: Introduce `search/backend.py` abstraction (no behavior change)
-- [ ] Phase 0: Replace logger with stdlib logging adapter (keep old API wrappers)
+- [x] Phase 0: Introduce `search/backend.py` abstraction (no behavior change)
+- [x] Phase 0: Replace logger with stdlib logging adapter (keep old API wrappers)
 - [ ] Phase 1: Add PySide6 to requirements (optional extras section)
 - [ ] Phase 1: Create `ui_qt` package & skeleton window
 - [ ] Phase 1: Log bridge (Qt signal handler)
