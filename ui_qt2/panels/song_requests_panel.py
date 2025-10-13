@@ -13,7 +13,6 @@ class SongRequestsPanel(QtWidgets.QGroupBox):
 
         self.table = QtWidgets.QTableWidget(0, 6)
         self.table.setHorizontalHeaderLabels(["#", "Date", "Time", "User", "Artist", "Title"])
-        self.table.horizontalHeader().setStretchLastSection(True)
         self.table.verticalHeader().setVisible(False)
         self.table.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
@@ -33,6 +32,12 @@ class SongRequestsPanel(QtWidgets.QGroupBox):
 
         # Elide long text with '...'
         self.table.setTextElideMode(QtCore.Qt.TextElideMode.ElideRight)
+
+        # No row selection highlight
+        self.table.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.NoSelection)
+        self.table.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
+        self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         # Apply initial column layout
         self._apply_column_layout()
@@ -62,24 +67,28 @@ class SongRequestsPanel(QtWidgets.QGroupBox):
         """Apply fixed/dynamic column widths within a 600px panel and cap oversized columns.
 
         - Fixed widths: #, Date, Time
-        - Dynamic with caps: User, Artist, Title
+        - Interactive: User, Artist
+        - Stretch: Title (consumes remaining space)
         - Text is elided to fit within each column
         """
         try:
             header = self.table.horizontalHeader()
-            # Use fixed resize mode so widths we set are respected
-            for i in range(self.table.columnCount()):
-                header.setSectionResizeMode(i, QtWidgets.QHeaderView.ResizeMode.Fixed)
+            header.setMinimumSectionSize(24)
+            # Fixed for first three columns; interactive for User, Artist; Title stretches
+            header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Fixed)
+            header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Fixed)
+            header.setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeMode.Fixed)
+            header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeMode.Interactive)
+            header.setSectionResizeMode(4, QtWidgets.QHeaderView.ResizeMode.Interactive)
+            header.setSectionResizeMode(5, QtWidgets.QHeaderView.ResizeMode.Stretch)
 
-            # Base metrics
-            fixed_panel_width = 600
-            # Estimate available width for the table viewport inside the group box
-            lay = self.layout()
-            margins = lay.contentsMargins() if lay is not None else QtCore.QMargins(8, 8, 8, 8)
-            frame = self.table.frameWidth() * 2
-            vscroll = self.table.verticalScrollBar().sizeHint().width() if self.table.verticalScrollBar().isVisible() else 0
-            padding = margins.left() + margins.right() + frame + vscroll
-            available = max(300, fixed_panel_width - padding)
+            # Prefer actual viewport width when available to avoid tiny overflows
+            viewport_w = self.table.viewport().width()
+            if viewport_w and viewport_w > 0:
+                available = viewport_w
+            else:
+                # Conservative fallback if viewport not yet sized
+                available = 600 - 32
 
             # Fixed columns
             w_num = 36
@@ -89,27 +98,19 @@ class SongRequestsPanel(QtWidgets.QGroupBox):
 
             remaining = max(100, available - fixed_total)
 
-            # Distribute remaining: User 20%, Artist 35%, Title 45%
-            w_user = int(remaining * 0.20)
-            w_artist = int(remaining * 0.35)
-            w_title = remaining - w_user - w_artist
+            # Distribute remaining: User 30%, Artist 70% (Title will stretch)
+            w_user = int(remaining * 0.30)
+            w_artist = remaining - w_user
 
-            # Minimums
-            w_user = max(w_user, 80)
-            w_artist = max(w_artist, 120)
-            w_title = max(w_title, 140)
+            # Minimums and caps
+            w_user = min(w_user, 60)
+            w_artist = min(w_artist, 125)
 
-            # Maximum caps
-            w_user = min(w_user, 120)
-            w_artist = min(w_artist, 200)
-            w_title = min(w_title, 240)
-
-            # Apply widths
+            # Apply widths (initial values; user can expand interactive columns)
             header.resizeSection(0, w_num)
             header.resizeSection(1, w_date)
             header.resizeSection(2, w_time)
             header.resizeSection(3, w_user)
             header.resizeSection(4, w_artist)
-            header.resizeSection(5, w_title)
         except Exception:
             pass
