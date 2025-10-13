@@ -15,6 +15,7 @@ class QtController(QtCore.QObject):
         super().__init__(window)
         self.window = window
         window.set_controller(self)
+        self._connect_ui()
 
     # Stubs to satisfy MainWindow calls
     def handle_song_event(self, payload: dict) -> None:
@@ -68,3 +69,23 @@ class QtController(QtCore.QObject):
                 "coverart_base64": cover_b64,
             },
         )
+
+    # --- Internal wiring ---
+    def _connect_ui(self) -> None:
+        np: NowPlayingPanel = self.window.now_playing_panel
+        np.toggledListener.connect(self._on_toggle_listener)
+        np.toggledSpout.connect(self._on_toggle_spout)
+        np.toggledMidi.connect(self._on_toggle_midi)
+
+    # --- Toggle handlers (UI-only) ---
+    def _on_toggle_listener(self, enabled: bool) -> None:
+        self.window.now_playing_panel.set_listener_state(enabled)
+        self.window.set_status("listener", "Listening" if enabled else "Disabled", color="#8fda8f" if enabled else "#bbbbbb")
+
+    def _on_toggle_spout(self, enabled: bool) -> None:
+        self.window.now_playing_panel.set_spout_state(enabled)
+        self.window.set_status("spout", "Enabled" if enabled else "Disabled", color="#8fda8f" if enabled else "#bbbbbb")
+
+    def _on_toggle_midi(self, enabled: bool) -> None:
+        self.window.now_playing_panel.set_midi_state(enabled)
+        self.window.set_status("midi", "Enabled" if enabled else "Disabled", color="#8fda8f" if enabled else "#bbbbbb")
