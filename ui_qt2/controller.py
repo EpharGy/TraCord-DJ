@@ -157,8 +157,18 @@ class QtController(QtCore.QObject):
         try:
             data_path = Path(Settings.SONG_REQUESTS_FILE)
             data_path.parent.mkdir(parents=True, exist_ok=True)
+            # Count existing items for logging
+            count_before = 0
+            try:
+                if data_path.exists():
+                    cur_items = json.loads(data_path.read_text(encoding="utf-8"))
+                    if isinstance(cur_items, list):
+                        count_before = len(cur_items)
+            except Exception:
+                count_before = 0
+
             data_path.write_text("[]", encoding="utf-8")
-            logger.info("Song Requests cleared")
+            logger.info("All song requests (%s) cleared from main panel", count_before)
         except Exception as e:
             logger.error(f"Failed to clear song requests: {e}")
         self.reload_song_requests()

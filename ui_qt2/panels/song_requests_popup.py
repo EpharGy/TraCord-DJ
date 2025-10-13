@@ -209,12 +209,34 @@ class SongRequestsPopup(QtWidgets.QDialog):
                     items = json.loads(path.read_text(encoding="utf-8"))
                 except Exception:
                     items = []
+            # Capture info for logging before removal
+            removed_info = None
+            for it in items:
+                try:
+                    if int(it.get("RequestNumber", 0) or 0) == request_number:
+                        removed_info = {
+                            "RequestNumber": request_number,
+                            "User": it.get("User", ""),
+                            "Artist": it.get("Artist", ""),
+                            "Title": it.get("Title", "") or it.get("Song", ""),
+                        }
+                        break
+                except Exception:
+                    pass
             # Remove by RequestNumber
             items = [it for it in items if int(it.get("RequestNumber", 0) or 0) != request_number]
             # Renumber
             for idx, it in enumerate(items, start=1):
                 it["RequestNumber"] = idx
             path.write_text(json.dumps(items, indent=2), encoding="utf-8")
+            if removed_info:
+                logger.info(
+                    "Song request cleared via popup: #%s | %s | %s - %s",
+                    removed_info.get("RequestNumber"),
+                    removed_info.get("User"),
+                    removed_info.get("Artist"),
+                    removed_info.get("Title"),
+                )
             emit_event(EventTopic.SONG_REQUEST_DELETED, {"RequestNumber": request_number})
         except Exception as e:
             logger.error(f"Failed to delete request #{request_number}: {e}")
