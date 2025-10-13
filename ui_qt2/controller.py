@@ -13,6 +13,7 @@ from config.settings import Settings
 from tracord.core.events import EventTopic, emit_event
 from ui_qt2.main_window import MainWindow
 from ui_qt2.panels.now_playing_panel import NowPlayingPanel
+from ui_qt2.panels.song_requests_popup import SongRequestsPopup
 from utils.logger import get_logger
 from utils.stats import load_stats, reset_global_stats, reset_session_stats
 from utils.traktor import refresh_collection_json
@@ -134,6 +135,7 @@ class QtController(QtCore.QObject):
         try:
             srp = self.window.song_requests_panel
             srp.clear_button.clicked.connect(self._clear_requests)
+            srp.popup_button.clicked.connect(self._open_requests_popup)
         except Exception:
             pass
 
@@ -195,3 +197,28 @@ class QtController(QtCore.QObject):
                 "coverart_base64": cover_b64,
             },
         )
+
+    def _open_requests_popup(self) -> None:
+        # Keep a reference on the controller; handle deleted C++ object safely
+        popup = getattr(self, "_requests_popup", None)
+        is_deleted = False
+        try:
+            # sip.isdeleted works with PySide6 as well
+            import sip  # type: ignore
+
+            if popup is not None:
+                is_deleted = bool(sip.isdeleted(popup))
+        except Exception:
+            # Fallback: accessing property on a deleted object raises RuntimeError
+            if popup is not None:
+                try:
+                    _ = popup.isVisible()  # may raise if deleted
+                except RuntimeError:
+                    is_deleted = True
+
+        if popup is None or is_deleted or not popup.isVisible():
+            self._requests_popup = SongRequestsPopup(self.window)
+            self._requests_popup.show()
+        else:
+            self._requests_popup.raise_()
+            self._requests_popup.activateWindow()

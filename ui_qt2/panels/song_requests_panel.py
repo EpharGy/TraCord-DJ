@@ -15,13 +15,12 @@ class SongRequestsPanel(QtWidgets.QGroupBox):
         self.table.setHorizontalHeaderLabels(["#", "Date", "Time", "User", "Artist", "Title"])
         self.table.verticalHeader().setVisible(False)
         self.table.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
         layout.addWidget(self.table)
 
         button_row = QtWidgets.QHBoxLayout()
         self.clear_button = QtWidgets.QPushButton("Clear All")
         self.popup_button = QtWidgets.QPushButton("Open Popup")
-        self.popup_button.setEnabled(False)
+        self.popup_button.setEnabled(True)
         button_row.addWidget(self.clear_button)
         button_row.addStretch(1)
         button_row.addWidget(self.popup_button)
@@ -91,9 +90,9 @@ class SongRequestsPanel(QtWidgets.QGroupBox):
                 available = 600 - 32
 
             # Fixed columns
-            w_num = 36
-            w_date = 96
-            w_time = 72
+            w_num = 24
+            w_date = 75
+            w_time = 75
             fixed_total = w_num + w_date + w_time
 
             remaining = max(100, available - fixed_total)
@@ -103,8 +102,8 @@ class SongRequestsPanel(QtWidgets.QGroupBox):
             w_artist = remaining - w_user
 
             # Minimums and caps
-            w_user = min(w_user, 60)
-            w_artist = min(w_artist, 125)
+            w_user = min(w_user, 75)
+            w_artist = min(w_artist, 120)
 
             # Apply widths (initial values; user can expand interactive columns)
             header.resizeSection(0, w_num)
