@@ -7,3 +7,4 @@ python-rtmidi
 pillow
 mutagen
 pydantic
+PySide6
