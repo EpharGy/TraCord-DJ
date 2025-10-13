@@ -18,6 +18,7 @@ from utils.logger import get_logger
 from services.web_overlay import WebOverlayServer
 from utils.stats import load_stats, reset_global_stats, reset_session_stats
 from utils.traktor import refresh_collection_json
+from utils.midi_helper import MidiHelper
 
 logger = get_logger(__name__)
 
@@ -30,6 +31,9 @@ class QtController(QtCore.QObject):
 
         self._connect_ui()
         self._connect_controls()
+
+        # Backends
+        self._midi = None  # type: MidiHelper | None
 
         # Populate UI on startup
         self.push_stats_update()
@@ -57,6 +61,14 @@ class QtController(QtCore.QObject):
             except Exception:
                 pm = None
         self.window.now_playing_panel.set_cover_pixmap(pm)
+
+        # Fire MIDI on song change if enabled
+        try:
+            if self._midi and self._midi.enabled:
+                self._midi.send_song_change()
+        except Exception:
+            # Any MIDI errors are handled in helper; keep UI responsive
+            pass
 
     def push_stats_update(self) -> None:
         try:
@@ -151,8 +163,21 @@ class QtController(QtCore.QObject):
         self.window.set_status("spout", "Enabled" if enabled else "Disabled", color="#8fda8f" if enabled else "#bbbbbb")
 
     def _on_toggle_midi(self, enabled: bool) -> None:
+        # Lazily create helper
+        if enabled:
+            if self._midi is None:
+                self._midi = MidiHelper(getattr(Settings, "MIDI_PORT_NAME", None))
+            ok = self._midi.enable()
+            enabled = enabled and ok
+        else:
+            if self._midi is not None:
+                self._midi.disable()
+        # Reflect final state in UI
         self.window.now_playing_panel.set_midi_state(enabled)
         self.window.set_status("midi", "Enabled" if enabled else "Disabled", color="#8fda8f" if enabled else "#bbbbbb")
+        # Log errors if any
+        if self._midi and self._midi.get_error():
+            logger.warning(f"MIDI: {self._midi.get_error()}")
 
     # --- Commands ---
     def _clear_requests(self) -> None:
