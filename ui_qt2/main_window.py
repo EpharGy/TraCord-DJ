@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Iterable, Tuple, TYPE_CHECKING
 
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets, QtGui
 
 from ui_qt2.panels.bot_info_panel import BotInfoPanel
 from ui_qt2.panels.controls_panel import ControlsPanel
@@ -31,8 +31,8 @@ class MainWindow(QtWidgets.QMainWindow):
         hub.songRequestAdded.connect(self.on_song_request_update)
         hub.songRequestDeleted.connect(self.on_song_request_update)
         hub.logMessage.connect(self.on_log_message)
-
         self._setup_layout()
+        self._setup_shortcuts()
 
     def _setup_layout(self) -> None:
         splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
@@ -117,3 +117,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def set_controller(self, controller: QtController) -> None:
         self.controller = controller
+
+    def _setup_shortcuts(self) -> None:
+        # Ctrl+T: inject demo song for quick UI validation
+        sc = QtGui.QShortcut(QtGui.QKeySequence("Ctrl+T"), self)
+        sc.activated.connect(lambda: self.controller and self.controller.debug_inject_song())
