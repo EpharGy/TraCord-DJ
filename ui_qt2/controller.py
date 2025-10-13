@@ -12,6 +12,11 @@ from utils.stats import load_stats, reset_session_stats, reset_global_stats
 from typing import Iterable, Tuple
 import json
 from pathlib import Path
+from config.settings import Settings
+from utils.traktor import refresh_collection_json
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class QtController(QtCore.QObject):
@@ -129,6 +134,7 @@ class QtController(QtCore.QObject):
         try:
             cp.bind("reset_session", _reset_session)
             cp.bind("reset_global", _reset_global)
+            cp.bind("refresh", self._refresh_collection)
             # Optional: clear all requests button (if we map it later)
             # cp.bind("clear_requests", self._clear_requests)
         except Exception:
@@ -142,6 +148,23 @@ class QtController(QtCore.QObject):
     #     except Exception:
     #         pass
     #     self.reload_song_requests()
+
+    def _refresh_collection(self) -> None:
+        """Run the collection refresh workflow and log basic results."""
+        try:
+            traktor_path = Settings.TRAKTOR_PATH
+            collection_json = Settings.COLLECTION_JSON_FILE
+            excluded = Settings.EXCLUDED_ITEMS
+            debug = Settings.DEBUG
+            if not traktor_path or not os.path.exists(traktor_path):
+                logger.warning("Traktor path not configured. Check settings.json.")
+                return
+            count = refresh_collection_json(traktor_path, collection_json, excluded, debug)
+            msg = f"Collection refreshed: {count} songs processed"
+            logger.info(msg)
+        except Exception as e:
+            err = f"Collection refresh failed: {e}"
+            logger.error(err)
 
     # --- Toggle handlers (UI-only) ---
     def _on_toggle_listener(self, enabled: bool) -> None:
