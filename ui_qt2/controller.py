@@ -15,6 +15,7 @@ from ui_qt2.main_window import MainWindow
 from ui_qt2.panels.now_playing_panel import NowPlayingPanel
 from ui_qt2.panels.song_requests_popup import SongRequestsPopup
 from utils.logger import get_logger
+from services.web_overlay import WebOverlayServer
 from utils.stats import load_stats, reset_global_stats, reset_session_stats
 from utils.traktor import refresh_collection_json
 
@@ -112,6 +113,7 @@ class QtController(QtCore.QObject):
         np.toggledListener.connect(self._on_toggle_listener)
         np.toggledSpout.connect(self._on_toggle_spout)
         np.toggledMidi.connect(self._on_toggle_midi)
+        np.overlayRequested.connect(self._open_overlay)
 
     def _connect_controls(self) -> None:
         cp = self.window.controls_panel
@@ -186,6 +188,27 @@ class QtController(QtCore.QObject):
             logger.info(f"Collection refreshed: {count} songs processed")
         except Exception as e:
             logger.error(f"Collection refresh failed: {e}")
+
+    def _open_overlay(self) -> None:
+        try:
+            # Lazily construct server instance
+            if not hasattr(self, "_overlay_server") or self._overlay_server is None:
+                self._overlay_server = WebOverlayServer(
+                    host=getattr(Settings, "OVERLAY_HOST", "127.0.0.1"),
+                    port=getattr(Settings, "OVERLAY_PORT", 5000),
+                )
+            # Start if not running
+            if not self._overlay_server.is_running:
+                self._overlay_server.start_server()
+
+            # Open in default browser
+            import webbrowser
+
+            url = f"http://{self._overlay_server.host}:{self._overlay_server.port}/"
+            webbrowser.open(url, new=2)
+            logger.info(f"Overlay opened in browser: {url}")
+        except Exception as e:
+            logger.error(f"Failed to open overlay: {e}")
 
     # --- Debug ---
     def debug_inject_song(self) -> None:

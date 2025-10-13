@@ -23,7 +23,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle(f"TraCord DJ - {__version__}")
-        self.resize(1280, 800)
+        self.resize(1250, 700)
         self.controller: QtController | None = None
 
         hub = get_event_hub()
