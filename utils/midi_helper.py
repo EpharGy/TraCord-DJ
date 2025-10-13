@@ -35,11 +35,18 @@ class MidiHelper:
             ports = mido.get_output_names()
             logger.info(f"Available MIDI output ports: {ports}")
             port_to_use = None
+            # Prefer exact match when a preferred name is provided
             if self.preferred_port_name:
                 for p in ports:
-                    if self.preferred_port_name.lower() in p.lower():
+                    if p.strip().lower() == self.preferred_port_name.strip().lower():
                         port_to_use = p
                         break
+                # If no exact match, try substring match as a fallback
+                if not port_to_use:
+                    for p in ports:
+                        if self.preferred_port_name.strip().lower() in p.strip().lower():
+                            port_to_use = p
+                            break
             if not port_to_use and ports:
                 port_to_use = ports[0]
             if not port_to_use:

@@ -166,7 +166,8 @@ class QtController(QtCore.QObject):
         # Lazily create helper
         if enabled:
             if self._midi is None:
-                self._midi = MidiHelper(getattr(Settings, "MIDI_PORT_NAME", None))
+                # Use configured device name from settings.json (MIDI_DEVICE)
+                self._midi = MidiHelper(getattr(Settings, "MIDI_DEVICE", None))
             ok = self._midi.enable()
             enabled = enabled and ok
         else:
