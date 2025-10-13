@@ -33,6 +33,7 @@ class MidiHelper:
             return False
         try:
             ports = mido.get_output_names()
+            # Log once via tracord logger; avoid duplicate root prints
             logger.info(f"Available MIDI output ports: {ports}")
             port_to_use = None
             # Prefer exact match when a preferred name is provided
@@ -54,9 +55,11 @@ class MidiHelper:
                 logger.warning(self.error)
                 return False
             self.port = mido.open_output(port_to_use)
+            # Avoid duplicate enable logs if already enabled on same port
+            if not self.enabled:
+                logger.info(f"MIDI output enabled on port: {port_to_use}")
             self.enabled = True
             self.error = None
-            logger.info(f"MIDI output enabled on port: {port_to_use}")
             return True
         except Exception as e:
             self.error = f"Failed to open MIDI port: {e}"

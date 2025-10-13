@@ -34,6 +34,11 @@ class MainWindow(QtWidgets.QMainWindow):
         hub.logMessage.connect(self.on_log_message)
         self._setup_layout()
         self._setup_shortcuts()
+        # Initialize default statuses
+        self.set_status("discord", "Off", color="#ff4d4f")
+        self.set_status("listener", "Off", color="#ff4d4f")
+        self.set_status("spout", "Off", color="#ff4d4f")
+        self.set_status("midi", "Off", color="#ff4d4f")
 
     def _setup_layout(self) -> None:
         splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)

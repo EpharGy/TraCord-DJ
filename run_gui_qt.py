@@ -25,9 +25,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     log_level = getattr(logging, str(args.log_level).upper(), logging.INFO)
     logging.basicConfig(level=log_level, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    install_qt_log_handler(log_level)
-
     app = create_application()
+    # Install GUI log bridge after QApplication is created so Qt objects/signals are ready
+    install_qt_log_handler(log_level)
     window = MainWindow()
     QtController(window)
     window.show()

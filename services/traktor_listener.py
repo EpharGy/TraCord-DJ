@@ -37,7 +37,7 @@ def create_traktor_handler(status_queue, shutdown_event):
     class TraktorListenerHandler(http.server.BaseHTTPRequestHandler):
         def do_SOURCE(self):
             if status_queue:
-                status_queue.put('listening')
+                status_queue.put('connected')
             self.send_response(200)
             self.end_headers()
             logger.info("[Traktor] Traktor connected, receiving stream...")
@@ -123,6 +123,13 @@ def create_traktor_handler(status_queue, shutdown_event):
                             self.rfile.read(total)
             except Exception as e:
                 logger.warning(f"[Traktor] Handler error: {e}")
+                if status_queue:
+                    status_queue.put('waiting')
+            finally:
+                # If the stream ends normally (client disconnect) and we're not shutting down,
+                # report waiting so UI can reflect that Traktor stopped broadcasting.
+                if status_queue and not shutdown_event.is_set():
+                    status_queue.put('waiting')
 
         def log_request(self, code='-', size='-'):
             pass
@@ -151,7 +158,7 @@ class TraktorBroadcastListener:
         self.thread = threading.Thread(target=self._serve, daemon=True)
         self.thread.start()
         if self.status_callback:
-            self.status_callback('starting')
+            self.status_callback('waiting')
         logger.debug(f"[Traktor] Listener started on port {self.port}")
 
     def _serve(self):
@@ -163,7 +170,7 @@ class TraktorBroadcastListener:
         finally:
             self.running = False
             if self.status_callback:
-                self.status_callback('offline')
+                self.status_callback('off')
             logger.debug("[Traktor] Listener stopped")
 
     def stop(self):
@@ -173,7 +180,7 @@ class TraktorBroadcastListener:
             self.httpd = None
         self.running = False
         if self.status_callback:
-            self.status_callback('offline')
+            self.status_callback('off')
         logger.debug("[Traktor] Listener stop requested")
 
     def poll_status(self):

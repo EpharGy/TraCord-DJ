@@ -19,6 +19,7 @@ from services.web_overlay import WebOverlayServer
 from utils.stats import load_stats, reset_global_stats, reset_session_stats
 from utils.traktor import refresh_collection_json
 from utils.midi_helper import MidiHelper
+from services.traktor_listener import TraktorBroadcastListener
 
 logger = get_logger(__name__)
 
@@ -34,6 +35,11 @@ class QtController(QtCore.QObject):
 
         # Backends
         self._midi = None  # type: MidiHelper | None
+        self._listener = None  # type: TraktorBroadcastListener | None
+        self._listener_timer = QtCore.QTimer(self)
+        self._listener_timer.setInterval(1000)
+        self._listener_timer.timeout.connect(self._poll_listener_status)
+        self._listener_status_last: str | None = None
 
         # Populate UI on startup
         self.push_stats_update()
@@ -45,6 +51,8 @@ class QtController(QtCore.QObject):
         artist = str(payload.get("artist", ""))
         title = str(payload.get("title", ""))
         album = str(payload.get("album", ""))
+        if artist or title:
+            logger.info(f"[Traktor] Song Played: {artist} - {title} [{album}]")
         lines = [v for v in (title, artist, album) if v]
         self.window.now_playing_panel.set_track_info("\n".join(lines) or "No track info available")
         # Cover art
@@ -155,12 +163,61 @@ class QtController(QtCore.QObject):
 
     # --- Toggle handlers (UI-only) ---
     def _on_toggle_listener(self, enabled: bool) -> None:
+        # Lazily create and start/stop Traktor broadcast listener
+        if enabled:
+            if self._listener is None:
+                port = getattr(Settings, "TRAKTOR_BROADCAST_PORT", 8000)
+                self._listener = TraktorBroadcastListener(port, status_callback=self._on_listener_status)
+            self._listener.start()
+            self._listener_timer.start()
+            logger.info("[Traktor] Listener enabling…")
+        else:
+            if self._listener is not None:
+                self._listener.stop()
+            self._listener_timer.stop()
+            logger.info("[Traktor] Listener disabled")
+        # Reflect state immediately (waiting while trying to connect)
         self.window.now_playing_panel.set_listener_state(enabled)
-        self.window.set_status("listener", "Listening" if enabled else "Disabled", color="#8fda8f" if enabled else "#bbbbbb")
+        if enabled:
+            self.window.set_status("listener", "Waiting", color="#f0ad4e")
+        else:
+            self.window.set_status("listener", "Off", color="#ff4d4f")
+
+    def _on_listener_status(self, status: str) -> None:
+        # Called from listener thread; schedule on UI thread
+        QtCore.QTimer.singleShot(0, lambda: self._update_listener_status(status))
+
+    def _update_listener_status(self, status: str) -> None:
+        text = {
+            "waiting": "Waiting",
+            "connected": "Connected",
+            "off": "Off",
+        }.get(status, status.capitalize())
+        color = {
+            "Connected": "#8fda8f",
+            "Waiting": "#f0ad4e",
+            "Off": "#ff4d4f",
+        }.get(text, "#bbbbbb")
+        self.window.set_status("listener", text, color=color)
+        # Log only on changes to avoid spam
+        if text != self._listener_status_last:
+            if text == "Connected":
+                logger.info("[Traktor] Connected, receiving stream…")
+            elif text == "Waiting":
+                logger.info("[Traktor] Waiting for Traktor broadcast…")
+            self._listener_status_last = text
+
+    def _poll_listener_status(self) -> None:
+        # Poll transient statuses from listener queue
+        try:
+            if self._listener is not None:
+                self._listener.poll_status()
+        except Exception:
+            pass
 
     def _on_toggle_spout(self, enabled: bool) -> None:
         self.window.now_playing_panel.set_spout_state(enabled)
-        self.window.set_status("spout", "Enabled" if enabled else "Disabled", color="#8fda8f" if enabled else "#bbbbbb")
+        self.window.set_status("spout", "Connected" if enabled else "Off", color="#8fda8f" if enabled else "#ff4d4f")
 
     def _on_toggle_midi(self, enabled: bool) -> None:
         # Lazily create helper
@@ -175,7 +232,7 @@ class QtController(QtCore.QObject):
                 self._midi.disable()
         # Reflect final state in UI
         self.window.now_playing_panel.set_midi_state(enabled)
-        self.window.set_status("midi", "Enabled" if enabled else "Disabled", color="#8fda8f" if enabled else "#bbbbbb")
+        self.window.set_status("midi", "Connected" if enabled else "Off", color="#8fda8f" if enabled else "#ff4d4f")
         # Log errors if any
         if self._midi and self._midi.get_error():
             logger.warning(f"MIDI: {self._midi.get_error()}")
