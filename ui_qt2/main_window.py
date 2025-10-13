@@ -116,7 +116,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def set_status(self, key: str, text: str, *, color: str | None = None) -> None:
         self.status_panel.set_status(key, text, color=color)
 
-    def set_requests(self, rows: Iterable[Tuple[int, str, str]]) -> None:
+    def set_requests(self, rows: Iterable[Tuple[int, str, str, str, str, str]]) -> None:
         self.song_requests_panel.set_requests(rows)
 
     def set_controller(self, controller: QtController) -> None:
