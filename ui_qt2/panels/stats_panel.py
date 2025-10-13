@@ -7,27 +7,54 @@ from PySide6 import QtCore, QtWidgets
 
 
 class StatsPanel(QtWidgets.QGroupBox):
-    _FIELDS = [
-        ("session_song_searches", "Session Searches"),
-        ("total_song_searches", "Total Searches"),
-        ("session_song_plays", "Session Plays"),
-        ("total_song_plays", "Total Plays"),
-        ("session_song_requests", "Session Requests"),
-        ("total_song_requests", "Total Requests"),
-    ]
-
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__("Stats", parent)
         grid = QtWidgets.QGridLayout(self)
         grid.setHorizontalSpacing(15)
+        grid.setVerticalSpacing(6)
+
         self._values: Dict[str, QtWidgets.QLabel] = {}
-        for row, (key, title) in enumerate(self._FIELDS):
+
+        row = 0
+        # Session heading
+        session_lbl = QtWidgets.QLabel("Session")
+        session_lbl.setStyleSheet("font-weight: 600; margin-top: 2px;")
+        grid.addWidget(session_lbl, row, 0, 1, 2)
+        row += 1
+        for key, title in (
+            ("session_song_searches", "Searches"),
+            ("session_song_requests", "Requests"),
+            ("session_song_plays", "Plays"),
+        ):
             grid.addWidget(QtWidgets.QLabel(title + ":"), row, 0)
             value = QtWidgets.QLabel("0")
             value.setObjectName(f"stat_{key}")
             grid.addWidget(value, row, 1)
             self._values[key] = value
-        grid.setColumnStretch(2, 1)
+            row += 1
+
+        # Spacer between sections
+        grid.setRowMinimumHeight(row, 4)
+        row += 1
+
+        # Total heading
+        total_lbl = QtWidgets.QLabel("Total")
+        total_lbl.setStyleSheet("font-weight: 600; margin-top: 6px;")
+        grid.addWidget(total_lbl, row, 0, 1, 2)
+        row += 1
+        for key, title in (
+            ("total_song_searches", "Searches"),
+            ("total_song_requests", "Requests"),
+            ("total_song_plays", "Plays"),
+        ):
+            grid.addWidget(QtWidgets.QLabel(title + ":"), row, 0)
+            value = QtWidgets.QLabel("0")
+            value.setObjectName(f"stat_{key}")
+            grid.addWidget(value, row, 1)
+            self._values[key] = value
+            row += 1
+
+        grid.setColumnStretch(1, 1)
 
     def update_stats(self, stats: Dict[str, int]) -> None:
         for key, label in self._values.items():

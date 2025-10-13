@@ -13,6 +13,7 @@ from ui_qt2.panels.song_requests_panel import SongRequestsPanel
 from ui_qt2.panels.stats_panel import StatsPanel
 from ui_qt2.panels.status_panel import StatusPanel
 from ui_qt2.signals import get_event_hub
+from version import __version__
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
     from ui_qt2.controller import QtController
@@ -21,7 +22,7 @@ if TYPE_CHECKING:  # pragma: no cover - typing only
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("TraCord DJ - Qt")
+        self.setWindowTitle(f"TraCord DJ - {__version__}")
         self.resize(1280, 800)
         self.controller: QtController | None = None
 
@@ -43,15 +44,16 @@ class MainWindow(QtWidgets.QMainWindow):
         left_layout = QtWidgets.QVBoxLayout(left_column)
         left_layout.setSpacing(12)
 
-        self.status_panel = StatusPanel()
         self.controls_panel = ControlsPanel()
-        self.stats_panel = StatsPanel()
+        self.status_panel = StatusPanel()
         self.bot_info_panel = BotInfoPanel()
+        self.stats_panel = StatsPanel()
 
-        left_layout.addWidget(self.status_panel)
+        # Order: Controls -> Status -> Bot Info -> Stats
         left_layout.addWidget(self.controls_panel)
-        left_layout.addWidget(self.stats_panel)
+        left_layout.addWidget(self.status_panel)
         left_layout.addWidget(self.bot_info_panel)
+        left_layout.addWidget(self.stats_panel)
         left_layout.addStretch(1)
 
         # Center column
@@ -74,6 +76,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.song_requests_panel = SongRequestsPanel()
         right_layout.addWidget(self.song_requests_panel)
+        # Match Now Playing panel height
+        self.song_requests_panel.setMinimumHeight(self.now_playing_panel.sizeHint().height())
         right_layout.addStretch(1)
 
         splitter.addWidget(left_column)

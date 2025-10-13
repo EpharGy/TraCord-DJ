@@ -14,15 +14,13 @@ class BotInfoPanel(QtWidgets.QGroupBox):
         self._name = QtWidgets.QLabel("–")
         self._id = QtWidgets.QLabel("–")
         self._commands = QtWidgets.QLabel("0")
-        self._version = QtWidgets.QLabel("–")
 
         layout.addRow("Name:", self._name)
         layout.addRow("App ID:", self._id)
         layout.addRow("Commands:", self._commands)
-        layout.addRow("Version:", self._version)
 
-    def set_info(self, *, name: str, id: str, commands: str, version: str) -> None:
+    def set_info(self, *, name: str, id: str, commands: str, version: str | None = None) -> None:
         self._name.setText(name)
         self._id.setText(id)
         self._commands.setText(commands)
-        self._version.setText(version)
+        # Version is shown in window title now; ignore here

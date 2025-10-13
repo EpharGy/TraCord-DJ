@@ -11,7 +11,6 @@ class StatusPanel(QtWidgets.QGroupBox):
         ("discord", "Discord"),
         ("listener", "Traktor Listener"),
         ("spout", "Spout"),
-        ("overlay", "Overlay"),
         ("midi", "MIDI"),
     ]
 
