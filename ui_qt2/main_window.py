@@ -98,7 +98,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.controller:
             self.controller.handle_song_event(payload)
 
-    def on_stats_updated(self, payload: dict | None) -> None:  # noqa: D401 - Qt signature
+    def on_stats_updated(self, payload: object) -> None:  # noqa: D401 - Qt signature
         if self.controller:
             self.controller.push_stats_update()
 

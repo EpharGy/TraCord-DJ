@@ -8,6 +8,10 @@ from PySide6 import QtCore
 from ui_qt2.main_window import MainWindow
 from ui_qt2.panels.now_playing_panel import NowPlayingPanel
 from tracord.core.events import EventTopic, emit_event
+from utils.stats import load_stats, reset_session_stats, reset_global_stats
+from typing import Iterable, Tuple
+import json
+from pathlib import Path
 
 
 class QtController(QtCore.QObject):
@@ -16,6 +20,11 @@ class QtController(QtCore.QObject):
         self.window = window
         window.set_controller(self)
         self._connect_ui()
+        self._connect_controls()
+        # Populate Stats panel with current values on startup
+        self.push_stats_update()
+        # Populate requests table at startup (if any)
+        self.reload_song_requests()
 
     # Stubs to satisfy MainWindow calls
     def handle_song_event(self, payload: dict) -> None:
@@ -42,10 +51,39 @@ class QtController(QtCore.QObject):
         self.window.now_playing_panel.set_cover_pixmap(pixmap)
 
     def push_stats_update(self) -> None:
-        pass
+        try:
+            stats = load_stats()
+        except Exception:
+            stats = {}
+        # Ensure all known keys exist with defaults
+        defaults = {
+            "session_song_searches": 0,
+            "total_song_searches": 0,
+            "session_song_plays": 0,
+            "total_song_plays": 0,
+            "session_song_requests": 0,
+            "total_song_requests": 0,
+        }
+        for k, v in defaults.items():
+            stats.setdefault(k, v)
+        self.window.stats_panel.update_stats(stats)  # type: ignore[arg-type]
 
     def reload_song_requests(self) -> None:
-        pass
+        try:
+            data_path = Path("data") / "song_requests.json"
+            rows: list[Tuple[int, str, str]] = []
+            if data_path.exists():
+                with data_path.open("r", encoding="utf-8") as f:
+                    items = json.load(f)
+                # Expecting a list of dicts like {"RequestNumber": int, "User": str, "Song": str}
+                for item in items:
+                    rn = int(item.get("RequestNumber", 0))
+                    user = str(item.get("User", ""))
+                    song = str(item.get("Song", ""))
+                    rows.append((rn, user, song))
+            self.window.set_requests(rows)
+        except Exception:
+            self.window.set_requests([])
 
     # --- Debug helpers ---
     def debug_inject_song(self) -> None:
@@ -76,6 +114,34 @@ class QtController(QtCore.QObject):
         np.toggledListener.connect(self._on_toggle_listener)
         np.toggledSpout.connect(self._on_toggle_spout)
         np.toggledMidi.connect(self._on_toggle_midi)
+
+    def _connect_controls(self) -> None:
+        cp = self.window.controls_panel
+        # Bind reset buttons to stats reset functions
+        def _reset_session() -> None:
+            reset_session_stats()
+            self.push_stats_update()
+
+        def _reset_global() -> None:
+            reset_global_stats()
+            self.push_stats_update()
+
+        try:
+            cp.bind("reset_session", _reset_session)
+            cp.bind("reset_global", _reset_global)
+            # Optional: clear all requests button (if we map it later)
+            # cp.bind("clear_requests", self._clear_requests)
+        except Exception:
+            pass
+
+    # def _clear_requests(self) -> None:
+    #     # Placeholder for future: clear requests file and refresh
+    #     try:
+    #         data_path = Path("data") / "song_requests.json"
+    #         data_path.write_text("[]", encoding="utf-8")
+    #     except Exception:
+    #         pass
+    #     self.reload_song_requests()
 
     # --- Toggle handlers (UI-only) ---
     def _on_toggle_listener(self, enabled: bool) -> None:

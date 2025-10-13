@@ -7,6 +7,14 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, Field
+from typing import TYPE_CHECKING, Any as _Any
+if TYPE_CHECKING:
+    from pydantic import ConfigDict as _ConfigDict
+else:  # runtime import
+    try:
+        from pydantic import ConfigDict as _ConfigDict  # type: ignore
+    except Exception:  # pragma: no cover - pydantic v1 fallback
+        _ConfigDict = dict  # type: ignore
 
 _DEFAULT_DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 _SETTINGS_PATH = _DEFAULT_DATA_DIR / "settings.json"
@@ -35,9 +43,10 @@ class SettingsModel(BaseModel):
     debug: bool = Field(False, alias="DEBUG")
     excluded_items: Optional[Dict[str, list[str]]] = Field(None, alias="EXCLUDED_ITEMS")
 
-    class Config:
-        allow_population_by_field_name = True
-        extra = "allow"
+    # Pydantic v2 configuration (replaces class Config)
+    # - populate_by_name: allow using field names when aliases are defined
+    # - extra='allow': keep unknown keys instead of forbidding
+    model_config: _Any = _ConfigDict(populate_by_name=True, extra="allow")
 
 
 _cached_settings: Optional[SettingsModel] = None
@@ -64,7 +73,12 @@ def load_settings(*, path: Path = _SETTINGS_PATH, force: bool = False) -> Settin
 
     data = _load_json(path)
     data = _apply_environment_overrides(data)
-    _cached_settings = SettingsModel.parse_obj(data)
+    try:
+        # Pydantic v2
+        _cached_settings = SettingsModel.model_validate(data)  # type: ignore[attr-defined]
+    except Exception:
+        # Fallback for v1
+        _cached_settings = SettingsModel.parse_obj(data)  # type: ignore[assignment]
     return _cached_settings
 
 

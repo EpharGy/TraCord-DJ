@@ -10,7 +10,8 @@ from tracord.core.events import EventTopic, subscribe_event
 
 class QtEventHub(QtCore.QObject):
     songPlayed = QtCore.Signal(dict)
-    statsUpdated = QtCore.Signal(dict)
+    # Accept None payloads for stats updates
+    statsUpdated = QtCore.Signal(object)
     songRequestAdded = QtCore.Signal(object)
     songRequestDeleted = QtCore.Signal(object)
     logMessage = QtCore.Signal(str, str)
