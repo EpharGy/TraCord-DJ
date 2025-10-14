@@ -27,7 +27,7 @@ if not exist "run_bot.py" (
     exit /b 1
 )
 
-echo Starting TraCord DJ GUI...
+echo Starting TraCord DJ (Qt GUI)...
 echo.
 
 REM Start the GUI application

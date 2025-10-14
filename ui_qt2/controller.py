@@ -189,10 +189,11 @@ class QtController(QtCore.QObject):
             self.push_stats_update()
 
         try:
-                cp.bind("reset_session", _reset_session)
-                cp.bind("reset_global", _reset_global)
-                cp.bind("refresh", self._refresh_collection)
-                cp.bind("bot", self._on_toggle_discord)
+            cp.bind("reset_session", _reset_session)
+            cp.bind("reset_global", _reset_global)
+            cp.bind("refresh", self._refresh_collection)
+            cp.bind("bot", self._on_toggle_discord)
+            cp.bind("settings", self._open_settings)
         except Exception:
             pass
 
@@ -203,6 +204,15 @@ class QtController(QtCore.QObject):
             srp.popup_button.clicked.connect(self._open_requests_popup)
         except Exception:
             pass
+
+    def _open_settings(self) -> None:
+        try:
+            from ui_qt2.settings_dialog import SettingsDialog
+
+            dlg = SettingsDialog(self.window)
+            dlg.exec()
+        except Exception as e:
+            logger.warning(f"Failed to open Settings dialog: {e}")
 
     # --- Toggle handlers (UI-only) ---
     def _on_toggle_listener(self, enabled: bool) -> None:

@@ -7,7 +7,7 @@ A comprehensive Discord bot for managing music requests, interacting with Trakto
 
 ## Features
 
-- **🖥️ Standalone GUI Application**: Tkinter-based control panel with real-time monitoring
+- **🖥️ Standalone GUI Application**: Qt (PySide6) control panel with real-time monitoring
 - **🎧 Now Playing Song**: Traktor Broadcast Listening for Song/Artist details, integrated with collection details for advanced meta data (coverart, BPM, Key)
 - **🖼️ Spout Cover Art Integration**: Send cover art to other applications via Spout (Windows only)
 - **🖼️ Webpage for OBS/Overlays**: Flask webserver with Current Song Playing details. <http://127.0.0.1:5000/>
@@ -30,7 +30,6 @@ A comprehensive Discord bot for managing music requests, interacting with Trakto
 ### Spout Cover Art Integration → Nest Drop → OBS
 
 Any application that supports Spout can receive cover art from this bot, allowing you to display it in OBS or other software. (OBS does support spout directly via plugin)
-![Spout Integration](https://raw.githubusercontent.com/EpharGy/TraCord-DJ/main/assets/screenshots/gui_spout_integration.png)
 
 ### Overlay Screenshots
 
@@ -46,21 +45,16 @@ Current workflow, Traktor -> TraCord DJ -> Spout/Web Overlay -> Nest Drop -> OBS
 Common launch commands:
 
 - `python run_bot.py`
-- `python run_bot.py --debug`
-- `python run_bot.py --debugd` (skip Discord connection)
-- `python run_bot.py --nodiscord`
 
 ### Documentation
 
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — future-facing architecture blueprint
-- [`docs/REFACTOR.md`](docs/REFACTOR.md) — GUI modernization checklist
 - [`docs/TODO-Main.md`](docs/TODO-Main.md) — active roadmap items
 
 ## Commands
 
 ### Music Discovery
 
-- `/song <search>` - Search for songs with interactive selection (restricted to designated channels)
+- `/song <search>` - Search for songs with interactive selection (restricted to designated channels), reply to the bot's message with the number of the song to request it.
 - `/srbnew [days]` - Display newly added songs from the last N days (default: 7)
 
 ### Request Management
@@ -124,8 +118,7 @@ The bot uses a modular Discord.py Cogs architecture for better organization:
 ```text
 TraCord-DJ/
 ├── 🚀 Entry Points
-│   ├── debug_gui.py
-│   ├── gui.py
+│   ├── run_bot.py
 │   ├── main.py
 │   ├── run_bot.py
 │   └── start_bot.bat
@@ -146,13 +139,21 @@ TraCord-DJ/
 │   │   ├── song_requests.json
 │   │   ├── stats.json
 │   │   └── _datafiles_stored_here.txt
-│   ├── gui_components/
-│   │   ├── gui_controls_stats.py
-│   │   ├── gui_logconsole.py
-│   │   ├── gui_now_playing.py
-│   │   ├── gui_songrequests.py
-│   │   ├── settings_dialog.py
-│   │   └── __init__.py
+│   ├── ui_qt2/
+│   │   ├── app.py
+│   │   ├── controller.py
+│   │   ├── log_bridge.py
+│   │   ├── main_window.py
+│   │   ├── signals.py
+│   │   └── panels/
+│   │       ├── bot_info_panel.py
+│   │       ├── controls_panel.py
+│   │       ├── log_panel.py
+│   │       ├── now_playing_panel.py
+│   │       ├── song_requests_panel.py
+│   │       ├── song_requests_popup.py
+│   │       ├── stats_panel.py
+│   │       └── status_panel.py
 │   ├── services/
 │   │   ├── discord_bot.py
 │   │   ├── traktor_listener.py
@@ -169,15 +170,11 @@ TraCord-DJ/
 │   │   └── traktor.py
 │   ├── version.py
 ├── docs/
-│   ├── ARCHITECTURE.md
-│   ├── REFACTOR.md
 │   └── TODO-Main.md
 ├── assets/
 │   ├── app_icon.ico
 │   ├── icon.png
 │   └── screenshots/
-│       ├── gui_screenshot.png
-│       └── gui_spout_integration.png
 ├── web_overlay/
 │   ├── templates/
 │   │   └── default_overlay.html
@@ -187,7 +184,7 @@ TraCord-DJ/
 └── TraCord DJ.code-workspace
 ```
 
-> **Note:** The `gui_components/` folder contains all modular GUI panels and controls. The `services/` folder contains bot lifecycle logic. The `utils/` folder contains helpers, logging, and Traktor, Now Playing utilities. The `data/` and `extra_cogs/` folders are gitignored and not included in distributed builds.
+> **Note:** The `ui_qt2/` folder contains the PySide6 GUI. The `services/` folder contains bot lifecycle logic. The `utils/` folder contains helpers, logging, and Traktor utilities. The `data/` and `extra_cogs/` folders are generally ignored in releases.
 
 ## ⚙️ Discord Cog Loading Behavior
 
