@@ -452,9 +452,33 @@ class QtController(QtCore.QObject):
     # --- Discord callbacks ---
     def _on_discord_ready(self, bot_obj) -> None:
         try:
-            name = getattr(bot_obj, "user", None)
+            # Update status
             self.window.set_status("discord", "Connected", color="#8fda8f")
-            logger.info(f"Discord bot ready: {name}")
+            # Populate Bot Info panel
+            try:
+                user = getattr(bot_obj, "user", None)
+                bot_name = str(user) if user is not None else "Unknown"
+                bot_id = str(getattr(user, "id", "")) if user is not None else ""
+            except Exception:
+                bot_name, bot_id = "Unknown", ""
+
+            try:
+                cmds = bot_obj.tree.get_commands() if hasattr(bot_obj, "tree") else []
+                cmd_count = len(cmds) if isinstance(cmds, (list, tuple)) else 0
+            except Exception:
+                cmd_count = 0
+
+            try:
+                from version import __version__ as _ver
+            except Exception:
+                _ver = ""
+
+            try:
+                self.window.set_bot_info(name=bot_name, bot_id=str(bot_id), commands=cmd_count, version=_ver)
+            except Exception:
+                pass
+
+            logger.info(f"Discord bot ready: {bot_name}")
             self._refresh_bot_button()
         except Exception:
             pass

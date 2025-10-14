@@ -21,6 +21,12 @@ class BotInfoPanel(QtWidgets.QGroupBox):
 
     def set_info(self, *, name: str, id: str, commands: str, version: str | None = None) -> None:
         self._name.setText(name)
-        self._id.setText(id)
+        # Mask App ID: show '**' followed by the last 4 characters
+        try:
+            s = str(id) if id is not None else ""
+            masked = f"**{s[-4:]}" if s else ""
+        except Exception:
+            masked = ""
+        self._id.setText(masked)
         self._commands.setText(commands)
         # Version is shown in window title now; ignore here
