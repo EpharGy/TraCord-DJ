@@ -19,6 +19,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default="INFO",
         help="Logging level (DEBUG, INFO, WARNING, ERROR). Default: INFO",
     )
+    parser.add_argument(
+        "--window-title",
+        dest="window_title",
+        default=None,
+        help="Override the application window title (optional)",
+    )
     return parser.parse_args(argv)
 
 
@@ -32,6 +38,11 @@ def main(argv: list[str] | None = None) -> int:
     # Ensure stats file exists at startup
     ensure_stats_initialized()
     window = MainWindow()
+    if getattr(args, "window_title", None):
+        try:
+            window.setWindowTitle(str(args.window_title))
+        except Exception:
+            pass
     QtController(window)
     window.show()
     return app.exec()
