@@ -2,8 +2,8 @@
 Version information for TraCord DJ
 """
 
-__version__ = "1.8.6"
-__version_info__ = (1, 8, 6)
+__version__ = "2.0.0"
+__version_info__ = (2, 0, 0)
 
 # For detailed changelog and release history, see:
 # - GitHub Releases: https://github.com/EpharGy/TraCord-DJ/releases
