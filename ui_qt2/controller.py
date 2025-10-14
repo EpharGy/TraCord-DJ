@@ -19,6 +19,7 @@ from services.web_overlay import WebOverlayServer
 from utils.stats import load_stats, reset_global_stats, reset_session_stats
 from utils.traktor import refresh_collection_json
 from utils.midi_helper import MidiHelper
+from utils.spout_sender_helper import SpoutGLHelper, SPOUTGL_AVAILABLE
 from services.traktor_listener import TraktorBroadcastListener
 from services.discord_bot import DiscordBotController
 from main import DJBot
@@ -37,6 +38,7 @@ class QtController(QtCore.QObject):
 
         # Backends
         self._midi = None  # type: MidiHelper | None
+        self._spout = None  # type: SpoutGLHelper | None
         self._listener = None  # type: TraktorBroadcastListener | None
         self._listener_timer = QtCore.QTimer(self)
         self._listener_timer.setInterval(1000)
@@ -88,6 +90,20 @@ class QtController(QtCore.QObject):
             except Exception:
                 pm = None
         self.window.now_playing_panel.set_cover_pixmap(pm)
+
+        # Send cover art via Spout if enabled
+        try:
+            if self._spout and pm is not None:
+                from PySide6 import QtGui
+                img = pm.toImage()
+                if not img.isNull():
+                    # Convert QImage -> PIL.Image using Pillow's ImageQt utility
+                    from PIL.ImageQt import fromqimage as pil_fromqimage
+                    pil_img = pil_fromqimage(img).convert("RGBA")
+                    self._spout.send_pil_image(pil_img)
+        except Exception:
+            # Avoid UI disruption if spout conversion fails
+            pass
 
         # Fire MIDI on song change if enabled
         try:
@@ -236,6 +252,29 @@ class QtController(QtCore.QObject):
             pass
 
     def _on_toggle_spout(self, enabled: bool) -> None:
+        # Lazily create helper and start/stop sender
+        if enabled:
+            if not SPOUTGL_AVAILABLE:
+                logger.warning("SpoutGL is not available; please install SpoutGL/pyopengl/glfw")
+                enabled = False
+            else:
+                if self._spout is None:
+                    self._spout = SpoutGLHelper()
+                try:
+                    self._spout.start()
+                    logger.info("Spout sender enabled")
+                except Exception as e:
+                    logger.error(f"Failed to start Spout sender: {e}")
+                    enabled = False
+        else:
+            if self._spout is not None:
+                try:
+                    self._spout.stop()
+                except Exception:
+                    pass
+                self._spout = None
+            logger.info("Spout sender disabled")
+
         self.window.now_playing_panel.set_spout_state(enabled)
         self.window.set_status("spout", "Connected" if enabled else "Off", color="#8fda8f" if enabled else "#ff4d4f")
 

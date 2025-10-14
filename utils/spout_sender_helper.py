@@ -1,11 +1,18 @@
 # pyright: reportAttributeAccessIssue=false
-SPOUT_SIZE = 1080
+from utils.logger import get_logger
+logger = get_logger(__name__)
 import threading
 import time
 import traceback
 import SpoutGL
 from PIL import Image
 from config.settings import Settings
+
+# Prefer configured size; fallback to 1080
+try:
+    SPOUT_SIZE = int(getattr(Settings, 'SPOUT_COVER_SIZE', 1080) or 1080)
+except Exception:
+    SPOUT_SIZE = 1080
 
 try:
     # type: ignore[import]
@@ -50,6 +57,17 @@ class SpoutGLHelper:
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._thread.start()
         self._ready.wait(timeout=5)
+        if self._ready.is_set():
+            logger.info("[SpoutGL] Sender thread started and ready")
+            # Queue a blank frame so receivers can see the sender immediately
+            try:
+                from PIL import Image as _PILImage
+                with self._lock:
+                    self._pending_img = _PILImage.new("RGBA", (SPOUT_SIZE, SPOUT_SIZE), (0, 0, 0, 0))
+            except Exception:
+                pass
+        else:
+            logger.warning("[SpoutGL] Sender thread did not signal ready within timeout")
 
     def stop(self):
         self._running = False
@@ -60,6 +78,7 @@ class SpoutGLHelper:
             glfw.terminate() # type: ignore
         self._sender = None
         self._window = None
+        logger.info("[SpoutGL] Sender stopped")
 
     def send_pil_image(self, pil_img):
         if not self._running:
@@ -110,17 +129,27 @@ class SpoutGLHelper:
     def _run(self):
         try:
             if not glfw.init(): # type: ignore # type: ignore
-                print("[SpoutGL] Failed to init GLFW")
+                logger.error("[SpoutGL] Failed to init GLFW")
                 return
             glfw.window_hint(glfw.VISIBLE, glfw.FALSE) # type: ignore
             self._window = glfw.create_window(self.width, self.height, "SpoutGL Hidden", None, None) # type: ignore
             if not self._window:
-                print("[SpoutGL] Failed to create GLFW window")
+                logger.error("[SpoutGL] Failed to create GLFW window")
                 glfw.terminate() # type: ignore
                 return
             glfw.make_context_current(self._window) # type: ignore
             self._sender = SpoutSender() # type: ignore
-            self._sender.setSenderName(self.sender_name)
+            try:
+                # Some builds require explicit creation with dimensions
+                if hasattr(self._sender, "createSender"):
+                    self._sender.createSender(self.sender_name, self.width, self.height)  # type: ignore[attr-defined]
+                else:
+                    self._sender.setSenderName(self.sender_name)
+                # Ensure frame size is communicated if API supports it
+                if hasattr(self._sender, "setFrameSize"):
+                    self._sender.setFrameSize(self.width, self.height)  # type: ignore[attr-defined]
+            except Exception as e:
+                logger.warning(f"[SpoutGL] Sender init warning: {e}")
             self._ready.set()
             while self._running:
                 img = None
@@ -138,7 +167,7 @@ class SpoutGLHelper:
                 else:
                     time.sleep(0.02)
         except Exception as e:
-            print(f"[SpoutGL] Error in sender thread: {e}\n{traceback.format_exc()}")
+            logger.error(f"[SpoutGL] Error in sender thread: {e}\n{traceback.format_exc()}")
         finally:
             self._sender = None
             if self._window:

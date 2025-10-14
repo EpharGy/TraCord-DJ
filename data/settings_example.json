@@ -9,7 +9,7 @@
     "1234567890123445678"
   ],
   "DISCORD_LIVE_NOTIFICATION_ROLES": [
-    "set_your_roles_here"
+    "1234567890123445678"
   ],
   "TRAKTOR_LOCATION": "C:/Users/",
   "TRAKTOR_COLLECTION_FILENAME": "collection.nml",
@@ -22,6 +22,7 @@
   "FADE_STYLE": "fade",
   "FADE_FRAMES": 30,
   "FADE_DURATION": 2,
-  "SPOUT_BORDER_PX": 216,
+  "SPOUT_COVER_SIZE": 1024,
+  "SPOUT_BORDER_PX": 256,
   "MIDI_DEVICE": ""
 }
