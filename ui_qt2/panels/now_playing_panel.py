@@ -92,8 +92,8 @@ class NowPlayingPanel(QtWidgets.QGroupBox):
         info_layout.setContentsMargins(0, 0, 0, 0)
         info_layout.setSpacing(2)
 
-        self.artist_label = ElideLabel("Artist")
-        self.title_label = ElideLabel("Title")
+        self.artist_label = ElideLabel("")
+        self.title_label = ElideLabel("")
         self.album_label = ElideLabel("")
         self.extra_label = QtWidgets.QLabel("")
         for lbl in (self.artist_label, self.title_label, self.album_label, self.extra_label):

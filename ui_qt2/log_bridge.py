@@ -21,7 +21,12 @@ class QtLogHandler(logging.Handler):
         # Minimal formatting: include logger name prefix
         message = f"{record.name}: {self.format(record)}"
         level = record.levelname.lower()
-        QtCore.QTimer.singleShot(0, lambda: self._hub.logMessage.emit(message, level))
+        # Emit directly; Qt signals are thread-safe and will be queued to the UI thread
+        try:
+            self._hub.logMessage.emit(message, level)
+        except Exception:
+            # As a fallback, schedule on the UI thread
+            QtCore.QTimer.singleShot(0, lambda: self._hub.logMessage.emit(message, level))
 
 
 _handler: QtLogHandler | None = None
@@ -37,13 +42,19 @@ def install_qt_log_handler(level: int = logging.INFO) -> QtLogHandler:
     if _handler is None:
         _handler = QtLogHandler()
         _handler.setLevel(level)
+    # Attach to our logger tree
     tracord_logger = logging.getLogger("tracord")
-    # Ensure the handler is only added once
     if _handler not in tracord_logger.handlers:
         tracord_logger.addHandler(_handler)
-    # Ensure the tracord logger actually emits at the desired level
     if tracord_logger.level == logging.NOTSET or tracord_logger.level > level:
         tracord_logger.setLevel(level)
-    # Propagate so terminal still shows logs via root handler
     tracord_logger.propagate = True
+
+    # Also capture discord.* logs so important bot lifecycle messages appear in GUI
+    discord_logger = logging.getLogger("discord")
+    if _handler not in discord_logger.handlers:
+        discord_logger.addHandler(_handler)
+    if discord_logger.level == logging.NOTSET or discord_logger.level > level:
+        discord_logger.setLevel(level)
+    discord_logger.propagate = True
     return _handler

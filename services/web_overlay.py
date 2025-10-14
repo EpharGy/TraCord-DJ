@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional
 
 from tracord.core.events import EventTopic, subscribe_event
+import logging
 from utils.harmonic_keys import open_key_int_to_str
 from utils.logger import get_logger
 
@@ -78,6 +79,20 @@ class WebOverlayServer:
         self.current_song = None  # type: Optional[OverlaySong]
         self._latest_payload = None  # type: Optional[Dict[str, Any]]
         self._event_unsubscribers: List[Callable[[], None]] = []
+
+        # Reduce noisy third-party request logs to WARNING, keep our logs at INFO
+        try:
+            logging.getLogger('werkzeug').setLevel(logging.WARNING)
+        except Exception:
+            pass
+        try:
+            logging.getLogger('engineio').setLevel(logging.WARNING)
+        except Exception:
+            pass
+        try:
+            logging.getLogger('socketio').setLevel(logging.WARNING)
+        except Exception:
+            pass
 
         self.setup_routes()
         self.setup_socket_events()

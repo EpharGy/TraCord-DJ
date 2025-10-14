@@ -8,8 +8,7 @@ from PySide6 import QtCore, QtWidgets
 
 class ControlsPanel(QtWidgets.QGroupBox):
     _ACTIONS = [
-        ("start", "▶ Start Bot"),
-        ("stop", "⏹ Stop Bot"),
+        ("bot", "▶ Start Bot"),
         ("refresh", "🔄 Refresh Collection"),
         ("reset_session", "♻ Reset Session Stats"),
         ("reset_global", "🗑 Reset Global Stats"),
@@ -45,3 +44,9 @@ class ControlsPanel(QtWidgets.QGroupBox):
     def set_all_enabled(self, enabled: bool) -> None:
         for button in self._buttons.values():
             button.setEnabled(enabled)
+
+    # --- Convenience helpers for dynamic labels ---
+    def set_button_text(self, action: str, text: str) -> None:
+        button = self._buttons.get(action)
+        if button:
+            button.setText(text)

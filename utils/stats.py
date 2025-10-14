@@ -3,6 +3,7 @@ Stats management utilities for Traktor DJ NowPlaying Discord Bot
 """
 import json
 import os
+import tempfile
 from typing import Dict, Any
 
 from config.settings import Settings
@@ -56,8 +57,8 @@ def load_stats(stats_file: str = STATS_FILE) -> Dict[str, Any]:
 def save_stats(stats: Dict[str, Any], stats_file: str = STATS_FILE) -> None:
     try:
         _ensure_dir(stats_file)
-        with open(stats_file, "w", encoding="utf-8") as f:
-            json.dump(stats, f, indent=2)
+        from utils.helpers import safe_write_json
+        safe_write_json(stats_file, stats, indent=2, ensure_ascii=False, retries=3, backoff=0.1)
     except Exception as e:
         logger.warning(f"⚠️ Error saving stats: {e}")
 

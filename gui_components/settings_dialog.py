@@ -135,8 +135,8 @@ class SettingsDialog(tk.Toplevel):
                 except Exception:
                     new_settings[key] = val
         from config.settings import SETTINGS_PATH
-        with open(SETTINGS_PATH, "w", encoding="utf-8") as f:
-            json.dump(new_settings, f, indent=2)
+        from utils.helpers import safe_write_json
+        safe_write_json(SETTINGS_PATH, new_settings)
         from config.settings import Settings
         Settings.reload()
         if self.on_save:

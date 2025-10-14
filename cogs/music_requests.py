@@ -40,8 +40,8 @@ class RequestsCog(commands.Cog, name="Requests"):
     def _save_song_requests(self, song_requests: List[Dict[str, Any]]) -> None:
         """Save song requests to JSON file"""
         try:
-            with open(Settings.SONG_REQUESTS_FILE, "w", encoding="utf-8") as file:
-                json.dump(song_requests, file, indent=4)
+            from utils.helpers import safe_write_json
+            safe_write_json(Settings.SONG_REQUESTS_FILE, song_requests)
         except Exception as exc:
             logger.error(f"Error saving song requests: {exc}")
     
@@ -57,12 +57,12 @@ class RequestsCog(commands.Cog, name="Requests"):
         
         if not song_requests:
             await interaction.response.send_message("No song requests found.")
-            logger.info(f"{interaction.user} viewed the song request list.")
+            logger.info(f"{interaction.user} viewed the song request list (empty).")
             return
         
         response = format_song_requests(song_requests)
         await interaction.response.send_message(response)
-        logger.info(f"{interaction.user} viewed the song request list.")
+        logger.info(f"{interaction.user} viewed the song request list ({len(song_requests)} items).")
     
     @app_commands.command(name="srbreqdel", description="Delete a song request by RequestNumber, 'all', 'self', or a specific user")
     @app_commands.describe(request_number="RequestNumber to delete, 'all', 'self', or a specific user")

@@ -20,6 +20,8 @@ from utils.stats import load_stats, reset_global_stats, reset_session_stats
 from utils.traktor import refresh_collection_json
 from utils.midi_helper import MidiHelper
 from services.traktor_listener import TraktorBroadcastListener
+from services.discord_bot import DiscordBotController
+from main import DJBot
 
 logger = get_logger(__name__)
 
@@ -40,10 +42,14 @@ class QtController(QtCore.QObject):
         self._listener_timer.setInterval(1000)
         self._listener_timer.timeout.connect(self._poll_listener_status)
         self._listener_status_last: str | None = None
+        self._discord: DiscordBotController | None = None
+        self._overlay_server: WebOverlayServer | None = None
 
         # Populate UI on startup
         self.push_stats_update()
         self.reload_song_requests()
+        # Autostart services after a short delay so UI settles first
+        QtCore.QTimer.singleShot(1500, self._auto_start_services)
 
     # --- Slots called by MainWindow/hub ---
     def handle_song_event(self, payload: dict) -> None:
@@ -117,11 +123,15 @@ class QtController(QtCore.QObject):
                         date_str = str(item.get("Date", ""))
                         time_str = str(item.get("Time", ""))
                         user = str(item.get("User", ""))
-                        song = str(item.get("Song", ""))
-                        if " | " in song:
-                            artist, title = song.split(" | ", 1)
-                        else:
-                            artist, title = "", song
+                        # Prefer structured fields when present, fallback to legacy combined 'Song'
+                        artist = str(item.get("Artist", "")).strip()
+                        title = str(item.get("Title", "")).strip()
+                        if not (artist or title):
+                            song = str(item.get("Song", ""))
+                            if " | " in song:
+                                artist, title = song.split(" | ", 1)
+                            else:
+                                artist, title = "", song
                         rows.append((rn_int, date_str, time_str, user, artist, title))
                     rows.sort(key=lambda r: r[0])
             self.window.set_requests(rows)
@@ -149,9 +159,10 @@ class QtController(QtCore.QObject):
             self.push_stats_update()
 
         try:
-            cp.bind("reset_session", _reset_session)
-            cp.bind("reset_global", _reset_global)
-            cp.bind("refresh", self._refresh_collection)
+                cp.bind("reset_session", _reset_session)
+                cp.bind("reset_global", _reset_global)
+                cp.bind("refresh", self._refresh_collection)
+                cp.bind("bot", self._on_toggle_discord)
         except Exception:
             pass
 
@@ -254,7 +265,8 @@ class QtController(QtCore.QObject):
             except Exception:
                 count_before = 0
 
-            data_path.write_text("[]", encoding="utf-8")
+            from utils.helpers import safe_write_json
+            safe_write_json(str(data_path), [])
             logger.info("All song requests (%s) cleared from main panel", count_before)
         except Exception as e:
             logger.error(f"Failed to clear song requests: {e}")
@@ -277,7 +289,7 @@ class QtController(QtCore.QObject):
     def _open_overlay(self) -> None:
         try:
             # Lazily construct server instance
-            if not hasattr(self, "_overlay_server") or self._overlay_server is None:
+            if self._overlay_server is None:
                 self._overlay_server = WebOverlayServer(
                     host=getattr(Settings, "OVERLAY_HOST", "127.0.0.1"),
                     port=getattr(Settings, "OVERLAY_PORT", 5000),
@@ -294,6 +306,110 @@ class QtController(QtCore.QObject):
             logger.info(f"Overlay opened in browser: {url}")
         except Exception as e:
             logger.error(f"Failed to open overlay: {e}")
+
+    # --- Autostart helpers ---
+    def _auto_start_services(self) -> None:
+        try:
+            # Start overlay server in background (do not open browser)
+            if self._overlay_server is None:
+                self._overlay_server = WebOverlayServer(
+                    host=getattr(Settings, "OVERLAY_HOST", "127.0.0.1"),
+                    port=getattr(Settings, "OVERLAY_PORT", 5000),
+                )
+            if not self._overlay_server.is_running:
+                self._overlay_server.start_server()
+        except Exception as e:
+            logger.warning(f"Overlay autostart failed: {e}")
+
+        # Start Discord bot if token present
+        try:
+            token = getattr(Settings, "DISCORD_TOKEN", None) or Settings.get("DISCORD_TOKEN")
+            if token:
+                self._ensure_discord_controller()
+                if self._discord and not self._discord.is_running:
+                    self._discord.start_discord_bot()
+            else:
+                logger.debug("Discord token not set; skipping autostart")
+        except Exception as e:
+            logger.warning(f"Discord autostart failed: {e}")
+        # Reflect initial bot state in controls
+        QtCore.QTimer.singleShot(200, self._refresh_bot_button)
+
+    def _ensure_discord_controller(self) -> None:
+        if self._discord is None:
+            callbacks = {
+                "on_status": lambda text, color=None: self.window.set_status("discord", text, color=color),
+                "on_ready": self._on_discord_ready,
+                "on_error": self._on_discord_error,
+                "on_stopped": self._on_discord_stopped,
+            }
+            # Settings acts like a dict via .get
+            self._discord = DiscordBotController(DJBot, Settings, gui_callbacks=callbacks)
+        # Always refresh label after ensuring controller
+        self._refresh_bot_button()
+
+    # --- Discord controls ---
+    def _on_start_discord(self) -> None:
+        try:
+            self._ensure_discord_controller()
+            if self._discord and not self._discord.is_running:
+                self._discord.start_discord_bot()
+            else:
+                logger.debug("Discord bot already running")
+        except Exception as e:
+            logger.error(f"Failed to start Discord bot: {e}")
+        finally:
+            self._refresh_bot_button()
+
+    def _on_stop_discord(self) -> None:
+        try:
+            if self._discord and self._discord.is_running:
+                self._discord.stop_discord_bot()
+            else:
+                logger.debug("Discord bot not running")
+        except Exception as e:
+            logger.error(f"Failed to stop Discord bot: {e}")
+        finally:
+            self._refresh_bot_button()
+
+    def _on_toggle_discord(self) -> None:
+        if self._discord and self._discord.is_running:
+            self._on_stop_discord()
+        else:
+            self._on_start_discord()
+
+    def _refresh_bot_button(self) -> None:
+        try:
+            running = bool(self._discord and self._discord.is_running)
+            self.window.controls_panel.set_button_text("bot", "⏹ Stop Bot" if running else "▶ Start Bot")
+            self.window.controls_panel.set_enabled("bot", True)
+        except Exception:
+            pass
+
+    # --- Discord callbacks ---
+    def _on_discord_ready(self, bot_obj) -> None:
+        try:
+            name = getattr(bot_obj, "user", None)
+            self.window.set_status("discord", "Connected", color="#8fda8f")
+            logger.info(f"Discord bot ready: {name}")
+            self._refresh_bot_button()
+        except Exception:
+            pass
+
+    def _on_discord_error(self, message: str) -> None:
+        try:
+            logger.error(f"Discord error: {message}")
+            self.window.set_status("discord", "Off", color="#ff4d4f")
+            self._refresh_bot_button()
+        except Exception:
+            pass
+
+    def _on_discord_stopped(self) -> None:
+        try:
+            self.window.set_status("discord", "Off", color="#ff4d4f")
+            self._refresh_bot_button()
+        except Exception:
+            pass
 
     # --- Debug ---
     def debug_inject_song(self) -> None:

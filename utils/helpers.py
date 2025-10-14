@@ -2,6 +2,10 @@
 Permission and utility helper functions
 """
 from typing import Any, Dict, List
+import os
+import json
+import time
+import errno
 import discord
 from utils.stats import (
     STATS_FILE, load_stats, save_stats, increment_stat, reset_session_stats, reset_global_stats
@@ -32,14 +36,28 @@ def check_channel_permissions(interaction: discord.Interaction, channel_ids: Lis
 
 
 def format_song_requests(song_requests: List[dict]) -> str:
-    """Format song requests for display"""
+    """Format song requests for display.
+
+    Prefers new structured fields (Artist/Title) when present, falls back to legacy 'Song'.
+    Includes optional Time when available.
+    """
     if not song_requests:
         return "No song requests found."
-    
-    formatted_requests = [
-        f"{entry['RequestNumber']} | {entry['Date']} | {entry['User']} | {entry['Song']}" 
-        for entry in song_requests
-    ]
+
+    formatted_requests = []
+    for entry in song_requests:
+        rn = entry.get("RequestNumber", "?")
+        date = entry.get("Date", "")
+        time = entry.get("Time", "")
+        user = entry.get("User", "")
+        artist = entry.get("Artist")
+        title = entry.get("Title")
+        if artist or title:
+            song_str = f"{artist or ''} | {title or ''}".strip(" |")
+        else:
+            song_str = entry.get("Song", "")
+        dt_part = f"{date} {time}".strip()
+        formatted_requests.append(f"{rn} | {dt_part} | {user} | {song_str}")
     response = "\n".join(formatted_requests)
     
     # Ensure the message length doesn't exceed Discord's limit
@@ -60,3 +78,51 @@ def update_request_numbers(song_requests):
     """Update the request numbers in the song requests list"""
     for i, req in enumerate(song_requests):
         req["RequestNumber"] = i + 1
+
+
+def safe_write_json(
+    path: str,
+    data: Any,
+    *,
+    indent: int = 2,
+    ensure_ascii: bool = False,
+    retries: int = 3,
+    backoff: float = 0.1,
+) -> None:
+    """Atomically write JSON to disk with optional retry on common Windows locks.
+
+    Strategy:
+    - Write to a temporary file in the same directory
+    - fsync to ensure bytes hit disk
+    - Replace the target (atomic on the same filesystem)
+    - Retry a few times on PermissionError/EBUSY/EPERM/EACCES
+    """
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp_path = path + ".tmp"
+
+    def _attempt_write() -> None:
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=indent, ensure_ascii=ensure_ascii)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, path)
+
+    attempt = 0
+    last_err: Exception | None = None
+    while attempt < max(1, retries):
+        try:
+            _attempt_write()
+            return
+        except OSError as e:
+            last_err = e
+            if isinstance(e, PermissionError) or e.errno in {errno.EBUSY, errno.EPERM, errno.EACCES}:
+                time.sleep(backoff * (2 ** attempt))
+                attempt += 1
+                continue
+            raise
+        except Exception as e:
+            last_err = e
+            # Non-OS errors generally won't benefit from retry
+            break
+    if last_err:
+        raise last_err

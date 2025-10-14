@@ -45,7 +45,10 @@ class MusicCog(commands.Cog, name="Music"):
         if not await self._ensure_collection_loaded(interaction):
             return
 
-        self._record_search()
+        try:
+            self._record_search()
+        except Exception as e:
+            logger.warning(f"Stats update (search) failed: {e}")
 
         search_result = self.search_backend.search(search)
         matches = search_result.matches or []
@@ -78,6 +81,11 @@ class MusicCog(commands.Cog, name="Music"):
             try:
                 msg = await self.bot.wait_for("message", timeout=Settings.TIMEOUT, check=check)
                 selected_song = result_dict[msg.content]
+                # Parse legacy "Artist | Title" into structured fields
+                sel_artist, sel_title = "", selected_song
+                if " | " in selected_song:
+                    parts = selected_song.split(" | ", 1)
+                    sel_artist, sel_title = parts[0].strip(), parts[1].strip()
                 song_requests_file = Settings.SONG_REQUESTS_FILE
                 if song_requests_file:
                     try:
@@ -98,17 +106,28 @@ class MusicCog(commands.Cog, name="Music"):
                             song_requests = []
                             logger.info(f"📄 Creating new song requests file: {song_requests_file}")
 
-                        # Determine the next request number
-                        next_request_num = len(song_requests) + 1
+                        # Determine the next request number (robust if holes exist)
+                        try:
+                            existing_nums = [int(req.get("RequestNumber", 0)) for req in song_requests if isinstance(req, dict)]
+                            next_request_num = (max(existing_nums) + 1) if existing_nums else 1
+                        except Exception:
+                            next_request_num = len(song_requests) + 1
 
-                        # Get the current system date and time
-                        current_time = datetime.now().strftime("%Y-%m-%d")
+                        # Get the current system date and time (separate fields expected by GUI)
+                        now = datetime.now()
+                        current_date = now.strftime("%Y-%m-%d")
+                        current_time = now.strftime("%H:%M")
 
                         # Construct request object
                         new_request = {
                             "RequestNumber": next_request_num,
-                            "Date": current_time,
+                            "Date": current_date,
+                            "Time": current_time,
                             "User": str(interaction.user),
+                            # Future-forward structured fields
+                            "Artist": sel_artist,
+                            "Title": sel_title,
+                            # Keep legacy combined field for backward compatibility
                             "Song": selected_song,
                         }
 
@@ -116,18 +135,19 @@ class MusicCog(commands.Cog, name="Music"):
                         song_requests.append(new_request)
 
                         # Save back to the JSON file
-                        with open(song_requests_file, "w", encoding="utf-8") as file:
-                            json.dump(song_requests, file, indent=4)
+                        from utils.helpers import safe_write_json
+                        safe_write_json(song_requests_file, song_requests)
 
-                        logger.info(
-                            f"{interaction.user} selected and requested the song: {selected_song}"
-                        )
+                        logger.info(f"{interaction.user} requested: {selected_song} (#{next_request_num})")
                         await interaction.followup.send(
                             f"Added the song to the Song Request List: {selected_song}"
                         )
                         emit_event(EventTopic.SONG_REQUEST_ADDED, new_request)  # Emit event for new song request
                         # Increment request counters atomically for GUI tracking
-                        increment_song_request()
+                        try:
+                            increment_song_request()
+                        except Exception as e:
+                            logger.warning(f"Stats update (request) failed: {e}")
 
                     except Exception as exc:
                         logger.error(f"❌ Error saving song request: {exc}")

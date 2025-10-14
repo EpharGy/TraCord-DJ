@@ -323,8 +323,8 @@ def convert_collection_xml_to_json(xml_file_path: str, json_file_path: str, excl
         if debug_mode:
             logger.debug(f"💾 Writing {len(songs)} songs to JSON: {json_file_path}")
             
-        with open(json_file_path, 'w', encoding='utf-8') as f:
-            json.dump(songs, f, ensure_ascii=False, indent=2)
+        from utils.helpers import safe_write_json
+        safe_write_json(json_file_path, songs)
         
         if debug_mode:
             logger.debug(f"✅ Successfully converted {processed_count} songs to JSON")

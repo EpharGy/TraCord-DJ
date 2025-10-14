@@ -228,7 +228,8 @@ class SongRequestsPopup(QtWidgets.QDialog):
             # Renumber
             for idx, it in enumerate(items, start=1):
                 it["RequestNumber"] = idx
-            path.write_text(json.dumps(items, indent=2), encoding="utf-8")
+            from utils.helpers import safe_write_json
+            safe_write_json(str(path), items)
             if removed_info:
                 logger.info(
                     "Song request cleared via popup: #%s | %s | %s - %s",
