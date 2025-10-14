@@ -81,7 +81,7 @@ class MusicCog(commands.Cog, name="Music"):
             try:
                 msg = await self.bot.wait_for("message", timeout=Settings.TIMEOUT, check=check)
                 selected_song = result_dict[msg.content]
-                # Parse legacy "Artist | Title" into structured fields
+                # Parse legacy "Artist | Title" into structured fields for storage
                 sel_artist, sel_title = "", selected_song
                 if " | " in selected_song:
                     parts = selected_song.split(" | ", 1)
@@ -118,7 +118,7 @@ class MusicCog(commands.Cog, name="Music"):
                         current_date = now.strftime("%Y-%m-%d")
                         current_time = now.strftime("%H:%M")
 
-                        # Construct request object
+                        # Construct request object (store structured fields only)
                         new_request = {
                             "RequestNumber": next_request_num,
                             "Date": current_date,
@@ -127,8 +127,6 @@ class MusicCog(commands.Cog, name="Music"):
                             # Future-forward structured fields
                             "Artist": sel_artist,
                             "Title": sel_title,
-                            # Keep legacy combined field for backward compatibility
-                            "Song": selected_song,
                         }
 
                         # Append the new request to the list
@@ -138,9 +136,11 @@ class MusicCog(commands.Cog, name="Music"):
                         from utils.helpers import safe_write_json
                         safe_write_json(song_requests_file, song_requests)
 
-                        logger.info(f"{interaction.user} requested: {selected_song} (#{next_request_num})")
+                        # Log and confirm using a readable combined form, but do not persist legacy field
+                        combined = f"{sel_artist} | {sel_title}" if (sel_artist or sel_title) else selected_song
+                        logger.info(f"{interaction.user} requested: {combined} (#{next_request_num})")
                         await interaction.followup.send(
-                            f"Added the song to the Song Request List: {selected_song}"
+                            f"Added the song to the Song Request List: {combined}"
                         )
                         emit_event(EventTopic.SONG_REQUEST_ADDED, new_request)  # Emit event for new song request
                         # Increment request counters atomically for GUI tracking

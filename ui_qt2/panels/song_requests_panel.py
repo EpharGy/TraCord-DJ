@@ -92,7 +92,7 @@ class SongRequestsPanel(QtWidgets.QGroupBox):
             # Fixed columns
             w_num = 24
             w_date = 75
-            w_time = 75
+            w_time = 45
             fixed_total = w_num + w_date + w_time
 
             remaining = max(100, available - fixed_total)

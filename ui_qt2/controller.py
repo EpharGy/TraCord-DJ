@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import base64
+import random
 import json
 import os
 from pathlib import Path
@@ -16,10 +17,12 @@ from ui_qt2.panels.now_playing_panel import NowPlayingPanel
 from ui_qt2.panels.song_requests_popup import SongRequestsPopup
 from utils.logger import get_logger
 from services.web_overlay import WebOverlayServer
-from utils.stats import load_stats, reset_global_stats, reset_session_stats
-from utils.traktor import refresh_collection_json
+from utils.stats import load_stats, reset_global_stats, reset_session_stats, increment_song_play
+from utils.traktor import refresh_collection_json, load_collection_json
+from utils.song_matcher import get_song_info
+from tracord.utils.coverart import ensure_variants
 from utils.midi_helper import MidiHelper
-from utils.spout_sender_helper import SpoutGLHelper, SPOUTGL_AVAILABLE
+from utils.spout_sender_helper import SpoutGLHelper, SPOUTGL_AVAILABLE, SPOUT_SIZE
 from services.traktor_listener import TraktorBroadcastListener
 from services.discord_bot import DiscordBotController
 from main import DJBot
@@ -91,16 +94,20 @@ class QtController(QtCore.QObject):
                 pm = None
         self.window.now_playing_panel.set_cover_pixmap(pm)
 
-        # Send cover art via Spout if enabled
+        # Send cover art via Spout if enabled; if no cover, push a transparent frame to clear previous image
         try:
-            if self._spout and pm is not None:
-                from PySide6 import QtGui
-                img = pm.toImage()
-                if not img.isNull():
-                    # Convert QImage -> PIL.Image using Pillow's ImageQt utility
-                    from PIL.ImageQt import fromqimage as pil_fromqimage
-                    pil_img = pil_fromqimage(img).convert("RGBA")
-                    self._spout.send_pil_image(pil_img)
+            if self._spout:
+                from PIL import Image as _PILImage
+                pil_img = None
+                if pm is not None:
+                    from PySide6 import QtGui
+                    img = pm.toImage()
+                    if not img.isNull():
+                        from PIL.ImageQt import fromqimage as pil_fromqimage
+                        pil_img = pil_fromqimage(img).convert("RGBA")
+                if pil_img is None:
+                    pil_img = _PILImage.new("RGBA", (SPOUT_SIZE, SPOUT_SIZE), (0, 0, 0, 0))
+                self._spout.send_pil_image(pil_img)
         except Exception:
             # Avoid UI disruption if spout conversion fails
             pass
@@ -459,24 +466,53 @@ class QtController(QtCore.QObject):
 
     # --- Debug ---
     def debug_inject_song(self) -> None:
-        cover_path = os.path.join(os.path.dirname(__file__), "..", "assets", "screenshots", "overlay_coverart_1.png")
-        cover_b64 = ""
         try:
-            cover_abs = os.path.abspath(cover_path)
-            if os.path.exists(cover_abs):
-                with open(cover_abs, "rb") as f:
-                    cover_b64 = base64.b64encode(f.read()).decode("ascii")
-        except Exception:
-            cover_b64 = ""
-        emit_event(
-            EventTopic.SONG_PLAYED,
-            {
-                "artist": "Demo Artist",
-                "title": "Demo Track",
-                "album": "Demo Album",
-                "coverart_base64": cover_b64,
-            },
-        )
+            # 1) Load collection and pick a random song
+            songs = load_collection_json(Settings.COLLECTION_JSON_FILE)
+            payload: dict
+            if songs:
+                song = random.choice(songs)
+                info = get_song_info(song.get("artist", ""), song.get("title", ""), songs)
+                artist = info.get("artist", "Unknown Artist")
+                title = info.get("title", "Unknown Title")
+                album = info.get("album", "")
+                cover_b64 = ""
+                try:
+                    audio_path = info.get("audio_file_path") or ""
+                    if isinstance(audio_path, str) and audio_path and os.path.exists(audio_path):
+                        ui_sz = int(getattr(Settings, "COVER_SIZE", 200) or 200)
+                        spout_sz = int(getattr(Settings, "SPOUT_COVER_SIZE", 1080) or 1080)
+                        result = ensure_variants(
+                            audio_path,
+                            sizes={"ui": (ui_sz, ui_sz), "spout": (spout_sz, spout_sz)},
+                            base64_variant="ui",
+                        )
+                        if result.base64_png:
+                            cover_b64 = result.base64_png
+                except Exception:
+                    cover_b64 = ""
+                payload = {"artist": artist, "title": title, "album": album, "coverart_base64": cover_b64}
+            else:
+                # Fallback to a bundled demo image if collection is missing
+                cover_path = os.path.join(os.path.dirname(__file__), "..", "assets", "screenshots", "overlay_coverart_1.png")
+                cover_b64 = ""
+                try:
+                    cover_abs = os.path.abspath(cover_path)
+                    if os.path.exists(cover_abs):
+                        with open(cover_abs, "rb") as f:
+                            cover_b64 = base64.b64encode(f.read()).decode("ascii")
+                except Exception:
+                    cover_b64 = ""
+                payload = {"artist": "Demo Artist", "title": "Demo Track", "album": "Demo Album", "coverart_base64": cover_b64}
+
+            # 2) Increment stats and emit event to drive the full workflow
+            try:
+                increment_song_play()
+            except Exception:
+                pass
+            emit_event(EventTopic.SONG_PLAYED, payload)
+        except Exception as e:
+            logger.warning(f"Debug inject failed: {e}")
 
     def _open_requests_popup(self) -> None:
         # Keep a reference on the controller; handle deleted C++ object safely

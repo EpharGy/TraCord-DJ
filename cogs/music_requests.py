@@ -144,8 +144,17 @@ class RequestsCog(commands.Cog, name="Requests"):
                 self._save_song_requests(song_requests)
                 emit_event(EventTopic.SONG_REQUEST_DELETED, None)  # Emit event for any deletion
 
-                # Format the deleted song details
-                deleted_song_details = f"#{request_number} | {request_to_delete['Date']} | {request_to_delete['User']} | {request_to_delete['Song']} has been deleted."
+                # Format the deleted song details (prefer structured Artist/Title)
+                artist = request_to_delete.get('Artist', '')
+                title = request_to_delete.get('Title', '')
+                if artist or title:
+                    song_display = f"{artist} | {title}".strip(" | ")
+                else:
+                    # Fallback to any legacy combined field if present
+                    song_display = request_to_delete.get('Song', '')
+                deleted_song_details = (
+                    f"#{request_number} | {request_to_delete['Date']} | {request_to_delete['User']} | {song_display} has been deleted."
+                )
 
                 # Format the updated song list
                 updated_list = format_song_requests(song_requests)
