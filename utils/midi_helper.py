@@ -77,22 +77,37 @@ class MidiHelper:
             self.port = None
             self.enabled = False
 
-    def send_song_change(self):
+    def send_song_change(self, *, note: int = 60, channel: int = 0, duration: float = 0.3) -> None:
+        """Send a short Note On/Off pulse (C4 by default) without blocking the UI.
+
+        note: MIDI note number (default C4=60)
+        channel: MIDI channel (0-15)
+        duration: seconds between Note On and Note Off
+        """
         if not self.enabled or not self.port:
             return
         try:
-            import time
             import random
+
             velocity = random.randint(1, 100)
-            msg_on = mido.Message('note_on', note=60, velocity=velocity, channel=0)
-            msg_off = mido.Message('note_off', note=60, velocity=0, channel=0)
-            self.port.send(msg_on)
-            logger.info(f"MIDI song change Note On sent (C4, vel={velocity})")
-            time.sleep(0.5)  # 1 second delay
-            self.port.send(msg_off)
-            # info("MIDI song change Note Off sent (C4)")
+            msg_on = mido.Message('note_on', note=note, velocity=velocity, channel=channel)
+            msg_off = mido.Message('note_off', note=note, velocity=0, channel=channel)
+
+            def _send_pulse():
+                try:
+                    import time
+                    self.port.send(msg_on)
+                    logger.info(f"MIDI Note On sent (note={note}, ch={channel+1}, vel={velocity})")
+                    time.sleep(max(0.01, duration))
+                    self.port.send(msg_off)
+                except Exception as inner_e:
+                    self.error = f"Failed to send MIDI message: {inner_e}"
+                    logger.error(self.error)
+                    self.disable()
+
+            threading.Thread(target=_send_pulse, daemon=True).start()
         except Exception as e:
-            self.error = f"Failed to send MIDI message: {e}"
+            self.error = f"Failed to prepare MIDI message: {e}"
             logger.error(self.error)
             self.disable()
 
