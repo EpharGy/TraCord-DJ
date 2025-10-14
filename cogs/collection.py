@@ -4,12 +4,10 @@ Collection management commands for Traktor integration
 import discord
 from discord.ext import commands
 from discord import app_commands
-import os
-import shutil
 
 from config.settings import Settings
-from utils.traktor import count_songs_in_collection, get_new_songs, load_collection_json, get_new_songs_json, count_songs_in_collection_json
-from utils.helpers import check_permissions, check_channel_permissions, truncate_response
+from utils.traktor import load_collection_json, get_new_songs_json
+from utils.helpers import check_channel_permissions
 from utils.logger import get_logger
 
 
@@ -33,6 +31,13 @@ class CollectionCog(commands.Cog, name="Collection"):
             )
             return
         
+        # Clamp days to a reasonable positive range to avoid accidental huge scans
+        try:
+            days = int(days)
+        except (TypeError, ValueError):
+            days = Settings.NEW_SONGS_DAYS
+        days = max(1, min(days, 90))
+
         await interaction.response.send_message(f"Displaying songs from the last {days} days.")
         
         # Load collection JSON for fast searching
@@ -46,7 +51,8 @@ class CollectionCog(commands.Cog, name="Collection"):
         
         if Settings.DEBUG:
             logger.debug(f"Total new songs found: {total_new_songs}")
-            logger.debug(f"Results: {results}")
+            # Avoid logging the entire results when very large
+            logger.debug(f"Showing up to first 10 results for debug: {results[:10]}")
         
         if results:
             # Smart truncation for better user experience

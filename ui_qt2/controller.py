@@ -48,6 +48,13 @@ class QtController(QtCore.QObject):
         # Populate UI on startup
         self.push_stats_update()
         self.reload_song_requests()
+        # Kick off a collection refresh shortly after startup (reuse same code as the Refresh button)
+        # Delay to let the UI settle and avoid initial freeze during heavy file IO
+        try:
+            QtCore.QTimer.singleShot(1200, self._refresh_collection)
+        except Exception:
+            pass
+
         # Autostart services after a short delay so UI settles first
         QtCore.QTimer.singleShot(1500, self._auto_start_services)
 

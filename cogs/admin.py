@@ -4,10 +4,6 @@ Admin commands for DJ operations and bot management
 import discord
 from discord.ext import commands
 from discord import app_commands
-import json
-import shutil
-import os
-from typing import List
 
 from config.settings import Settings
 from utils.helpers import check_permissions
@@ -34,26 +30,38 @@ class AdminCog(commands.Cog, name="Admin"):
             )
             return
 
-        # If no roles are configured, send a simple notification
+        # If no roles are configured, send a simple notification (no mentions)
         if not Settings.DISCORD_LIVE_NOTIFICATION_ROLES:
-            await interaction.response.send_message(f"🔴 **LIVE NOW** 🔴\n{message}")
+            await interaction.response.send_message(
+                f"🔴 **LIVE NOW** 🔴\n{message}",
+                allowed_mentions=discord.AllowedMentions(roles=False, users=False, everyone=False),
+            )
             logger.info(f"{interaction.user} sent live notification (no roles configured): {message}")
             return
         
         # Get all configured roles from the guild
-        role_mentions = []
-        missing_roles = []
-        
+        role_mentions: list[str] = []
+        missing_roles: list[str] = []
+
         if not interaction.guild:
             await interaction.response.send_message("❌ This command can only be used in a server.", ephemeral=True)
             return
-        
-        for role_name in Settings.DISCORD_LIVE_NOTIFICATION_ROLES:
-            role = discord.utils.get(interaction.guild.roles, name=role_name)
+
+        # Support both numeric IDs and names in settings, but prefer IDs for reliability
+        for role_entry in Settings.DISCORD_LIVE_NOTIFICATION_ROLES:
+            role = None
+            # Try resolve as ID first
+            try:
+                role_id = int(role_entry)
+                role = interaction.guild.get_role(role_id)
+            except (TypeError, ValueError):
+                # Not an int; try as name
+                role = discord.utils.get(interaction.guild.roles, name=str(role_entry))
+
             if role:
                 role_mentions.append(role.mention)
             else:
-                missing_roles.append(role_name)
+                missing_roles.append(str(role_entry))
         
         # Create the notification message
         if role_mentions:
@@ -62,8 +70,11 @@ class AdminCog(commands.Cog, name="Admin"):
         else:
             notification_message = f"🔴 **LIVE NOW** 🔴\n{message}"
         
-        # Send the notification
-        await interaction.response.send_message(notification_message)
+        # Send the notification (allow only role mentions)
+        await interaction.response.send_message(
+            notification_message,
+            allowed_mentions=discord.AllowedMentions(roles=True, users=False, everyone=False),
+        )
         
         # Log the action and any missing roles
         if missing_roles:
