@@ -53,8 +53,14 @@ class QtController(QtCore.QObject):
         album = str(payload.get("album", ""))
         if artist or title:
             logger.info(f"[Traktor] Song Played: {artist} - {title} [{album}]")
-        lines = [v for v in (title, artist, album) if v]
-        self.window.now_playing_panel.set_track_info("\n".join(lines) or "No track info available")
+        # GUI: Artist, Title, [Album], Extra
+        bpm = str(payload.get("bpm", "")).strip()
+        key = str(payload.get("key", "")).strip()
+        extra = (f"{bpm}BPM | {key}".strip(" |")) if (bpm or key) else ""
+        if any([artist, title, album, extra]):
+            self.window.now_playing_panel.set_track_fields(artist, title, album, extra)
+        else:
+            self.window.now_playing_panel.set_track_info("No track info available")
         # Cover art
         cover_b64 = payload.get("coverart_base64")
         pm = None
@@ -103,23 +109,19 @@ class QtController(QtCore.QObject):
                 items = json.loads(data_path.read_text(encoding="utf-8"))
                 if isinstance(items, list):
                     for idx, item in enumerate(items, start=1):
-                        rn = item.get("RequestNumber")
                         try:
-                            rn_int = int(rn) if rn is not None else idx
+                            rn = item.get("RequestNumber", idx)
+                            rn_int = int(rn)
                         except Exception:
                             rn_int = idx
-                        user = str(item.get("User", ""))
-                        # Support either combined Song or separate Artist/Title
-                        artist = str(item.get("Artist", ""))
-                        title = str(item.get("Title", ""))
-                        if not (artist and title):
-                            song = str(item.get("Song", ""))
-                            if " - " in song:
-                                artist, title = [p.strip() for p in song.split(" - ", 1)]
-                            else:
-                                artist, title = "", song
                         date_str = str(item.get("Date", ""))
                         time_str = str(item.get("Time", ""))
+                        user = str(item.get("User", ""))
+                        song = str(item.get("Song", ""))
+                        if " | " in song:
+                            artist, title = song.split(" | ", 1)
+                        else:
+                            artist, title = "", song
                         rows.append((rn_int, date_str, time_str, user, artist, title))
                     rows.sort(key=lambda r: r[0])
             self.window.set_requests(rows)

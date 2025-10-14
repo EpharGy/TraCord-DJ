@@ -26,8 +26,8 @@ class SongRequestsPanel(QtWidgets.QGroupBox):
         button_row.addWidget(self.popup_button)
         layout.addLayout(button_row)
 
-        # Fixed panel width as requested
-        self.setFixedWidth(600)
+        # Minimum panel width; allow expanding on window resize
+        self.setMinimumWidth(600)
 
         # Elide long text with '...'
         self.table.setTextElideMode(QtCore.Qt.TextElideMode.ElideRight)

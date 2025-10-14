@@ -17,6 +17,8 @@ from tracord.core.events import EventTopic, emit_event
 from utils.song_matcher import get_song_info
 from utils.stats import increment_song_play
 from services.web_overlay import OverlaySong
+from tracord.utils.coverart import ensure_variants
+from config.settings import Settings
 from config.settings import Settings
 
 COLLECTION_PATH: str = Settings.COLLECTION_JSON_FILE
@@ -28,6 +30,34 @@ def _broadcast_song(song_info: Dict[str, Any]) -> None:
     song_copy = dict(song_info)
     song_copy.setdefault('genre', '')
     song_copy.setdefault('audio_file_path', '')
+    # Enrich with cover art (base64) if we have a file path
+    try:
+        audio_path = song_copy.get('audio_file_path') or ''
+        if isinstance(audio_path, str) and audio_path and os.path.exists(audio_path):
+            # Prepare a UI-friendly variant; overlay uses the same base64
+            ui_sz = int(getattr(Settings, "COVER_SIZE", 200) or 200)
+            spout_sz = int(getattr(Settings, "SPOUT_COVER_SIZE", 1080) or 1080)
+            result = ensure_variants(
+                audio_path,
+                sizes={
+                    "ui": (ui_sz, ui_sz),
+                    "spout": (spout_sz, spout_sz),
+                },
+                base64_variant="ui",
+            )
+            if result.base64_png:
+                song_copy['coverart_base64'] = result.base64_png
+    except Exception as e:
+        logger.warning(f"[Traktor] Cover art enrich failed: {e}")
+        try:
+            log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data')
+            log_dir = os.path.normpath(log_dir)
+            os.makedirs(log_dir, exist_ok=True)
+            log_path = os.path.join(log_dir, "debug_songs.log")
+            with open(log_path, 'a', encoding='utf-8') as f:
+                f.write(f"[COVERART ERROR] {song_copy.get('audio_file_path','')}: {e}\n")
+        except Exception:
+            pass
     overlay_song = OverlaySong.from_song_info(song_copy)
     payload = overlay_song.to_payload()
     emit_event(EventTopic.SONG_PLAYED, payload)
@@ -105,9 +135,12 @@ def create_traktor_handler(status_queue, shutdown_event):
                                         logger.warning(f"[Traktor] Unable to Match Song: {artist} | {title}")
                                         try:
                                             dt = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
-                                            unmatched_path = os.path.join(os.path.dirname(Settings.SONG_REQUESTS_FILE), "Debug_unmatched_songs.txt")
+                                            log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data')
+                                            log_dir = os.path.normpath(log_dir)
+                                            os.makedirs(log_dir, exist_ok=True)
+                                            unmatched_path = os.path.join(log_dir, "debug_songs.log")
                                             with open(unmatched_path, "a", encoding="utf-8") as f:
-                                                f.write(f"{dt} {artist} - {title}\n")
+                                                f.write(f"{dt} UNMATCHED: {artist} - {title}\n")
                                         except Exception as e:
                                             logger.warning(f"[Traktor] Could not write unmatched song: {e}")
                                     _broadcast_song(song_info)

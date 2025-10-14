@@ -195,7 +195,8 @@ class NowPlayingPanel(ttk.LabelFrame):
     def _record_cover_art_failure(self, audio_file_path: str, message: str) -> None:
         logger.warning(f"[CoverArt] {message}: {audio_file_path}")
         try:
-            with open('data/Debug_unmatched_songs.txt', 'a', encoding='utf-8') as debug_file:
+            os.makedirs('data', exist_ok=True)
+            with open('data/debug_songs.log', 'a', encoding='utf-8') as debug_file:
                 debug_file.write(f"{message}: {audio_file_path}\n")
         except Exception as log_error:  # pragma: no cover - diagnostics only
             logger.error(f"[CoverArt] Failed to log cover art issue: {log_error}")

@@ -76,7 +76,7 @@ def _extract_embedded_bytes(path: str) -> Optional[bytes]:
     return None
 
 
-def _load_image(data: bytes) -> Optional[Image.Image]:
+def _load_image(data: bytes, source: Optional[str] = None) -> Optional[Image.Image]:
     try:
         with Image.open(io.BytesIO(data)) as img:
             converted = img.convert("RGBA")
@@ -85,7 +85,10 @@ def _load_image(data: bytes) -> Optional[Image.Image]:
         )
         return converted
     except Exception as exc:  # pragma: no cover
-        logger.warning(f"[CoverArt] Invalid embedded image data: {exc}")
+        if source:
+            logger.warning(f"[CoverArt] Invalid embedded image data for {source}: {exc}")
+        else:
+            logger.warning(f"[CoverArt] Invalid embedded image data: {exc}")
         return None
 
 
@@ -94,9 +97,9 @@ def load_cover_image(path: str) -> Optional[Image.Image]:
 
     art_bytes = _extract_embedded_bytes(path)
     if not art_bytes:
-        logger.debug(f"[CoverArt] No artwork found for {path}")
+        logger.warning(f"[CoverArt] No embedded artwork found: {path}")
         return None
-    return _load_image(art_bytes)
+    return _load_image(art_bytes, source=path)
 
 
 def _resize(image: Image.Image, size: Tuple[int, int]) -> Image.Image:
