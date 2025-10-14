@@ -9,6 +9,7 @@ from ui_qt2.app import create_application
 from ui_qt2.controller import QtController
 from ui_qt2.log_bridge import install_qt_log_handler
 from ui_qt2.main_window import MainWindow
+from utils.stats import ensure_stats_initialized
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -28,6 +29,8 @@ def main(argv: list[str] | None = None) -> int:
     app = create_application()
     # Install GUI log bridge after QApplication is created so Qt objects/signals are ready
     install_qt_log_handler(log_level)
+    # Ensure stats file exists at startup
+    ensure_stats_initialized()
     window = MainWindow()
     QtController(window)
     window.show()

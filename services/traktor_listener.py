@@ -15,7 +15,7 @@ from utils.logger import get_logger
 
 from tracord.core.events import EventTopic, emit_event
 from utils.song_matcher import get_song_info
-from utils.stats import increment_stat
+from utils.stats import increment_song_play
 from services.web_overlay import OverlaySong
 from config.settings import Settings
 
@@ -111,8 +111,7 @@ def create_traktor_handler(status_queue, shutdown_event):
                                         except Exception as e:
                                             logger.warning(f"[Traktor] Could not write unmatched song: {e}")
                                     _broadcast_song(song_info)
-                                    increment_stat("total_song_plays", 1)
-                                    increment_stat("session_song_plays", 1)
+                                    increment_song_play()
                                 except Exception as e:
                                     logger.warning(f"[Traktor] Error parsing Vorbis comment: {e}")
                             total = 0

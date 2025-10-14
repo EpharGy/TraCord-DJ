@@ -13,7 +13,7 @@ from typing import Dict, List, Tuple
 from config.settings import Settings
 from utils.helpers import check_channel_permissions, wrap_text
 from utils.logger import get_logger
-from utils.stats import increment_stat
+from utils.stats import increment_song_search, increment_song_request
 from tracord.core.events import EventTopic, emit_event
 from tracord.core.services.search import JsonSearchBackend
 
@@ -126,9 +126,8 @@ class MusicCog(commands.Cog, name="Music"):
                             f"Added the song to the Song Request List: {selected_song}"
                         )
                         emit_event(EventTopic.SONG_REQUEST_ADDED, new_request)  # Emit event for new song request
-                        # Increment search counter for GUI tracking
-                        increment_stat("total_song_requests", 1)
-                        increment_stat("session_song_requests", 1)
+                        # Increment request counters atomically for GUI tracking
+                        increment_song_request()
 
                     except Exception as exc:
                         logger.error(f"❌ Error saving song request: {exc}")
@@ -168,8 +167,7 @@ class MusicCog(commands.Cog, name="Music"):
         return False
 
     def _record_search(self) -> None:
-        increment_stat("total_song_searches", 1)
-        increment_stat("session_song_searches", 1)
+        increment_song_search()
 
     def _footer_text(self, shown: int, total: int) -> str:
         total_display = max(total, shown)

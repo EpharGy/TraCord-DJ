@@ -14,6 +14,7 @@ from ui_qt2.panels.stats_panel import StatsPanel
 from ui_qt2.panels.status_panel import StatusPanel
 from ui_qt2.signals import get_event_hub
 from version import __version__
+from utils.logger import get_logger
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
     from ui_qt2.controller import QtController
@@ -100,6 +101,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # --- Event Hub Slots ---
     def on_song_played(self, payload: dict) -> None:
+        try:
+            get_logger(__name__).debug("[GUI] on_song_played slot fired")
+        except Exception:
+            pass
         if self.controller:
             self.controller.handle_song_event(payload)
 
