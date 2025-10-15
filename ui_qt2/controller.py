@@ -5,6 +5,7 @@ import base64
 import random
 import json
 import os
+import datetime as _dt
 from pathlib import Path
 from typing import Tuple
 
@@ -19,6 +20,7 @@ from utils.logger import get_logger
 from services.web_overlay import WebOverlayServer
 from utils.stats import load_stats, reset_global_stats, reset_session_stats, increment_song_play
 from utils.traktor import refresh_collection_json, load_collection_json
+from utils.traktor import get_new_songs_json
 from utils.song_matcher import get_song_info
 from tracord.utils.coverart import ensure_variants
 from utils.midi_helper import MidiHelper
@@ -53,6 +55,11 @@ class QtController(QtCore.QObject):
         # Populate UI on startup
         self.push_stats_update()
         self.reload_song_requests()
+        # Populate initial collection meta info for Bot Info panel
+        try:
+            self._update_collection_info()
+        except Exception:
+            pass
         # Kick off a collection refresh shortly after startup (reuse same code as the Refresh button)
         # Delay to let the UI settle and avoid initial freeze during heavy file IO
         try:
@@ -346,6 +353,11 @@ class QtController(QtCore.QObject):
                 return
             count = refresh_collection_json(traktor_path, collection_json, excluded, debug)
             logger.info(f"Collection refreshed: {count} songs processed")
+            # Update Bot Info panel after refresh
+            try:
+                self._update_collection_info()
+            except Exception:
+                pass
         except Exception as e:
             logger.error(f"Collection refresh failed: {e}")
 
@@ -474,7 +486,20 @@ class QtController(QtCore.QObject):
                 _ver = ""
 
             try:
-                self.window.set_bot_info(name=bot_name, bot_id=str(bot_id), commands=cmd_count, version=_ver)
+                # Update bot identity info
+                self.window.set_bot_info(
+                    name=bot_name,
+                    bot_id=str(bot_id),
+                    commands=cmd_count,
+                    version=_ver,
+                )
+                # Update collection metadata
+                last_refresh, new_songs = self._get_collection_info()
+                if last_refresh or new_songs is not None:
+                    self.window.set_collection_info(
+                        last_refresh=last_refresh or "–",
+                        new_songs=new_songs if new_songs is not None else 0,
+                    )
             except Exception:
                 pass
 
@@ -547,6 +572,39 @@ class QtController(QtCore.QObject):
             emit_event(EventTopic.SONG_PLAYED, payload)
         except Exception as e:
             logger.warning(f"Debug inject failed: {e}")
+
+    # --- Collection info helpers (for Bot Info panel) ---
+    def _get_collection_info(self) -> tuple[str | None, int | None]:
+        try:
+            path = Settings.COLLECTION_JSON_FILE
+            if not path or not os.path.exists(path):
+                return None, None
+            ts = os.path.getmtime(path)
+            dt = _dt.datetime.fromtimestamp(ts)
+            last_refresh = dt.strftime("%Y-%m-%d %H:%M:%S")
+            try:
+                songs = load_collection_json(path)
+                if songs:
+                    days = int(getattr(Settings, "NEW_SONGS_DAYS", 7) or 7)
+                    max_songs = int(getattr(Settings, "MAX_SONGS", 20) or 20)
+                    _, total_new = get_new_songs_json(songs, days, max_songs, getattr(Settings, "DEBUG", False))
+                else:
+                    total_new = 0
+            except Exception:
+                total_new = None
+            return last_refresh, total_new
+        except Exception:
+            return None, None
+
+    def _update_collection_info(self) -> None:
+        last_refresh, new_songs = self._get_collection_info()
+        try:
+            self.window.set_collection_info(
+                last_refresh=last_refresh or "–",
+                new_songs=new_songs if new_songs is not None else 0,
+            )
+        except Exception:
+            pass
 
     def _open_requests_popup(self) -> None:
         # Keep a reference on the controller; handle deleted C++ object safely

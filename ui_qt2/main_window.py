@@ -142,6 +142,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def set_controller(self, controller: QtController) -> None:
         self.controller = controller
 
+    def set_collection_info(self, *, last_refresh: str, new_songs: int | str) -> None:
+        self.bot_info_panel.set_collection_info(last_refresh=last_refresh, new_songs=new_songs)
+
     def _setup_shortcuts(self) -> None:
         # Ctrl+T: inject demo song for quick UI validation
         sc = QtGui.QShortcut(QtGui.QKeySequence("Ctrl+T"), self)
