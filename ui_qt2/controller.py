@@ -581,7 +581,7 @@ class QtController(QtCore.QObject):
                 return None, None
             ts = os.path.getmtime(path)
             dt = _dt.datetime.fromtimestamp(ts)
-            last_refresh = dt.strftime("%Y-%m-%d %H:%M:%S")
+            last_refresh = dt.strftime("%Y-%m-%d %H:%M")
             try:
                 songs = load_collection_json(path)
                 if songs:
