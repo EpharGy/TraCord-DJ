@@ -163,6 +163,9 @@ class SongRequestsPopup(QtWidgets.QDialog):
                         user = str(item.get("User", ""))
                         artist = str(item.get("Artist", ""))
                         title = str(item.get("Title", ""))
+                        album = str(item.get("Album", "")).strip()
+                        if album:
+                            title = f"{title} [{album}]" if title else f"[{album}]"
                         if not (artist and title):
                             song = str(item.get("Song", ""))
                             if " - " in song:

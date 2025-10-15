@@ -45,6 +45,7 @@ class SongRequestsPanel(QtWidgets.QGroupBox):
         data = list(rows)
         self.table.setRowCount(len(data))
         for row_index, (request_number, date_str, time_str, user, artist, title) in enumerate(data):
+            # Allow piping Album into Title column for display if present in raw data later
             for col_index, value in enumerate((request_number, date_str, time_str, user, artist, title)):
                 item = QtWidgets.QTableWidgetItem(str(value))
                 self.table.setItem(row_index, col_index, item)

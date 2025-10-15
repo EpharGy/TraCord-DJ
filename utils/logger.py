@@ -67,16 +67,32 @@ def set_gui_callback(callback) -> None:
     global _gui_handler
     if _gui_handler is None:
         _gui_handler = GuiHandler()
-        BASE_LOGGER.addHandler(_gui_handler)
-        BASE_LOGGER.propagate = False
+        # Attach GUI handler to the ROOT logger so we capture both tracord and 3rd-party logs once
+        # and allow tracord logs to also flow to RichHandler on root for pretty console output.
+        try:
+            # If previously attached to BASE_LOGGER in older versions, remove it
+            try:
+                BASE_LOGGER.removeHandler(_gui_handler)  # type: ignore[arg-type]
+            except Exception:
+                pass
+            BASE_LOGGER.propagate = True
+        except Exception:
+            pass
     root_logger = logging.getLogger()
     if _gui_handler not in root_logger.handlers:
         root_logger.addHandler(_gui_handler)
-    # Remove stream handlers to avoid writing to closed stdout/stderr when the GUI captures logs.
+    # Remove plain stream handlers to avoid writing to closed stdout/stderr when the GUI captures logs,
+    # but keep RichHandler if present so console output stays pretty.
     for handler in list(root_logger.handlers):
         if handler is _gui_handler:
             continue
-        if isinstance(handler, logging.StreamHandler):
+        try:
+            from rich.logging import RichHandler  # type: ignore
+
+            is_rich = isinstance(handler, RichHandler)
+        except Exception:
+            is_rich = False
+        if isinstance(handler, logging.StreamHandler) and not is_rich:
             root_logger.removeHandler(handler)
     _gui_handler.callback = callback
 

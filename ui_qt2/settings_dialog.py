@@ -50,6 +50,10 @@ class SettingsDialog(QtWidgets.QDialog):
                 self._data = json.load(f)
         except Exception:
             self._data = {}
+        # Ensure optional-but-useful keys exist so they show up in the UI
+        self._data.setdefault("TRACORD_LOG_LEVEL", "INFO")
+        self._data.setdefault("TRACORD_LOG_RICH", False)
+        self._data.setdefault("DISCORD_BOT_REQUEST_PLAYED_CHANNEL_ID", "")
 
     # --- Form building helpers ---
     def _build_grouped_form(self, container: QtWidgets.QWidget) -> None:
@@ -63,6 +67,7 @@ class SettingsDialog(QtWidgets.QDialog):
                 "DISCORD_BOT_APP_ID",
                 "DISCORD_BOT_CHANNEL_IDS",
                 "DISCORD_BOT_ADMIN_IDS",
+                "DISCORD_BOT_REQUEST_PLAYED_CHANNEL_ID",
                 "DISCORD_LIVE_NOTIFICATION_ROLES",
             ],
             "Traktor": [
@@ -78,6 +83,8 @@ class SettingsDialog(QtWidgets.QDialog):
                 "FADE_DURATION",
                 "SPOUT_BORDER_PX",
                 "SPOUT_COVER_SIZE",
+                "TRACORD_LOG_LEVEL",
+                "TRACORD_LOG_RICH",
                 "DEBUG",
             ],
             "MIDI": [
@@ -98,6 +105,7 @@ class SettingsDialog(QtWidgets.QDialog):
             "DISCORD_BOT_APP_ID": "Discord Application (Client) ID.",
             "DISCORD_BOT_CHANNEL_IDS": "Allowed channel IDs for commands, comma-separated.",
             "DISCORD_BOT_ADMIN_IDS": "Admin user IDs, comma-separated.",
+            "DISCORD_BOT_REQUEST_PLAYED_CHANNEL_ID": "Channel ID where 'request played' notifications are sent. Leave empty to disable.",
             "DISCORD_LIVE_NOTIFICATION_ROLES": "Role names/IDs to mention for live notifications, comma-separated.",
             "TRAKTOR_LOCATION": "Path to the parent folder that contains 'Traktor X.X.X' subfolders.",
             "TRAKTOR_COLLECTION_FILENAME": "Collection filename (usually collection.nml).",
@@ -109,6 +117,8 @@ class SettingsDialog(QtWidgets.QDialog):
             "FADE_DURATION": "Total transition duration in seconds.",
             "SPOUT_BORDER_PX": "Transparent border padding around cover art (px).",
             "SPOUT_COVER_SIZE": "Spout output size (square px).",
+            "TRACORD_LOG_LEVEL": "Global log level. Options: DEBUG, INFO, WARNING, ERROR, CRITICAL.",
+            "TRACORD_LOG_RICH": "Enable Rich console output (prettier logs).",
             "DEBUG": "Enable extra logging.",
             "MIDI_DEVICE": "Preferred MIDI output device name (exact or partial match).",
             "NEW_SONGS_DAYS": "Days back for 'new songs' listing.",
@@ -165,6 +175,20 @@ class SettingsDialog(QtWidgets.QDialog):
                 idx = 0
             combo.setCurrentIndex(idx)
             return combo
+
+        if key == "TRACORD_LOG_LEVEL":
+            combo = QtWidgets.QComboBox()
+            levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+            combo.addItems(levels)
+            current = str(value).upper() if value is not None else "INFO"
+            if current not in levels:
+                current = "INFO"
+            try:
+                combo.setCurrentIndex(levels.index(current))
+            except Exception:
+                combo.setCurrentIndex(1)
+            return combo
+
 
         # Generic mapping by type
         if isinstance(value, bool):
@@ -227,18 +251,9 @@ class SettingsDialog(QtWidgets.QDialog):
                 if key == "FADE_STYLE":
                     updated[key] = text if text in ("fade", "crossfade") else "fade"
                 elif isinstance(self._data.get(key), list):
-                    # Parse comma-separated lists; coerce to int where possible
+                    # Parse comma-separated lists; keep as strings (IDs must remain strings)
                     items = [t.strip() for t in text.split(",") if t.strip()]
-                    parsed: list[Any] = []
-                    for it in items:
-                        if it.isdigit():
-                            try:
-                                parsed.append(int(it))
-                                continue
-                            except Exception:
-                                pass
-                        parsed.append(it)
-                    updated[key] = parsed
+                    updated[key] = items
                 else:
                     updated[key] = text
 

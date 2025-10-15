@@ -86,6 +86,28 @@ class MusicCog(commands.Cog, name="Music"):
                 if " | " in selected_song:
                     parts = selected_song.split(" | ", 1)
                     sel_artist, sel_title = parts[0].strip(), parts[1].strip()
+                # Extract album if embedded at the end of the title as "Title [Album]"
+                sel_album = ""
+                try:
+                    if sel_title.endswith("]") and "[" in sel_title:
+                        lb = sel_title.rfind("[")
+                        if lb != -1 and lb < len(sel_title) - 1:
+                            possible_album = sel_title[lb + 1 : -1].strip()
+                            # Only treat as album if not empty
+                            if possible_album:
+                                sel_album = possible_album
+                                sel_title = sel_title[:lb].rstrip()
+                except Exception:
+                    sel_album = ""
+
+                # Fallback: if artist is still empty, try to parse "Artist - Title" from sel_title
+                if not sel_artist and " - " in sel_title:
+                    try:
+                        a, t = sel_title.split(" - ", 1)
+                        sel_artist = a.strip()
+                        sel_title = t.strip()
+                    except Exception:
+                        pass
                 song_requests_file = Settings.SONG_REQUESTS_FILE
                 if song_requests_file:
                     try:
@@ -128,6 +150,7 @@ class MusicCog(commands.Cog, name="Music"):
                             # Future-forward structured fields
                             "Artist": sel_artist,
                             "Title": sel_title,
+                            "Album": sel_album,
                         }
 
                         # Append the new request to the list
@@ -137,8 +160,12 @@ class MusicCog(commands.Cog, name="Music"):
                         from utils.helpers import safe_write_json
                         safe_write_json(song_requests_file, song_requests)
 
-                        # Log and confirm using a readable combined form, but do not persist legacy field
-                        combined = f"{sel_artist} | {sel_title}" if (sel_artist or sel_title) else selected_song
+                        # Log and confirm using a readable combined form (no legacy field persisted)
+                        # For user-facing confirmation, include album if present
+                        combined_title = f"{sel_title} [{sel_album}]" if sel_album else sel_title
+                        combined = (
+                            f"{sel_artist} | {combined_title}" if sel_artist else combined_title
+                        )
                         logger.info(f"{interaction.user} requested: {combined} (#{next_request_num})")
                         await interaction.followup.send(
                             f"Added the song to the Song Request List: {combined}"

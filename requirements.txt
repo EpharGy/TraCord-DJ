@@ -8,3 +8,4 @@ pillow
 mutagen
 pydantic
 PySide6
+rich

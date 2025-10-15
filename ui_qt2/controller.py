@@ -7,7 +7,7 @@ import json
 import os
 import datetime as _dt
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, Optional
 
 from PySide6 import QtCore
 
@@ -51,6 +51,8 @@ class QtController(QtCore.QObject):
         self._listener_status_last: str | None = None
         self._discord: DiscordBotController | None = None
         self._overlay_server: WebOverlayServer | None = None
+        # One-time hints/flags
+        self._sr_notify_missing_warned = False
 
         # Populate UI on startup
         self.push_stats_update()
@@ -100,6 +102,12 @@ class QtController(QtCore.QObject):
             except Exception:
                 pm = None
         self.window.now_playing_panel.set_cover_pixmap(pm)
+
+        # Check if this song matches a pending request and notify
+        try:
+            self._on_possible_request_played(artist=artist, title=title, album=album)
+        except Exception as e:
+            logger.debug(f"Request-played check skipped: {e}")
 
         # Send cover art via Spout if enabled; if no cover, push a transparent frame to clear previous image
         try:
@@ -163,6 +171,9 @@ class QtController(QtCore.QObject):
                         # Prefer structured fields when present, fallback to legacy combined 'Song'
                         artist = str(item.get("Artist", "")).strip()
                         title = str(item.get("Title", "")).strip()
+                        album = str(item.get("Album", "")).strip()
+                        if album:
+                            title = f"{title} [{album}]" if title else f"[{album}]"
                         if not (artist or title):
                             song = str(item.get("Song", ""))
                             if " | " in song:
@@ -572,6 +583,127 @@ class QtController(QtCore.QObject):
             emit_event(EventTopic.SONG_PLAYED, payload)
         except Exception as e:
             logger.warning(f"Debug inject failed: {e}")
+
+    # --- Song request matching & notification ---
+    def _on_possible_request_played(self, *, artist: str, title: str, album: str = "") -> None:
+        req_path = Settings.SONG_REQUESTS_FILE
+        channel_cfg = getattr(Settings, "DISCORD_BOT_REQUEST_PLAYED_CHANNEL_ID", None) or Settings.get("DISCORD_BOT_REQUEST_PLAYED_CHANNEL_ID")
+        if not req_path or not os.path.exists(req_path):
+            logger.debug("[Requests] No song_requests.json found; skipping match")
+            return
+        # Load requests
+        try:
+            items = json.loads(Path(req_path).read_text(encoding="utf-8"))
+            if not isinstance(items, list):
+                logger.debug("[Requests] song_requests.json is not a list; skipping match")
+                return
+        except Exception:
+            logger.debug("[Requests] Failed reading song_requests.json; skipping match")
+            return
+
+        if not artist and not title:
+            logger.debug("[Requests] No artist/title in payload; skipping match")
+            return
+
+        # Normalize helpers
+        def _core_title(s: str) -> str:
+            s = (s or "").strip()
+            if s.endswith("]") and "[" in s:
+                lb = s.rfind("[")
+                if lb != -1 and lb < len(s) - 1:
+                    return s[:lb].rstrip()
+            return s
+
+        # Find matches by structured Artist/Title (case-insensitive, trimmed),
+        # supporting legacy stored formats like "Artist - Title" in Title and "Title [Album]" in Title.
+        a = artist.strip().lower()
+        t = _core_title(title).strip().lower()
+        match_indices: list[int] = []
+        matches: list[dict] = []
+        logger.debug(f"[Requests] Checking {len(items)} pending requests for match: '{artist}' - '{title}'")
+        for idx, it in enumerate(items):
+            try:
+                ia_raw = str(it.get("Artist", "")).strip()
+                ititle_raw = str(it.get("Title", "")).strip()
+                # Legacy: if artist blank, try split from title
+                if not ia_raw and " - " in ititle_raw:
+                    left, right = ititle_raw.split(" - ", 1)
+                    ia_raw, ititle_raw = left.strip(), right.strip()
+                ia = ia_raw.lower()
+                ititle = _core_title(ititle_raw).lower()
+                if ia and ititle and ia == a and ititle == t:
+                    match_indices.append(idx)
+                    matches.append(it)
+            except Exception:
+                continue
+        if not matches:
+            logger.debug("[Requests] No matching requests found for the current track")
+            return
+
+        # Notify via Discord if configured and bot running
+        try:
+            if channel_cfg and self._discord and self._discord.is_running:
+                ch_id = int(channel_cfg)
+                users: list[tuple[Optional[int], Optional[str]]] = []
+                for matched in matches:
+                    uid = matched.get("UserId")
+                    disp = matched.get("User")
+                    uid_int = int(uid) if isinstance(uid, (int, str)) and str(uid).isdigit() else None
+                    users.append((uid_int, str(disp) if disp else None))
+                try:
+                    # Prefer consolidated message for all requesters
+                    self._discord.notify_request_played_multi(
+                        ch_id,
+                        artist=artist,
+                        title=title,
+                        album=album or "",
+                        users=users,
+                    )
+                except Exception:
+                    # Fallback: send one per user
+                    for uid_int, disp in users:
+                        try:
+                            self._discord.notify_request_played(
+                                ch_id,
+                                artist=artist,
+                                title=title,
+                                album=album or "",
+                                user_id=uid_int,
+                                user_display=disp,
+                            )
+                        except Exception:
+                            pass
+            else:
+                if not channel_cfg:
+                    if not self._sr_notify_missing_warned:
+                        logger.info("[Requests] 'Request played' notifications are OFF (no channel configured). Auto-removal still applies.")
+                        self._sr_notify_missing_warned = True
+                    else:
+                        logger.debug("[Requests] Notification channel not configured; skipping Discord notify")
+                elif not (self._discord and self._discord.is_running):
+                    logger.debug("[Requests] Discord bot not running; skipping Discord notify")
+        except Exception:
+            pass
+
+        # Remove the matched request(s) and re-sequence RequestNumber
+        try:
+            before_count = len(items)
+            idx_set = set(match_indices)
+            items = [it for i, it in enumerate(items) if i not in idx_set]
+            for i, req in enumerate(items):
+                try:
+                    req["RequestNumber"] = i + 1
+                except Exception:
+                    pass
+            from utils.helpers import safe_write_json
+            safe_write_json(req_path, items)
+            logger.debug(f"[Requests] Wrote updated requests to: {req_path}")
+            # Emit deletion event to refresh GUI list
+            emit_event(EventTopic.SONG_REQUEST_DELETED, None)
+            removed = before_count - len(items)
+            logger.info(f"Matched and removed {removed} played request(s): {artist} | {title}")
+        except Exception as e:
+            logger.warning(f"Failed to remove matched request(s): {e}")
 
     # --- Collection info helpers (for Bot Info panel) ---
     def _get_collection_info(self) -> tuple[str | None, int | None]:
