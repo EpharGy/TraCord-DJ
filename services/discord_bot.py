@@ -192,7 +192,7 @@ class DiscordBotController:
                     if album:
                         details += f" [{album}]"
 
-                    # Build consolidated mentions
+                    # Build consolidated mentions (cap to 5 and add "+N others")
                     mentions: list[str] = []
                     seen: set[str] = set()
                     seq = users or []
@@ -218,7 +218,12 @@ class DiscordBotController:
                             seen.add(key)
                             mentions.append(text)
 
-                    prefix = " ".join(mentions) if mentions else "@user"
+                    display_mentions = mentions
+                    extra_note = ""
+                    if len(mentions) > 5:
+                        display_mentions = mentions[:5]
+                        extra_note = f" +{len(mentions) - 5} others"
+                    prefix = (" ".join(display_mentions) + extra_note) if display_mentions else "@user"
                     content = f"{prefix} | Your song request ({details}) is playing!!"
                     await channel.send(content)
                 except Exception as e:

@@ -25,12 +25,4 @@ Potentially use an api to pull an image or video based on the current track's me
   - [ ] Auto-cleanup of old/unused content
   - [ ] Size limits and storage management
 
-## Song Request Auto-Removal
-
-- [ ] When a song is played (live or random), check if it matches any entry in the song request list.
-  - [ ] Normalize both played song and request entry as "Artist - Title" (ignore album/extra info, use normalize_string logic).
-  - [ ] If a match is found, call the standard delete function to remove the request (updates GUI and JSON, reorders RequestNumbers).
-  - [ ] Ensure this works for both live and random playback.
-  - [ ] (Future) Optionally send a Discord message to the requester when their song is played.
-
 ---
