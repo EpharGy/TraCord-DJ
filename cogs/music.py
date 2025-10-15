@@ -124,6 +124,7 @@ class MusicCog(commands.Cog, name="Music"):
                             "Date": current_date,
                             "Time": current_time,
                             "User": str(interaction.user),
+                            "UserId": int(interaction.user.id),  # for future DM/notifications
                             # Future-forward structured fields
                             "Artist": sel_artist,
                             "Title": sel_title,

@@ -96,14 +96,20 @@ class RequestsCog(commands.Cog, name="Requests"):
 
             # Handle 'self' deletion
             if request_number.lower() == "self":
-                # Remove all requests where the requesting user is the "User" of the JSON entry
-                user_requests = [req for req in song_requests if req["User"] == str(interaction.user)]
+                # Remove all requests made by the requesting user (UserId preferred, fallback to User string)
+                user_requests = [
+                    req for req in song_requests
+                    if (str(req.get("User")) == str(interaction.user)) or (int(req.get("UserId", -1)) == int(interaction.user.id))
+                ]
                 if not user_requests:
                     await interaction.response.send_message("You have no song requests to delete.")
                     return
 
                 # Filter out the user's requests
-                song_requests = [req for req in song_requests if req["User"] != str(interaction.user)]
+                song_requests = [
+                    req for req in song_requests
+                    if not ((str(req.get("User")) == str(interaction.user)) or (int(req.get("UserId", -1)) == int(interaction.user.id)))
+                ]
 
                 # Update RequestNumbers
                 self._update_request_numbers(song_requests)
@@ -130,8 +136,11 @@ class RequestsCog(commands.Cog, name="Requests"):
                 request_to_delete = song_requests[request_num - 1]
 
                 # Check if the user has permission to delete the specific request
-                if (not check_permissions(interaction.user.id, Settings.ADMIN_IDS) and 
-                    str(interaction.user) != request_to_delete["User"]):
+                if (not check_permissions(interaction.user.id, Settings.ADMIN_IDS)
+                    and not (
+                        str(interaction.user) == str(request_to_delete.get("User"))
+                        or int(interaction.user.id) == int(request_to_delete.get("UserId", -1))
+                    )):
                     await interaction.response.send_message(
                         "You do not have permission to delete this song request.", 
                         ephemeral=True
@@ -177,14 +186,14 @@ class RequestsCog(commands.Cog, name="Requests"):
                     )
                     return
 
-                # Find all requests by the target user
-                user_requests = [req for req in song_requests if req["User"] == target_user]
+                # Find all requests by the target user (match by name string)
+                user_requests = [req for req in song_requests if str(req.get("User")) == target_user]
                 if not user_requests:
                     await interaction.response.send_message(f"No song requests found for user '{target_user}'.")
                     return
 
                 # Filter out the target user's requests
-                song_requests = [req for req in song_requests if req["User"] != target_user]
+                song_requests = [req for req in song_requests if str(req.get("User")) != target_user]
 
                 # Update RequestNumbers
                 self._update_request_numbers(song_requests)
