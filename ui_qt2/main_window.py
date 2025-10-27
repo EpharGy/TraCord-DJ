@@ -11,7 +11,6 @@ from ui_qt2.panels.log_panel import LogPanel
 from ui_qt2.panels.now_playing_panel import NowPlayingPanel
 from ui_qt2.panels.song_requests_panel import SongRequestsPanel
 from ui_qt2.panels.stats_panel import StatsPanel
-from ui_qt2.panels.status_panel import StatusPanel
 from ui_qt2.signals import get_event_hub
 from version import __version__
 from utils.logger import get_logger
@@ -24,7 +23,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle(f"TraCord DJ - {__version__}")
-        self.resize(1250, 700)
+        self.resize(1250, 600)  # Initial window size
         self.controller: QtController | None = None
 
         hub = get_event_hub()
@@ -51,13 +50,11 @@ class MainWindow(QtWidgets.QMainWindow):
         left_layout.setSpacing(12)
 
         self.controls_panel = ControlsPanel()
-        self.status_panel = StatusPanel()
         self.bot_info_panel = BotInfoPanel()
         self.stats_panel = StatsPanel()
 
-        # Order: Controls -> Status -> Bot Info -> Stats
+    # Order: Controls -> Bot Info -> Stats (Status panel removed; buttons reflect state)
         left_layout.addWidget(self.controls_panel)
-        left_layout.addWidget(self.status_panel)
         left_layout.addWidget(self.bot_info_panel)
         left_layout.addWidget(self.stats_panel)
         left_layout.addStretch(1)
@@ -134,7 +131,36 @@ class MainWindow(QtWidgets.QMainWindow):
         self.bot_info_panel.set_info(name=name, id=bot_id, commands=str(commands), version=version)
 
     def set_status(self, key: str, text: str, *, color: str | None = None) -> None:
-        self.status_panel.set_status(key, text, color=color)
+        # Reflect state on the relevant control button for quick glance
+        state_txt = (text or "").lower()
+        # Prefer explicit color if provided
+        if (color or "").lower() in {"#8fda8f"}:
+            state = "on"
+        elif (color or "").lower() in {"#f0ad4e"}:
+            state = "waiting"
+        elif (color or "").lower() in {"#ff4d4f"}:
+            state = "off"
+        else:
+            # Fallback by keywords used across the app and discord.py lifecycle
+            waiting_keywords = ("wait", "start", "starting", "login", "logging", "sync", "initial", "connecting", "enable", "enabling")
+            on_keywords = ("connected", "ready", "running")
+            if any(k in state_txt for k in on_keywords):
+                state = "on"
+            elif any(k in state_txt for k in waiting_keywords):
+                state = "waiting"
+            else:
+                state = "off"
+        try:
+            if key == "discord":
+                self.controls_panel.set_state("bot", state)
+            elif key == "listener":
+                self.now_playing_panel.set_control_state("listener", state)
+            elif key == "spout":
+                self.now_playing_panel.set_control_state("spout", state)
+            elif key == "midi":
+                self.now_playing_panel.set_control_state("midi", state)
+        except Exception:
+            pass
 
     def set_requests(self, rows: Iterable[Tuple[int, str, str, str, str, str]]) -> None:
         self.song_requests_panel.set_requests(rows)

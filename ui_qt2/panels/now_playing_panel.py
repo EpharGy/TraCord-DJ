@@ -69,7 +69,7 @@ class NowPlayingPanel(QtWidgets.QGroupBox):
         self.overlay_button = QtWidgets.QPushButton("Open Overlay")
         self.midi_button = QtWidgets.QPushButton("Enable MIDI")
         self.midi_button.setCheckable(True)
-        for b in (self.listener_button, self.spout_button, self.overlay_button, self.midi_button):
+        for b in (self.listener_button, self.spout_button, self.midi_button, self.overlay_button):
             button_bar.addWidget(b)
         button_bar.addStretch(1)
         layout.addLayout(button_bar, 0, 0, 1, 2)
@@ -155,15 +155,45 @@ class NowPlayingPanel(QtWidgets.QGroupBox):
         self.listener_button.setChecked(enabled)
         self.listener_button.blockSignals(False)
         self.listener_button.setText("Disable Listener" if enabled else "Enable Listener")
+        self._apply_button_state(self.listener_button, "on" if enabled else "off")
 
     def set_spout_state(self, enabled: bool) -> None:
         self.spout_button.blockSignals(True)
         self.spout_button.setChecked(enabled)
         self.spout_button.blockSignals(False)
         self.spout_button.setText("Disable Spout" if enabled else "Enable Spout")
+        self._apply_button_state(self.spout_button, "on" if enabled else "off")
 
     def set_midi_state(self, enabled: bool) -> None:
         self.midi_button.blockSignals(True)
         self.midi_button.setChecked(enabled)
         self.midi_button.blockSignals(False)
         self.midi_button.setText("Disable MIDI" if enabled else "Enable MIDI")
+        self._apply_button_state(self.midi_button, "on" if enabled else "off")
+
+    # --- Visual state helpers ---
+    @staticmethod
+    def _style_for_state(state: str) -> str:
+        s = (state or "off").lower()
+        if s == "on":
+            return "QPushButton{background:#2b4; color:#ffffff;} QPushButton:disabled{background:#2b4; color:#dfe;}"
+        if s == "waiting":
+            return "QPushButton{background:#f0ad4e; color:#1a1a1a;} QPushButton:disabled{background:#f0ad4e; color:#333;}"
+        return "QPushButton{background: none;}"
+
+    def _apply_button_state(self, button: QtWidgets.QPushButton, state: str) -> None:
+        try:
+            button.setStyleSheet(self._style_for_state(state))
+        except Exception:
+            pass
+
+    # Exposed for external state updates (e.g., Waiting)
+    def set_control_state(self, kind: str, state: str) -> None:
+        k = (kind or "").lower()
+        btn = {
+            "listener": self.listener_button,
+            "spout": self.spout_button,
+            "midi": self.midi_button,
+        }.get(k)
+        if btn:
+            self._apply_button_state(btn, state)

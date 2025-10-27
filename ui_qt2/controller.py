@@ -53,6 +53,7 @@ class QtController(QtCore.QObject):
         self._overlay_server: WebOverlayServer | None = None
         # One-time hints/flags
         self._sr_notify_missing_warned = False
+        self._discord_connecting = False
 
         # Populate UI on startup
         self.push_stats_update()
@@ -239,20 +240,31 @@ class QtController(QtCore.QObject):
             if self._listener is None:
                 port = getattr(Settings, "TRAKTOR_BROADCAST_PORT", 8000)
                 self._listener = TraktorBroadcastListener(port, status_callback=self._on_listener_status)
-            self._listener.start()
-            self._listener_timer.start()
-            logger.info("[Traktor] Listener enabling…")
+            try:
+                self._listener.start()
+                self._listener_timer.start()
+                logger.info("[Traktor] Listener enabling…")
+                # Show 'waiting' immediately while connecting
+                self.window.set_status("listener", "Waiting", color="#f0ad4e")
+            except OSError as e:
+                # Port already in use or similar bind error
+                logger.error(f"[Traktor] Failed to start listener on port {self._listener.port}: {e}")
+                try:
+                    self._listener.stop()
+                except Exception:
+                    pass
+                self._listener = None
+                enabled = False
+                # Reflect OFF state
+                self.window.now_playing_panel.set_listener_state(False)
+                self.window.set_status("listener", "Off", color="#ff4d4f")
         else:
             if self._listener is not None:
                 self._listener.stop()
             self._listener_timer.stop()
             logger.info("[Traktor] Listener disabled")
-        # Reflect state immediately (waiting while trying to connect)
+        # Reflect state on button text
         self.window.now_playing_panel.set_listener_state(enabled)
-        if enabled:
-            self.window.set_status("listener", "Waiting", color="#f0ad4e")
-        else:
-            self.window.set_status("listener", "Off", color="#ff4d4f")
 
     def _on_listener_status(self, status: str) -> None:
         # Called from listener thread; schedule on UI thread
@@ -437,6 +449,11 @@ class QtController(QtCore.QObject):
     # --- Discord controls ---
     def _on_start_discord(self) -> None:
         try:
+            # Immediately reflect a connecting state on the UI
+            try:
+                self.window.set_status("discord", "Waiting", color="#f0ad4e")
+            except Exception:
+                pass
             self._ensure_discord_controller()
             if self._discord and not self._discord.is_running:
                 self._discord.start_discord_bot()
@@ -449,6 +466,12 @@ class QtController(QtCore.QObject):
 
     def _on_stop_discord(self) -> None:
         try:
+            # Reflect a connecting state immediately
+            self._discord_connecting = True
+            try:
+                self.window.set_status("discord", "Waiting", color="#f0ad4e")
+            except Exception:
+                pass
             if self._discord and self._discord.is_running:
                 self._discord.stop_discord_bot()
             else:
@@ -456,6 +479,7 @@ class QtController(QtCore.QObject):
         except Exception as e:
             logger.error(f"Failed to stop Discord bot: {e}")
         finally:
+            self._discord_connecting = False
             self._refresh_bot_button()
 
     def _on_toggle_discord(self) -> None:
@@ -467,7 +491,12 @@ class QtController(QtCore.QObject):
     def _refresh_bot_button(self) -> None:
         try:
             running = bool(self._discord and self._discord.is_running)
-            self.window.controls_panel.set_button_text("bot", "⏹ Stop Bot" if running else "▶ Start Bot")
+            if self._discord_connecting:
+                # Show an in-between state on the button while connecting
+                self.window.controls_panel.set_button_text("bot", "⏳ Starting Bot…")
+                # Color already handled via set_status("discord", "Waiting")
+            else:
+                self.window.controls_panel.set_button_text("bot", "⏹ Stop Bot" if running else "▶ Start Bot")
             self.window.controls_panel.set_enabled("bot", True)
         except Exception:
             pass
@@ -477,6 +506,7 @@ class QtController(QtCore.QObject):
         try:
             # Update status
             self.window.set_status("discord", "Connected", color="#8fda8f")
+            self._discord_connecting = False
             # Populate Bot Info panel
             try:
                 user = getattr(bot_obj, "user", None)
@@ -523,6 +553,7 @@ class QtController(QtCore.QObject):
         try:
             logger.error(f"Discord error: {message}")
             self.window.set_status("discord", "Off", color="#ff4d4f")
+            self._discord_connecting = False
             self._refresh_bot_button()
         except Exception:
             pass
@@ -530,6 +561,7 @@ class QtController(QtCore.QObject):
     def _on_discord_stopped(self) -> None:
         try:
             self.window.set_status("discord", "Off", color="#ff4d4f")
+            self._discord_connecting = False
             self._refresh_bot_button()
         except Exception:
             pass

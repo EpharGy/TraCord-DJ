@@ -50,3 +50,20 @@ class ControlsPanel(QtWidgets.QGroupBox):
         button = self._buttons.get(action)
         if button:
             button.setText(text)
+
+    # --- Visual state helpers ---
+    @staticmethod
+    def _style_for_state(state: str) -> str:
+        s = (state or "off").lower()
+        # Use subtle backgrounds with readable text
+        if s == "on":
+            return "QPushButton{background:#2b4; color:#ffffff;} QPushButton:disabled{background:#2b4; color:#dfe;}"
+        if s == "waiting":
+            return "QPushButton{background:#f0ad4e; color:#1a1a1a;} QPushButton:disabled{background:#f0ad4e; color:#333;}"
+        # off/default
+        return "QPushButton{background: none;}"
+
+    def set_state(self, action: str, state: str) -> None:
+        button = self._buttons.get(action)
+        if button:
+            button.setStyleSheet(self._style_for_state(state))
