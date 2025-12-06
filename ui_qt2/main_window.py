@@ -63,7 +63,6 @@ class MainWindow(QtWidgets.QMainWindow):
         center_column = QtWidgets.QWidget()
         center_layout = QtWidgets.QVBoxLayout(center_column)
         center_layout.setSpacing(12)
-        center_column.setFixedWidth(550)
 
         self.now_playing_panel = NowPlayingPanel()
         self.log_panel = LogPanel()
@@ -87,18 +86,10 @@ class MainWindow(QtWidgets.QMainWindow):
         splitter.addWidget(left_column)
         splitter.addWidget(center_column)
         splitter.addWidget(right_column)
-        # Left remains compact, center has fixed width, right expands
+        # Left stays compact by default and right column takes remaining space; user can drag handles
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 0)
         splitter.setStretchFactor(2, 1)
-        # Hide and disable splitter handles (no resize indicators or dragging)
-        splitter.setHandleWidth(0)
-        splitter.setStyleSheet("QSplitter::handle { background: transparent; image: none; width: 0px; }")
-        for i in range(1, splitter.count()):
-            handle = splitter.handle(i)
-            if handle is not None:
-                handle.setEnabled(False)
-                handle.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
 
         container = QtWidgets.QWidget()
         layout = QtWidgets.QHBoxLayout(container)

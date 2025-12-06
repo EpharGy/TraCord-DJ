@@ -72,7 +72,6 @@ class Settings:
     NEW_SONGS_DAYS: int = 0
     MAX_SONGS: int = 0
     TIMEOUT: float = 0.0
-    CONSOLE_PANEL_WIDTH: int = 0
     COVER_SIZE: int = 0
     FADE_STYLE = "fade"  # Options: 'crossfade', 'fade' (fade to transparent then fade new image, double overall duration)
     FADE_FRAMES: int = 30
@@ -107,7 +106,6 @@ class Settings:
         cls.NEW_SONGS_DAYS = safe_int(cls.get('NEW_SONGS_DAYS'), 7)
         cls.MAX_SONGS = safe_int(cls.get('MAX_SONGS'), 20)
         cls.TIMEOUT = safe_float(cls.get('TIMEOUT'), 45.0)
-        cls.CONSOLE_PANEL_WIDTH = safe_int(cls.get('CONSOLE_PANEL_WIDTH'), 700)
         cls.COVER_SIZE = safe_int(cls.get('COVER_SIZE'), 200)
         cls.FADE_FRAMES = safe_int(cls.get('FADE_FRAMES'), 30)
         cls.FADE_DURATION = safe_float(cls.get('FADE_DURATION'), 1.0)

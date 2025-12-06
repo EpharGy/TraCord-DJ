@@ -76,7 +76,6 @@ class SettingsDialog(QtWidgets.QDialog):
                 "TRAKTOR_BROADCAST_PORT",
             ],
             "GUI & Overlay": [
-                "CONSOLE_PANEL_WIDTH",
                 "COVER_SIZE",
                 "FADE_STYLE",
                 "FADE_FRAMES",
@@ -110,7 +109,6 @@ class SettingsDialog(QtWidgets.QDialog):
             "TRAKTOR_LOCATION": "Path to the parent folder that contains 'Traktor X.X.X' subfolders.",
             "TRAKTOR_COLLECTION_FILENAME": "Collection filename (usually collection.nml).",
             "TRAKTOR_BROADCAST_PORT": "Port used by Traktor broadcast (match Traktor settings).",
-            "CONSOLE_PANEL_WIDTH": "UI content width (pixels).",
             "COVER_SIZE": "Cover art size for UI/overlay base64 variant (px).",
             "FADE_STYLE": "Cover art transition style: 'fade' (fade to transparent then in) or 'crossfade' (blend old→new).",
             "FADE_FRAMES": "Number of frames in the transition (higher = smoother).",

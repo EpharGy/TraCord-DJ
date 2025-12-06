@@ -32,7 +32,6 @@ class SettingsModel(BaseModel):
     new_songs_days: int = Field(7, alias="NEW_SONGS_DAYS")
     max_songs: int = Field(20, alias="MAX_SONGS")
     timeout: float = Field(45.0, alias="TIMEOUT")
-    console_panel_width: int = Field(700, alias="CONSOLE_PANEL_WIDTH")
     cover_size: int = Field(200, alias="COVER_SIZE")
     fade_style: str = Field("fade", alias="FADE_STYLE")
     fade_frames: int = Field(30, alias="FADE_FRAMES")
