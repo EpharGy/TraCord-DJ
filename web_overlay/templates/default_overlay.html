@@ -225,13 +225,8 @@
                 coverArt.style.display = 'none';
             }
 
-            // BPM and Key (optional, can be hidden)
-            if (songData.bpm) {
-                bpmValue.textContent = songData.bpm + ' BPM';
-                bpmElement.style.display = 'block';
-            } else {
-                bpmElement.style.display = 'none';
-            }
+            // BPM intentionally hidden for overlay output
+            bpmElement.style.display = 'none';
             if (songData.key) {
                 keyValue.textContent = songData.key;
                 keyElement.style.display = 'block';

@@ -447,8 +447,19 @@ def search_collection_json(songs: List[Dict[str, Any]], search_query: str, max_s
             display_artist = song["artist"].replace('*', '\\*')
             display_title = song["title"].replace('*', '\\*') 
             display_album = song["album"].replace('*', '\\*') if song["album"] else None
-            
-            result_str = f"{display_artist} - {display_title} [{display_album}]" if display_album else f"{display_artist} - {display_title}"
+
+            bpm_val = song.get("bpm")
+            suffix_parts = []
+            if bpm_val not in (None, "", []):
+                suffix_parts.append(f"[{int(bpm_val)}]")
+            if display_album:
+                suffix_parts.append(f"[{display_album}]")
+
+            result_core = f"{display_artist} - {display_title}"
+            if suffix_parts:
+                result_str = f"{result_core} | {' '.join(suffix_parts)}"
+            else:
+                result_str = result_core
             results.append((priority_score, sort_key, result_str))
     
     logger.debug(f"Search complete. Found {matches_found} matches out of {songs_checked} songs")

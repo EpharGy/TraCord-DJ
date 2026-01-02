@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Tuple
 
 from PySide6 import QtCore, QtWidgets
+from shiboken6 import isValid
 
 from config.settings import Settings
 from tracord.core.events import EventTopic, emit_event
@@ -28,9 +29,9 @@ class SongRequestsPopup(QtWidgets.QDialog):
 
         layout = QtWidgets.QVBoxLayout(self)
 
-        # Columns: [✓], #, Date, Time, User, Artist, Title
-        self.table = QtWidgets.QTableWidget(0, 7)
-        self.table.setHorizontalHeaderLabels(["", "#", "Date", "Time", "User", "Artist", "Title"])  # action on the left
+        # Columns: [✓], #, Date, Time, User, BPM, Artist, Title
+        self.table = QtWidgets.QTableWidget(0, 8)
+        self.table.setHorizontalHeaderLabels(["", "#", "Date", "Time", "User", "BPM", "Artist", "Title"])  # action on the left
         self.table.verticalHeader().setVisible(False)
         self.table.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.NoSelection)
@@ -46,8 +47,9 @@ class SongRequestsPopup(QtWidgets.QDialog):
         header.setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeMode.Fixed)       # date
         header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeMode.Fixed)       # time
         header.setSectionResizeMode(4, QtWidgets.QHeaderView.ResizeMode.Interactive) # user
-        header.setSectionResizeMode(5, QtWidgets.QHeaderView.ResizeMode.Interactive) # artist
-        header.setSectionResizeMode(6, QtWidgets.QHeaderView.ResizeMode.Stretch)     # title
+        header.setSectionResizeMode(5, QtWidgets.QHeaderView.ResizeMode.Fixed)       # bpm
+        header.setSectionResizeMode(6, QtWidgets.QHeaderView.ResizeMode.Interactive) # artist
+        header.setSectionResizeMode(7, QtWidgets.QHeaderView.ResizeMode.Stretch)     # title
 
         # React to resize and initial show for proper widths
         self._apply_column_layout()
@@ -75,8 +77,8 @@ class SongRequestsPopup(QtWidgets.QDialog):
     def _apply_column_layout_from_main(self) -> bool:
         """Copy current widths from the main Song Requests panel, if available.
 
-        Mapping: popup [tick, #, Date, Time, User, Artist, Title]
-                 main  [     #, Date, Time, User, Artist, Title]
+        Mapping: popup [tick, #, Date, Time, User, BPM, Artist, Title]
+             main  [     #, Date, Time, User, BPM, Artist, Title]
         """
         try:
             window = self.parent()
@@ -96,7 +98,8 @@ class SongRequestsPopup(QtWidgets.QDialog):
             w_date = mh.sectionSize(1)
             w_time = mh.sectionSize(2)
             w_user = mh.sectionSize(3)
-            w_artist = mh.sectionSize(4)
+            w_bpm = mh.sectionSize(4)
+            w_artist = mh.sectionSize(5)
 
             # Tick stays fixed at 24 to align visuals
             w_tick = 24
@@ -107,7 +110,8 @@ class SongRequestsPopup(QtWidgets.QDialog):
             ph.resizeSection(2, w_date)
             ph.resizeSection(3, w_time)
             ph.resizeSection(4, w_user)
-            ph.resizeSection(5, w_artist)
+            ph.resizeSection(5, w_bpm)
+            ph.resizeSection(6, w_artist)
             return True
         except Exception:
             return False
@@ -120,12 +124,13 @@ class SongRequestsPopup(QtWidgets.QDialog):
         w_num = 24
         w_date = 75
         w_time = 75
+        w_bpm = 55
 
         # Prefer actual viewport width; fall back to dialog width minus some padding
         viewport_w = self.table.viewport().width()
         available = viewport_w if viewport_w and viewport_w > 0 else max(300, self.width() - 32)
 
-        fixed_total = w_tick + w_num + w_date + w_time
+        fixed_total = w_tick + w_num + w_date + w_time + w_bpm
         remaining = max(100, available - fixed_total)
 
         # Distribute remaining: User 30%, Artist 70% (Title stretches)
@@ -142,13 +147,17 @@ class SongRequestsPopup(QtWidgets.QDialog):
         h.resizeSection(2, w_date)
         h.resizeSection(3, w_time)
         h.resizeSection(4, w_user)
-        h.resizeSection(5, w_artist)
-        # Title stretches (section 6)
+        h.resizeSection(5, w_bpm)
+        h.resizeSection(6, w_artist)
+        # Title stretches (section 7)
 
     def reload_song_requests(self) -> None:
+        # Guard against callbacks after the widget has been deleted
+        if not isValid(self.table):
+            return
         try:
             path = Path(Settings.SONG_REQUESTS_FILE)
-            rows: list[Tuple[int, str, str, str, str, str]] = []
+            rows: list[Tuple[int, str, str, str, str, str, str]] = []
             if path.exists():
                 items = json.loads(path.read_text(encoding="utf-8"))
                 if isinstance(items, list):
@@ -172,18 +181,21 @@ class SongRequestsPopup(QtWidgets.QDialog):
                                 artist, title = [p.strip() for p in song.split(" - ", 1)]
                             else:
                                 artist, title = "", song
-                        rows.append((rn_int, date_str, time_str, user, artist, title))
+                        bpm = str(item.get("Bpm", item.get("BPM", "")))
+                        rows.append((rn_int, date_str, time_str, user, bpm, artist, title))
                     rows.sort(key=lambda r: r[0])
             self._set_rows(rows)
         except Exception as e:
             logger.warning(f"Failed to load song requests in popup: {e}")
             self._set_rows([])
 
-    def _set_rows(self, rows: list[Tuple[int, str, str, str, str, str]]) -> None:
+    def _set_rows(self, rows: list[Tuple[int, str, str, str, str, str, str]]) -> None:
+        if not isValid(self.table):
+            return
         self.table.setRowCount(len(rows))
-        for row_index, (rn, date, time_, user, artist, title) in enumerate(rows):
+        for row_index, (rn, date, time_, user, bpm, artist, title) in enumerate(rows):
             # Data cells (shifted by one because col 0 is the action)
-            for col_index, value in enumerate((rn, date, time_, user, artist, title), start=1):
+            for col_index, value in enumerate((rn, date, time_, user, bpm, artist, title), start=1):
                 item = QtWidgets.QTableWidgetItem(str(value))
                 self.table.setItem(row_index, col_index, item)
 

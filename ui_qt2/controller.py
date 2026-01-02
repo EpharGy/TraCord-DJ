@@ -84,7 +84,7 @@ class QtController(QtCore.QObject):
         # GUI: Artist, Title, [Album], Extra
         bpm = str(payload.get("bpm", "")).strip()
         key = str(payload.get("key", "")).strip()
-        extra = (f"{bpm}BPM | {key}".strip(" |")) if (bpm or key) else ""
+        extra = (f"{bpm}BPM | {key}".strip(" |")) if key else ""
         if any([artist, title, album, extra]):
             self.window.now_playing_panel.set_track_fields(artist, title, album, extra)
         else:
@@ -156,7 +156,7 @@ class QtController(QtCore.QObject):
     def reload_song_requests(self) -> None:
         try:
             data_path = Path(Settings.SONG_REQUESTS_FILE)
-            rows: list[Tuple[int, str, str, str, str, str]] = []
+            rows: list[Tuple[int, str, str, str, str, str, str]] = []
             if data_path.exists():
                 items = json.loads(data_path.read_text(encoding="utf-8"))
                 if isinstance(items, list):
@@ -181,7 +181,8 @@ class QtController(QtCore.QObject):
                                 artist, title = song.split(" | ", 1)
                             else:
                                 artist, title = "", song
-                        rows.append((rn_int, date_str, time_str, user, artist, title))
+                        bpm = str(item.get("Bpm", item.get("BPM", "")))
+                        rows.append((rn_int, date_str, time_str, user, bpm, artist, title))
                     rows.sort(key=lambda r: r[0])
             self.window.set_requests(rows)
         except Exception as e:

@@ -11,8 +11,8 @@ class SongRequestsPanel(QtWidgets.QGroupBox):
         super().__init__("Song Requests", parent)
         layout = QtWidgets.QVBoxLayout(self)
 
-        self.table = QtWidgets.QTableWidget(0, 6)
-        self.table.setHorizontalHeaderLabels(["#", "Date", "Time", "User", "Artist", "Title"])
+        self.table = QtWidgets.QTableWidget(0, 7)
+        self.table.setHorizontalHeaderLabels(["#", "Date", "Time", "User", "BPM", "Artist", "Title"])
         self.table.verticalHeader().setVisible(False)
         self.table.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
         layout.addWidget(self.table)
@@ -41,12 +41,12 @@ class SongRequestsPanel(QtWidgets.QGroupBox):
         # Apply initial column layout
         self._apply_column_layout()
 
-    def set_requests(self, rows: Iterable[Tuple[int, str, str, str, str, str]]) -> None:
+    def set_requests(self, rows: Iterable[Tuple[int, str, str, str, str, str, str]]) -> None:
         data = list(rows)
         self.table.setRowCount(len(data))
-        for row_index, (request_number, date_str, time_str, user, artist, title) in enumerate(data):
+        for row_index, (request_number, date_str, time_str, user, bpm, artist, title) in enumerate(data):
             # Allow piping Album into Title column for display if present in raw data later
-            for col_index, value in enumerate((request_number, date_str, time_str, user, artist, title)):
+            for col_index, value in enumerate((request_number, date_str, time_str, user, bpm, artist, title)):
                 item = QtWidgets.QTableWidgetItem(str(value))
                 self.table.setItem(row_index, col_index, item)
         # Re-apply column layout to respect caps and eliding
@@ -66,21 +66,22 @@ class SongRequestsPanel(QtWidgets.QGroupBox):
     def _apply_column_layout(self) -> None:
         """Apply fixed/dynamic column widths within a 600px panel and cap oversized columns.
 
-        - Fixed widths: #, Date, Time
-        - Interactive: User, Artist
-        - Stretch: Title (consumes remaining space)
+        # Fixed widths: #, Date, Time, BPM
+        # Interactive: User, Artist
+        # Stretch: Title (consumes remaining space)
         - Text is elided to fit within each column
         """
         try:
             header = self.table.horizontalHeader()
             header.setMinimumSectionSize(24)
-            # Fixed for first three columns; interactive for User, Artist; Title stretches
+            # Fixed: #, Date, Time, BPM; interactive: User, Artist; stretch: Title
             header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Fixed)
             header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Fixed)
             header.setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeMode.Fixed)
             header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeMode.Interactive)
-            header.setSectionResizeMode(4, QtWidgets.QHeaderView.ResizeMode.Interactive)
-            header.setSectionResizeMode(5, QtWidgets.QHeaderView.ResizeMode.Stretch)
+            header.setSectionResizeMode(4, QtWidgets.QHeaderView.ResizeMode.Fixed)
+            header.setSectionResizeMode(5, QtWidgets.QHeaderView.ResizeMode.Interactive)
+            header.setSectionResizeMode(6, QtWidgets.QHeaderView.ResizeMode.Stretch)
 
             # Prefer actual viewport width when available to avoid tiny overflows
             viewport_w = self.table.viewport().width()
@@ -94,7 +95,8 @@ class SongRequestsPanel(QtWidgets.QGroupBox):
             w_num = 24
             w_date = 75
             w_time = 45
-            fixed_total = w_num + w_date + w_time
+            w_bpm = 55
+            fixed_total = w_num + w_date + w_time + w_bpm
 
             remaining = max(100, available - fixed_total)
 
@@ -111,6 +113,7 @@ class SongRequestsPanel(QtWidgets.QGroupBox):
             header.resizeSection(1, w_date)
             header.resizeSection(2, w_time)
             header.resizeSection(3, w_user)
-            header.resizeSection(4, w_artist)
+            header.resizeSection(4, w_bpm)
+            header.resizeSection(5, w_artist)
         except Exception:
             pass

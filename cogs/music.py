@@ -82,23 +82,45 @@ class MusicCog(commands.Cog, name="Music"):
                 msg = await self.bot.wait_for("message", timeout=Settings.TIMEOUT, check=check)
                 selected_song = result_dict[msg.content]
                 # Parse legacy "Artist | Title" into structured fields for storage
-                sel_artist, sel_title = "", selected_song
-                if " | " in selected_song:
-                    parts = selected_song.split(" | ", 1)
-                    sel_artist, sel_title = parts[0].strip(), parts[1].strip()
-                # Extract album if embedded at the end of the title as "Title [Album]"
+                # Expected display format: "Artist - Title | [BPM] [Album]"
+                bpm_value: int | None = None
+                sel_artist = ""
+                sel_title = selected_song
                 sel_album = ""
+
+                main_part = selected_song
+                suffix_part = ""
+                if " | " in selected_song:
+                    main_part, suffix_part = selected_song.split(" | ", 1)
+
+                # Parse artist/title from the main part
+                if " - " in main_part:
+                    try:
+                        a, t = main_part.split(" - ", 1)
+                        sel_artist = a.strip()
+                        sel_title = t.strip()
+                    except Exception:
+                        sel_title = main_part.strip()
+                else:
+                    sel_title = main_part.strip()
+
+                # Parse bpm and album from suffix part (space-separated brackets)
+                suffix_part = suffix_part.strip()
                 try:
-                    if sel_title.endswith("]") and "[" in sel_title:
-                        lb = sel_title.rfind("[")
-                        if lb != -1 and lb < len(sel_title) - 1:
-                            possible_album = sel_title[lb + 1 : -1].strip()
-                            # Only treat as album if not empty
-                            if possible_album:
-                                sel_album = possible_album
-                                sel_title = sel_title[:lb].rstrip()
+                    if suffix_part.startswith("["):
+                        close = suffix_part.find("]")
+                        if close != -1:
+                            bpm_chunk = suffix_part[1:close].strip()
+                            if bpm_chunk.replace(".", "", 1).isdigit():
+                                bpm_value = int(float(bpm_chunk)) if bpm_chunk else None
+                            suffix_part = suffix_part[close + 1 :].strip()
+                    if suffix_part.startswith("[") and "]" in suffix_part:
+                        close = suffix_part.find("]")
+                        possible_album = suffix_part[1:close].strip()
+                        if possible_album:
+                            sel_album = possible_album
                 except Exception:
-                    sel_album = ""
+                    bpm_value = None
 
                 # Fallback: if artist is still empty, try to parse "Artist - Title" from sel_title
                 if not sel_artist and " - " in sel_title:
@@ -151,6 +173,7 @@ class MusicCog(commands.Cog, name="Music"):
                             "Artist": sel_artist,
                             "Title": sel_title,
                             "Album": sel_album,
+                            "Bpm": bpm_value,
                         }
 
                         # Append the new request to the list

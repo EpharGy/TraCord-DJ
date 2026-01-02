@@ -153,7 +153,7 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             pass
 
-    def set_requests(self, rows: Iterable[Tuple[int, str, str, str, str, str]]) -> None:
+    def set_requests(self, rows: Iterable[Tuple[int, str, str, str, str, str, str]]) -> None:
         self.song_requests_panel.set_requests(rows)
 
     def set_controller(self, controller: QtController) -> None:
