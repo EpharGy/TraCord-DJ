@@ -23,7 +23,7 @@ from utils.traktor import refresh_collection_json, load_collection_json
 from utils.traktor import get_new_songs_json
 from utils.song_matcher import get_song_info
 from tracord.utils.coverart import ensure_variants
-from utils.midi_helper import MidiHelper
+from utils.midi_helper import MidiHelper, MidiClockListener
 from utils.spout_sender_helper import SpoutGLHelper, SPOUTGL_AVAILABLE, SPOUT_SIZE
 from services.traktor_listener import TraktorBroadcastListener
 from services.discord_bot import DiscordBotController
@@ -51,6 +51,7 @@ class QtController(QtCore.QObject):
         self._listener_status_last: str | None = None
         self._discord: DiscordBotController | None = None
         self._overlay_server: WebOverlayServer | None = None
+        self._midi_clock: MidiClockListener | None = None
         # One-time hints/flags
         self._sr_notify_missing_warned = False
         self._discord_connecting = False
@@ -334,9 +335,22 @@ class QtController(QtCore.QObject):
                 self._midi = MidiHelper(getattr(Settings, "MIDI_DEVICE", None))
             ok = self._midi.enable()
             enabled = enabled and ok
+            # Start MIDI clock listener on the same preferred device when enabled
+            if enabled:
+                if self._midi_clock is None:
+                    self._midi_clock = MidiClockListener(
+                        getattr(Settings, "MIDI_DEVICE", None),
+                        on_bpm=lambda bpm: emit_event(EventTopic.MIDI_BPM, {"bpm": bpm}),
+                    )
+                clk_ok = self._midi_clock.start()
+                enabled = enabled and clk_ok
         else:
             if self._midi is not None:
                 self._midi.disable()
+            if self._midi_clock is not None:
+                self._midi_clock.stop()
+                # Clear BPM on disable so overlay resets
+                emit_event(EventTopic.MIDI_BPM, {"bpm": None})
         # Reflect final state in UI
         self.window.now_playing_panel.set_midi_state(enabled)
         self.window.set_status("midi", "Connected" if enabled else "Off", color="#8fda8f" if enabled else "#ff4d4f")

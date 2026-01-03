@@ -78,6 +78,7 @@ class WebOverlayServer:
         self.server_thread = None  # type: Optional[threading.Thread]
         self.current_song = None  # type: Optional[OverlaySong]
         self._latest_payload = None  # type: Optional[Dict[str, Any]]
+        self._latest_bpm: Optional[float] = None
         self._event_unsubscribers: List[Callable[[], None]] = []
 
         # Reduce noisy third-party request logs to WARNING, keep our logs at INFO
@@ -104,6 +105,11 @@ class WebOverlayServer:
         def overlay():
             """Serve the main overlay page"""
             return render_template('default_overlay.html')
+
+        @self.app.route('/bpm')
+        def bpm_overlay():
+            """Serve the BPM-only overlay page"""
+            return render_template('bpm_overlay.html')
             
         @self.app.route('/health')
         def health():
@@ -117,6 +123,7 @@ class WebOverlayServer:
             logger.debug("WebSocket client connected")
             # Send current song data to newly connected client
             self.send_current_song()
+            self.send_current_bpm()
             
         @self.socketio.on('disconnect')
         def handle_disconnect():
@@ -126,6 +133,9 @@ class WebOverlayServer:
         """Subscribe to song_played events from the Traktor listener"""
         self._event_unsubscribers.append(
             subscribe_event(EventTopic.SONG_PLAYED, self.on_song_played)
+        )
+        self._event_unsubscribers.append(
+            subscribe_event(EventTopic.MIDI_BPM, self.on_midi_bpm)
         )
         logger.info("[Overlay] Subscribed to song_played events")
         logger.debug("Web overlay subscribed to song_played events")
@@ -149,6 +159,26 @@ class WebOverlayServer:
 
         self.socketio.emit('song_update', payload)
         logger.info(f"[Overlay] Broadcasting: {overlay_song.artist} - {overlay_song.title}")
+
+    def on_midi_bpm(self, payload: Optional[Dict[str, Any]]):
+        bpm_val = None
+        try:
+            bpm_val = payload.get("bpm") if payload else None
+        except Exception:
+            bpm_val = None
+        # Normalize to float or None
+        if bpm_val in ("", None):
+            bpm_val_f = None
+        else:
+            try:
+                bpm_val_f = float(bpm_val)
+            except Exception:
+                bpm_val_f = None
+        self._latest_bpm = bpm_val_f
+        logger.debug(f"[Overlay] MIDI BPM update: {self._latest_bpm}")
+        if not self.is_running:
+            return
+        self.socketio.emit('bpm_update', {'bpm': bpm_val_f})
     
     def start_server(self):
         """Start the web overlay server in a background thread"""
@@ -205,6 +235,10 @@ class WebOverlayServer:
         else:
             # No current song, send empty data
             self.send_no_song_playing()
+
+    def send_current_bpm(self):
+        """Send latest BPM to newly connected clients"""
+        self.socketio.emit('bpm_update', {'bpm': self._latest_bpm})
     
     def update_now_playing(self, song_data):
         """Update now playing information and broadcast to clients"""

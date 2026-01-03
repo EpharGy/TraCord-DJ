@@ -37,6 +37,7 @@ class EventTopic(StrEnum):
     SONG_REQUEST_ADDED = "song_request_added"
     SONG_REQUEST_DELETED = "song_request_deleted"
     STATS_UPDATED = "stats_updated"
+    MIDI_BPM = "midi_bpm"
 
 
 EventHandler = Callable[[Any], None]

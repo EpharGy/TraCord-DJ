@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TraCord DJ - BPM Overlay</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.js"></script>
+    <style>
+        :root {
+            --bg: rgba(0, 0, 0, 0);
+            --card-bg: rgba(0, 0, 0, 0.9);
+            --text: #ffffff;
+            --accent: #ff6b35;
+            --shadow: rgba(0, 0, 0, 0.55);
+            --radius: 14px;
+            --font-main: 'Segoe UI', 'Inter', sans-serif;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg);
+            font-family: var(--font-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: var(--text);
+        }
+        .card {
+            background: var(--card-bg);
+            padding: 16px 24px;
+            border-radius: var(--radius);
+            box-shadow: 0 12px 32px var(--shadow);
+            min-width: 0;
+            text-align: center;
+            border: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 8px;
+        }
+        .label {
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            font-size: 32px;
+            font-weight: 700;
+            color: #b5b5b5;
+            margin: 0;
+            line-height: 1;
+        }
+        .bpm-value {
+            font-size: 64px;
+            font-weight: 800;
+            color: var(--accent);
+            text-shadow: 0 6px 18px var(--shadow);
+            min-width: 140px;
+            display: inline-block;
+            margin: 0;
+            line-height: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="label">BPM</div>
+        <div id="bpmValue" class="bpm-value">--</div>
+    </div>
+
+    <script>
+        const socket = io();
+        const bpmValue = document.getElementById('bpmValue');
+
+        socket.on('connect', () => {
+        });
+        socket.on('disconnect', () => {
+        });
+
+        socket.on('bpm_update', (data) => {
+            const bpm = data && data.bpm;
+            if (bpm === null || bpm === undefined || bpm === '') {
+                bpmValue.textContent = '--';
+            } else {
+                bpmValue.textContent = Math.round(Number(bpm));
+            }
+        });
+    </script>
+</body>
+</html>
