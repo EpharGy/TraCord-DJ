@@ -29,7 +29,7 @@ class SongRequestsPopup(QtWidgets.QDialog):
 
         layout = QtWidgets.QVBoxLayout(self)
 
-        # Columns: [✓], #, Date, Time, User, BPM, Artist, Title
+        # Columns: [actions], #, Date, Time, User, BPM, Artist, Title
         self.table = QtWidgets.QTableWidget(0, 8)
         self.table.setHorizontalHeaderLabels(["", "#", "Date", "Time", "User", "BPM", "Artist", "Title"])  # action on the left
         self.table.verticalHeader().setVisible(False)
@@ -42,7 +42,7 @@ class SongRequestsPopup(QtWidgets.QDialog):
 
         header = self.table.horizontalHeader()
         header.setMinimumSectionSize(24)
-        header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Fixed)       # tick
+        header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Fixed)       # actions
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Fixed)       # number
         header.setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeMode.Fixed)       # date
         header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeMode.Fixed)       # time
@@ -53,6 +53,8 @@ class SongRequestsPopup(QtWidgets.QDialog):
 
         # React to resize and initial show for proper widths
         self._apply_column_layout()
+
+        self._on_set_harmonic = None
 
         # Subscribe to events so popup stays in sync
         hub = get_event_hub()
@@ -77,8 +79,8 @@ class SongRequestsPopup(QtWidgets.QDialog):
     def _apply_column_layout_from_main(self) -> bool:
         """Copy current widths from the main Song Requests panel, if available.
 
-        Mapping: popup [tick, #, Date, Time, User, BPM, Artist, Title]
-             main  [     #, Date, Time, User, BPM, Artist, Title]
+           Mapping: popup [actions, #, Date, Time, User, BPM, Artist, Title]
+               main  [actions, #, Date, Time, User, BPM, Artist, Title]
         """
         try:
             window = self.parent()
@@ -94,18 +96,16 @@ class SongRequestsPopup(QtWidgets.QDialog):
             ph = self.table.horizontalHeader()
 
             # Read widths from main panel
-            w_num = mh.sectionSize(0)
-            w_date = mh.sectionSize(1)
-            w_time = mh.sectionSize(2)
-            w_user = mh.sectionSize(3)
-            w_bpm = mh.sectionSize(4)
-            w_artist = mh.sectionSize(5)
-
-            # Tick stays fixed at 24 to align visuals
-            w_tick = 24
+            w_actions = mh.sectionSize(0)
+            w_num = mh.sectionSize(1)
+            w_date = mh.sectionSize(2)
+            w_time = mh.sectionSize(3)
+            w_user = mh.sectionSize(4)
+            w_bpm = mh.sectionSize(5)
+            w_artist = mh.sectionSize(6)
 
             # Apply to popup (Title stretches automatically)
-            ph.resizeSection(0, w_tick)
+            ph.resizeSection(0, w_actions)
             ph.resizeSection(1, w_num)
             ph.resizeSection(2, w_date)
             ph.resizeSection(3, w_time)
@@ -119,8 +119,8 @@ class SongRequestsPopup(QtWidgets.QDialog):
     def _apply_column_layout(self) -> None:
         """Mirror main panel spacing: tick/#/date/time fixed, user/artist interactive, title stretches."""
         h = self.table.horizontalHeader()
-        # Fixed columns (match main panel logic; tick added as fixed)
-        w_tick = 24
+        # Fixed columns (match main panel logic; actions added as fixed)
+        w_actions = 42
         w_num = 24
         w_date = 75
         w_time = 75
@@ -130,7 +130,7 @@ class SongRequestsPopup(QtWidgets.QDialog):
         viewport_w = self.table.viewport().width()
         available = viewport_w if viewport_w and viewport_w > 0 else max(300, self.width() - 32)
 
-        fixed_total = w_tick + w_num + w_date + w_time + w_bpm
+        fixed_total = w_actions + w_num + w_date + w_time + w_bpm
         remaining = max(100, available - fixed_total)
 
         # Distribute remaining: User 30%, Artist 70% (Title stretches)
@@ -142,7 +142,7 @@ class SongRequestsPopup(QtWidgets.QDialog):
         w_artist = min(w_artist, 120)
 
         # Apply widths
-        h.resizeSection(0, w_tick)
+        h.resizeSection(0, w_actions)
         h.resizeSection(1, w_num)
         h.resizeSection(2, w_date)
         h.resizeSection(3, w_time)
@@ -189,6 +189,9 @@ class SongRequestsPopup(QtWidgets.QDialog):
             logger.warning(f"Failed to load song requests in popup: {e}")
             self._set_rows([])
 
+    def set_harmonic_handler(self, handler) -> None:
+        self._on_set_harmonic = handler
+
     def _set_rows(self, rows: list[Tuple[int, str, str, str, str, str, str]]) -> None:
         if not isValid(self.table):
             return
@@ -199,11 +202,23 @@ class SongRequestsPopup(QtWidgets.QDialog):
                 item = QtWidgets.QTableWidgetItem(str(value))
                 self.table.setItem(row_index, col_index, item)
 
-            # Action button at far-left
+            # Action buttons at far-left
             actions = QtWidgets.QWidget(self.table)
             hbox = QtWidgets.QHBoxLayout(actions)
             hbox.setContentsMargins(4, 0, 4, 0)
-            hbox.setSpacing(6)
+            hbox.setSpacing(4)
+
+            a_btn = QtWidgets.QToolButton(actions)
+            a_btn.setText("A")
+            a_btn.setToolTip("Set as Song A")
+            a_btn.setAutoRaise(True)
+            a_btn.clicked.connect(lambda _, num=rn, ds=date, ts=time_, us=user, bp=bpm, ar=artist, ti=title: self._emit_harmonic("A", num, ds, ts, us, bp, ar, ti))
+
+            b_btn = QtWidgets.QToolButton(actions)
+            b_btn.setText("B")
+            b_btn.setToolTip("Set as Song B")
+            b_btn.setAutoRaise(True)
+            b_btn.clicked.connect(lambda _, num=rn, ds=date, ts=time_, us=user, bp=bpm, ar=artist, ti=title: self._emit_harmonic("B", num, ds, ts, us, bp, ar, ti))
 
             clear_btn = QtWidgets.QToolButton(actions)
             clear_btn.setIcon(self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogApplyButton))
@@ -211,9 +226,27 @@ class SongRequestsPopup(QtWidgets.QDialog):
             clear_btn.setAutoRaise(True)
             clear_btn.clicked.connect(lambda _, num=rn: self._delete_request(num))
 
+            hbox.addWidget(a_btn)
+            hbox.addWidget(b_btn)
             hbox.addWidget(clear_btn)
             hbox.addStretch(1)
             self.table.setCellWidget(row_index, 0, actions)
+
+    def _emit_harmonic(self, role: str, req_no, date_str, time_str, user, bpm, artist, title) -> None:
+        if callable(self._on_set_harmonic):
+            payload = {
+                "RequestNumber": req_no,
+                "Date": date_str,
+                "Time": time_str,
+                "User": user,
+                "Bpm": bpm,
+                "Artist": artist,
+                "Title": title,
+            }
+            try:
+                self._on_set_harmonic(role, payload)
+            except Exception:
+                pass
 
     def _delete_request(self, request_number: int) -> None:
         try:

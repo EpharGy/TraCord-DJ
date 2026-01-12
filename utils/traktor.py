@@ -426,6 +426,7 @@ def search_collection_json(songs: List[Dict[str, Any]], search_query: str, max_s
         artist = song.get("artist", "").lower()
         title = song.get("title", "").lower()
         album = song.get("album", "").lower()
+        combined = f"{artist} {title} {album}".strip()
         
         # Determine priority and sort key
         priority_score = 0
@@ -440,6 +441,10 @@ def search_collection_json(songs: List[Dict[str, Any]], search_query: str, max_s
         elif album and all(keyword in album for keyword in search_keywords):
             priority_score = 3
             sort_key = (album, artist, title)
+        elif combined and all(keyword in combined for keyword in search_keywords):
+            # AND across fields (artist/title/album) when no single-field match
+            priority_score = 4
+            sort_key = (artist, title, album)
         
         if priority_score > 0:
             matches_found += 1

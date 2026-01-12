@@ -24,6 +24,7 @@ class OverlaySong:
     album: str
     bpm: str
     key: str
+    musical_key: int | str | None
     genre: str
     audio_file_path: str
     coverart_base64: str
@@ -39,6 +40,7 @@ class OverlaySong:
             album=song_info.get('album', ''),
             bpm=str(song_info.get('bpm', '')),
             key=key_str,
+            musical_key=musical_key,
             genre=song_info.get('genre', ''),
             audio_file_path=song_info.get('audio_file_path', ''),
             coverart_base64=song_info.get('coverart_base64', ''),
@@ -52,6 +54,7 @@ class OverlaySong:
             'album': self.album,
             'bpm': self.bpm,
             'key': self.key,
+            'musical_key': self.musical_key,
             'genre': self.genre,
             'audio_file_path': self.audio_file_path,
             'coverart_base64': self.coverart_base64,

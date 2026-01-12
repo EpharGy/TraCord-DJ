@@ -16,6 +16,7 @@ from tracord.core.events import EventTopic, emit_event
 from ui_qt2.main_window import MainWindow
 from ui_qt2.panels.now_playing_panel import NowPlayingPanel
 from ui_qt2.panels.song_requests_popup import SongRequestsPopup
+from ui_qt2.panels.harmonic_popup import HarmonicMixPopup
 from utils.logger import get_logger
 from services.web_overlay import WebOverlayServer
 from utils.stats import load_stats, reset_global_stats, reset_session_stats, increment_song_play
@@ -27,6 +28,9 @@ from utils.midi_helper import MidiHelper, MidiClockListener
 from utils.spout_sender_helper import SpoutGLHelper, SPOUTGL_AVAILABLE, SPOUT_SIZE
 from services.traktor_listener import TraktorBroadcastListener
 from services.discord_bot import DiscordBotController
+from utils.harmonic_mixer import build_harmonic_paths
+from utils.harmonic_keys import open_key_str_to_int
+from utils.helpers import safe_write_json
 from main import DJBot
 
 logger = get_logger(__name__)
@@ -52,6 +56,13 @@ class QtController(QtCore.QObject):
         self._discord: DiscordBotController | None = None
         self._overlay_server: WebOverlayServer | None = None
         self._midi_clock: MidiClockListener | None = None
+        self._harmonic_popup: HarmonicMixPopup | None = None
+        self._harmonic_library: list[dict] | None = None
+        self._harmonic_playlist_path = Path(getattr(Settings, "HARMONIC_PLAYLIST_FILE", "data/harmonic_playlists.json"))
+        self._last_song_payload: dict = {}
+        self._last_song_has_key_bpm = False
+        self.last_harmonic_result: list[dict] = []
+        self.last_harmonic_mode: str | None = None
         # One-time hints/flags
         self._sr_notify_missing_warned = False
         self._discord_connecting = False
@@ -76,6 +87,12 @@ class QtController(QtCore.QObject):
 
     # --- Slots called by MainWindow/hub ---
     def handle_song_event(self, payload: dict) -> None:
+        try:
+            self._last_song_payload = payload or {}
+            self._last_song_has_key_bpm = self._has_key_bpm(payload)
+            self._refresh_harmonic_now_playing_state()
+        except Exception:
+            pass
         # Text
         artist = str(payload.get("artist", ""))
         title = str(payload.get("title", ""))
@@ -223,8 +240,236 @@ class QtController(QtCore.QObject):
             srp = self.window.song_requests_panel
             srp.clear_button.clicked.connect(self._clear_requests)
             srp.popup_button.clicked.connect(self._open_requests_popup)
+            srp.harmonic_button.clicked.connect(self._open_harmonic_popup)
+            srp.set_harmonic_handler(lambda role, payload: self._set_harmonic_from_request(role, payload))
         except Exception:
             pass
+
+    # --- Harmonic mixing helpers ---
+    def _has_key_bpm(self, payload: dict | None) -> bool:
+        if not payload:
+            return False
+        bpm = payload.get("bpm")
+        key_int = payload.get("musical_key")
+        if key_int in (None, "", []):
+            key_str = payload.get("key")
+            if key_str:
+                key_int = open_key_str_to_int(str(key_str))
+        try:
+            bpm_ok = float(bpm) > 0
+        except Exception:
+            bpm_ok = False
+        try:
+            key_ok = key_int is not None and int(key_int) >= 0
+        except Exception:
+            key_ok = False
+        return bool(bpm_ok and key_ok)
+
+    def _refresh_harmonic_now_playing_state(self) -> None:
+        try:
+            if self._harmonic_popup and self._harmonic_popup.isVisible():
+                self._harmonic_popup.refresh_now_playing_state()
+        except Exception:
+            pass
+
+    def current_track_has_key_bpm(self) -> bool:
+        return bool(self._last_song_has_key_bpm)
+
+    def get_anchor_bpm(self) -> float | None:
+        try:
+            bpm = self._last_song_payload.get("bpm") if self._last_song_payload else None
+            if bpm is None:
+                return None
+            bpm_val = float(bpm)
+            return bpm_val if bpm_val > 0 else None
+        except Exception:
+            return None
+
+    def _ensure_harmonic_library(self) -> list[dict]:
+        if self._harmonic_library is None:
+            try:
+                self._harmonic_library = load_collection_json(Settings.COLLECTION_JSON_FILE)
+            except Exception:
+                self._harmonic_library = []
+        return self._harmonic_library
+
+    def _open_harmonic_popup(self) -> None:
+        popup = getattr(self, "_harmonic_popup", None)
+        try:
+            import sip  # type: ignore
+
+            is_deleted = popup is not None and bool(sip.isdeleted(popup))
+        except Exception:
+            is_deleted = False
+            try:
+                if popup is not None:
+                    _ = popup.isVisible()
+            except RuntimeError:
+                is_deleted = True
+
+        if popup is None or is_deleted or not popup.isVisible():
+            library = self._ensure_harmonic_library()
+            self._harmonic_popup = HarmonicMixPopup(self, library)
+            self._harmonic_popup.show()
+        else:
+            self._harmonic_popup.raise_()
+            self._harmonic_popup.activateWindow()
+
+    def _sanitize_song_payload(self, payload: dict | None) -> dict | None:
+        if not payload:
+            return None
+        try:
+            bpm_val = float(payload.get("bpm")) if payload.get("bpm") is not None else None
+        except Exception:
+            bpm_val = None
+        try:
+            raw_key = payload.get("musical_key")
+            if raw_key not in (None, "", []):
+                key_val = int(raw_key)
+            else:
+                key_val = None
+        except Exception:
+            key_val = None
+        if key_val is None:
+            key_val = open_key_str_to_int(str(payload.get("key", ""))) if payload.get("key") else None
+        return {
+            "artist": payload.get("artist"),
+            "title": payload.get("title"),
+            "album": payload.get("album"),
+            "bpm": bpm_val,
+            "musical_key": key_val,
+        }
+
+    def set_harmonic_song_from_current(self) -> None:
+        if not self._has_key_bpm(self._last_song_payload):
+            return
+        song = self._sanitize_song_payload(self._last_song_payload)
+        self.set_harmonic_song("A", song)
+
+    def set_harmonic_song(self, role: str, song: dict | None) -> None:
+        try:
+            if self._harmonic_popup is None:
+                self._open_harmonic_popup()
+            if self._harmonic_popup:
+                self._harmonic_popup.set_song_selection(role, song)
+        except Exception:
+            logger.warning("Failed to set harmonic song %s", role)
+
+    def _set_harmonic_from_request(self, role: str, payload: dict) -> None:
+        artist = str(payload.get("Artist", ""))
+        title = str(payload.get("Title", ""))
+        album = str(payload.get("Album", ""))
+        bpm_req = payload.get("Bpm") or payload.get("BPM")
+        library = self._ensure_harmonic_library()
+        song = self._find_song_in_library(artist, title, album, library) or get_song_info(artist, title, library)
+        # Fill album/BPM if missing
+        if not song.get("album") and album:
+            song["album"] = album
+        if not song.get("bpm") and bpm_req not in (None, ""):
+            try:
+                song["bpm"] = float(bpm_req)
+            except Exception:
+                song["bpm"] = bpm_req
+        # musical_key may be blank; leave as-is
+        self.set_harmonic_song(role, song)
+
+    def _find_song_in_library(self, artist: str, title: str, album: str, library: list[dict]) -> dict | None:
+        a = artist.strip().lower()
+        t = title.strip().lower()
+        al = album.strip().lower()
+        # 1) exact normalized match
+        for s in library:
+            if s.get("artist", "").strip().lower() == a and s.get("title", "").strip().lower() == t:
+                return dict(s)
+        # 2) combined AND match
+        keywords = [k for k in (a, t, al) if k]
+        if not keywords:
+            return None
+        for s in library:
+            combined = f"{s.get('artist','')} {s.get('title','')} {s.get('album','')}".lower()
+            if all(k in combined for k in keywords):
+                return dict(s)
+        return None
+
+    def run_harmonic_match(self, *, song_a: dict | None, song_b: dict | None, mode: str, bpm_tolerance_pct: float, filters: dict | None) -> dict:
+        library = self._ensure_harmonic_library()
+        if not song_a or not song_b:
+            return {"paths": [], "meta": {}, "errors": ["Song A and Song B are required."]}
+        result = build_harmonic_paths(
+            song_a=song_a,
+            song_b=song_b,
+            library=library,
+            mode=mode,
+            bpm_tolerance_pct=bpm_tolerance_pct,
+            filters=filters,
+            anchor_bpm=self.get_anchor_bpm(),
+        )
+        self.last_harmonic_result = result.get("paths", [])
+        self.last_harmonic_mode = mode
+        return result
+
+    def save_harmonic_playlist(self, paths: list[dict]) -> None:
+        if not paths:
+            return
+        try:
+            existing: list = []
+            if self._harmonic_playlist_path.exists():
+                try:
+                    existing = json.loads(self._harmonic_playlist_path.read_text(encoding="utf-8"))
+                    if not isinstance(existing, list):
+                        existing = []
+                except Exception:
+                    existing = []
+            entry = {
+                "paths": paths,
+                "anchor_bpm": self.get_anchor_bpm(),
+                "mode": self.last_harmonic_mode or "key",
+            }
+            existing.append(entry)
+            safe_write_json(str(self._harmonic_playlist_path), existing)
+            logger.info("Harmonic playlist saved (%s entries)", len(existing))
+        except Exception as e:
+            logger.warning(f"Failed to save harmonic playlist: {e}")
+
+    def clear_harmonic_playlist(self) -> None:
+        try:
+            safe_write_json(str(self._harmonic_playlist_path), [])
+            logger.info("Harmonic playlist cleared")
+        except Exception as e:
+            logger.warning(f"Failed to clear harmonic playlist: {e}")
+
+    def _set_harmonic_from_request(self, role: str, payload: dict) -> None:
+        try:
+            artist = str(payload.get("Artist", "")).strip()
+            title = str(payload.get("Title", "")).strip()
+            album = str(payload.get("Album", "")).strip()
+            bpm = payload.get("Bpm") or payload.get("BPM")
+            library = self._ensure_harmonic_library()
+            selection = None
+            if artist or title:
+                try:
+                    match = get_song_info(artist, title, library)
+                    if match:
+                        selection = {
+                            "artist": match.get("artist", artist),
+                            "title": match.get("title", title),
+                            "album": match.get("album", album),
+                            "bpm": match.get("bpm") or bpm,
+                            "musical_key": match.get("musical_key"),
+                        }
+                except Exception:
+                    selection = None
+            if selection is None:
+                selection = {
+                    "artist": artist,
+                    "title": title,
+                    "album": album,
+                    "bpm": bpm,
+                    "musical_key": None,
+                }
+            self.set_harmonic_song(role, selection)
+        except Exception:
+            logger.debug("Failed to set harmonic song from request payload")
 
     def _open_settings(self) -> None:
         try:
@@ -408,6 +653,8 @@ class QtController(QtCore.QObject):
                 self._update_collection_info()
             except Exception:
                 pass
+            # Invalidate cached harmonic library so new songs are available
+            self._harmonic_library = None
         except Exception as e:
             logger.error(f"Collection refresh failed: {e}")
 
@@ -817,6 +1064,10 @@ class QtController(QtCore.QObject):
 
         if popup is None or is_deleted or not popup.isVisible():
             self._requests_popup = SongRequestsPopup(self.window)
+            try:
+                self._requests_popup.set_harmonic_handler(lambda role, payload: self._set_harmonic_from_request(role, payload))
+            except Exception:
+                pass
             self._requests_popup.show()
         else:
             self._requests_popup.raise_()

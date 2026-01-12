@@ -1,0 +1,594 @@
+[
+  {
+    "paths": [
+      {
+        "key_path": [
+          6,
+          11,
+          4
+        ],
+        "key_labels": [
+          {
+            "open": "7d",
+            "camelot": "7B",
+            "straight": "F major"
+          },
+          {
+            "open": "6d",
+            "camelot": "6B",
+            "straight": "Bb major"
+          },
+          {
+            "open": "5d",
+            "camelot": "5B",
+            "straight": "Eb major"
+          }
+        ],
+        "hops": [
+          {
+            "key_int": 11,
+            "labels": {
+              "open": "6d",
+              "camelot": "6B",
+              "straight": "Bb major"
+            },
+            "candidates": [
+              {
+                "artist": "Tsukino Mito",
+                "title": "Antigravity Girl (Angeart Remix)",
+                "album": "Vtubers",
+                "bpm": 173.0,
+                "musical_key": 11,
+                "key_labels": {
+                  "open": "6d",
+                  "camelot": "6B",
+                  "straight": "Bb major"
+                },
+                "bpm_offset_pct": -2.3121387283236983,
+                "adjusted_bpm": 169.0,
+                "adjusted_key_int": 11,
+                "adjusted_key_labels": {
+                  "open": "6d",
+                  "camelot": "6B",
+                  "straight": "Bb major"
+                }
+              },
+              {
+                "artist": "D4DJ OST",
+                "title": "楽しくお料理",
+                "album": "D4DJ - OST",
+                "bpm": 174.0,
+                "musical_key": 11,
+                "key_labels": {
+                  "open": "6d",
+                  "camelot": "6B",
+                  "straight": "Bb major"
+                },
+                "bpm_offset_pct": -2.8735632183908066,
+                "adjusted_bpm": 169.0,
+                "adjusted_key_int": 10,
+                "adjusted_key_labels": {
+                  "open": "11d",
+                  "camelot": "11B",
+                  "straight": "A major"
+                }
+              },
+              {
+                "artist": "Photon Maiden",
+                "title": "Synchrogazer",
+                "album": "D4DJ - Cover",
+                "bpm": 162.0,
+                "musical_key": 11,
+                "key_labels": {
+                  "open": "6d",
+                  "camelot": "6B",
+                  "straight": "Bb major"
+                },
+                "bpm_offset_pct": 4.320987654320985,
+                "adjusted_bpm": 169.0,
+                "adjusted_key_int": 11,
+                "adjusted_key_labels": {
+                  "open": "6d",
+                  "camelot": "6B",
+                  "straight": "Bb major"
+                }
+              },
+              {
+                "artist": "Photon Maiden",
+                "title": "We never stop (DJ Shimamura Remix)",
+                "album": "D4DJ",
+                "bpm": 169.0,
+                "musical_key": 11,
+                "key_labels": {
+                  "open": "6d",
+                  "camelot": "6B",
+                  "straight": "Bb major"
+                },
+                "bpm_offset_pct": 0.0,
+                "adjusted_bpm": 169.0,
+                "adjusted_key_int": 11,
+                "adjusted_key_labels": {
+                  "open": "6d",
+                  "camelot": "6B",
+                  "straight": "Bb major"
+                }
+              },
+              {
+                "artist": "illumination STARS",
+                "title": "Hikari no destination",
+                "album": "The iDOLM@STER Shiny Colors",
+                "bpm": 169.0,
+                "musical_key": 11,
+                "key_labels": {
+                  "open": "6d",
+                  "camelot": "6B",
+                  "straight": "Bb major"
+                },
+                "bpm_offset_pct": 0.0,
+                "adjusted_bpm": 169.0,
+                "adjusted_key_int": 11,
+                "adjusted_key_labels": {
+                  "open": "6d",
+                  "camelot": "6B",
+                  "straight": "Bb major"
+                }
+              },
+              {
+                "artist": "She is Legend",
+                "title": "Kaminshou",
+                "album": "Heaven Burns Red",
+                "bpm": 162.0,
+                "musical_key": 11,
+                "key_labels": {
+                  "open": "6d",
+                  "camelot": "6B",
+                  "straight": "Bb major"
+                },
+                "bpm_offset_pct": 4.320987654320985,
+                "adjusted_bpm": 169.0,
+                "adjusted_key_int": 11,
+                "adjusted_key_labels": {
+                  "open": "6d",
+                  "camelot": "6B",
+                  "straight": "Bb major"
+                }
+              },
+              {
+                "artist": "Al Storm Ft. Malaya",
+                "title": "When I Close My Eyes",
+                "album": "",
+                "bpm": 176.0,
+                "musical_key": 11,
+                "key_labels": {
+                  "open": "6d",
+                  "camelot": "6B",
+                  "straight": "Bb major"
+                },
+                "bpm_offset_pct": -3.9772727272727293,
+                "adjusted_bpm": 169.0,
+                "adjusted_key_int": 10,
+                "adjusted_key_labels": {
+                  "open": "11d",
+                  "camelot": "11B",
+                  "straight": "A major"
+                }
+              },
+              {
+                "artist": "Cars",
+                "title": "Drive",
+                "album": "",
+                "bpm": 166.0,
+                "musical_key": 11,
+                "key_labels": {
+                  "open": "6d",
+                  "camelot": "6B",
+                  "straight": "Bb major"
+                },
+                "bpm_offset_pct": 1.8072289156626509,
+                "adjusted_bpm": 169.0,
+                "adjusted_key_int": 11,
+                "adjusted_key_labels": {
+                  "open": "6d",
+                  "camelot": "6B",
+                  "straight": "Bb major"
+                }
+              },
+              {
+                "artist": "Payolas",
+                "title": "Here's the World",
+                "album": "",
+                "bpm": 176.0,
+                "musical_key": 11,
+                "key_labels": {
+                  "open": "6d",
+                  "camelot": "6B",
+                  "straight": "Bb major"
+                },
+                "bpm_offset_pct": -3.9772727272727293,
+                "adjusted_bpm": 169.0,
+                "adjusted_key_int": 10,
+                "adjusted_key_labels": {
+                  "open": "11d",
+                  "camelot": "11B",
+                  "straight": "A major"
+                }
+              },
+              {
+                "artist": "Roxette",
+                "title": "Listen to Your Heart",
+                "album": "",
+                "bpm": 172.0,
+                "musical_key": 11,
+                "key_labels": {
+                  "open": "6d",
+                  "camelot": "6B",
+                  "straight": "Bb major"
+                },
+                "bpm_offset_pct": -1.744186046511631,
+                "adjusted_bpm": 169.0,
+                "adjusted_key_int": 11,
+                "adjusted_key_labels": {
+                  "open": "6d",
+                  "camelot": "6B",
+                  "straight": "Bb major"
+                }
+              }
+            ]
+          },
+          {
+            "key_int": 4,
+            "labels": {
+              "open": "5d",
+              "camelot": "5B",
+              "straight": "Eb major"
+            },
+            "candidates": [
+              {
+                "artist": "Booty Bronx, Mitsunori Ikeda & TeddyLoid",
+                "title": "Jumping Mole (Nerdcore Switch)",
+                "album": "Panty & Stocking with Garterbelt",
+                "bpm": 175.0,
+                "musical_key": 4,
+                "key_labels": {
+                  "open": "5d",
+                  "camelot": "5B",
+                  "straight": "Eb major"
+                },
+                "bpm_offset_pct": -3.4285714285714253,
+                "adjusted_bpm": 169.0,
+                "adjusted_key_int": 3,
+                "adjusted_key_labels": {
+                  "open": "10d",
+                  "camelot": "10B",
+                  "straight": "D major"
+                }
+              },
+              {
+                "artist": "Cyua",
+                "title": "\"I\"",
+                "album": "Lostorage incited WIXOSS",
+                "bpm": 165.0,
+                "musical_key": 4,
+                "key_labels": {
+                  "open": "5d",
+                  "camelot": "5B",
+                  "straight": "Eb major"
+                },
+                "bpm_offset_pct": 2.4242424242424176,
+                "adjusted_bpm": 169.0,
+                "adjusted_key_int": 4,
+                "adjusted_key_labels": {
+                  "open": "5d",
+                  "camelot": "5B",
+                  "straight": "Eb major"
+                }
+              },
+              {
+                "artist": "Nakanoke no Itsuzugo",
+                "title": "Gotoubun no Kimochi",
+                "album": "The Quintessential Quintuplets",
+                "bpm": 174.0,
+                "musical_key": 4,
+                "key_labels": {
+                  "open": "5d",
+                  "camelot": "5B",
+                  "straight": "Eb major"
+                },
+                "bpm_offset_pct": -2.8735632183908066,
+                "adjusted_bpm": 169.0,
+                "adjusted_key_int": 3,
+                "adjusted_key_labels": {
+                  "open": "10d",
+                  "camelot": "10B",
+                  "straight": "D major"
+                }
+              },
+              {
+                "artist": "the peggies",
+                "title": "Kimi no Sei",
+                "album": "Rascal Does Not Dream of Bunny Girl Senpai",
+                "bpm": 174.0,
+                "musical_key": 4,
+                "key_labels": {
+                  "open": "5d",
+                  "camelot": "5B",
+                  "straight": "Eb major"
+                },
+                "bpm_offset_pct": -2.8735632183908066,
+                "adjusted_bpm": 169.0,
+                "adjusted_key_int": 3,
+                "adjusted_key_labels": {
+                  "open": "10d",
+                  "camelot": "10B",
+                  "straight": "D major"
+                }
+              },
+              {
+                "artist": "Asahi Serizawa",
+                "title": "Hoshi Wo Mezashite (ETIA. Remix)",
+                "album": "The iDOLM@STER Shiny Colors",
+                "bpm": 174.0,
+                "musical_key": 4,
+                "key_labels": {
+                  "open": "5d",
+                  "camelot": "5B",
+                  "straight": "Eb major"
+                },
+                "bpm_offset_pct": -2.8735632183908066,
+                "adjusted_bpm": 169.0,
+                "adjusted_key_int": 3,
+                "adjusted_key_labels": {
+                  "open": "10d",
+                  "camelot": "10B",
+                  "straight": "D major"
+                }
+              },
+              {
+                "artist": "Hoshimachi Suisei",
+                "title": "Next Colour Planet (saw_freak Classic SKTCHN J-Core Bootleg)",
+                "album": "Vtubers",
+                "bpm": 169.0,
+                "musical_key": 4,
+                "key_labels": {
+                  "open": "5d",
+                  "camelot": "5B",
+                  "straight": "Eb major"
+                },
+                "bpm_offset_pct": 0.0,
+                "adjusted_bpm": 169.0,
+                "adjusted_key_int": 4,
+                "adjusted_key_labels": {
+                  "open": "5d",
+                  "camelot": "5B",
+                  "straight": "Eb major"
+                }
+              },
+              {
+                "artist": "Kizuna AI",
+                "title": "future base (Assertive Hardcore Bootleg)",
+                "album": "Vtubers",
+                "bpm": 173.0,
+                "musical_key": 4,
+                "key_labels": {
+                  "open": "5d",
+                  "camelot": "5B",
+                  "straight": "Eb major"
+                },
+                "bpm_offset_pct": -2.3121387283236983,
+                "adjusted_bpm": 169.0,
+                "adjusted_key_int": 4,
+                "adjusted_key_labels": {
+                  "open": "5d",
+                  "camelot": "5B",
+                  "straight": "Eb major"
+                }
+              },
+              {
+                "artist": "Midnight Grand Orchestra",
+                "title": "Allegro (BLKFLAGZ Flip)",
+                "album": "Vtubers",
+                "bpm": 177.0,
+                "musical_key": 4,
+                "key_labels": {
+                  "open": "5d",
+                  "camelot": "5B",
+                  "straight": "Eb major"
+                },
+                "bpm_offset_pct": -4.519774011299438,
+                "adjusted_bpm": 169.0,
+                "adjusted_key_int": 3,
+                "adjusted_key_labels": {
+                  "open": "10d",
+                  "camelot": "10B",
+                  "straight": "D major"
+                }
+              },
+              {
+                "artist": "D4DJ ALL STARS",
+                "title": "What a Colorful World! [D4DJ Remix]",
+                "album": "D4DJ",
+                "bpm": 171.0,
+                "musical_key": 4,
+                "key_labels": {
+                  "open": "5d",
+                  "camelot": "5B",
+                  "straight": "Eb major"
+                },
+                "bpm_offset_pct": -1.1695906432748537,
+                "adjusted_bpm": 169.0,
+                "adjusted_key_int": 4,
+                "adjusted_key_labels": {
+                  "open": "5d",
+                  "camelot": "5B",
+                  "straight": "Eb major"
+                }
+              },
+              {
+                "artist": "Happy Around!",
+                "title": "Gakuen Tengoku",
+                "album": "D4DJ - Cover",
+                "bpm": 175.0,
+                "musical_key": 4,
+                "key_labels": {
+                  "open": "5d",
+                  "camelot": "5B",
+                  "straight": "Eb major"
+                },
+                "bpm_offset_pct": -3.4285714285714253,
+                "adjusted_bpm": 169.0,
+                "adjusted_key_int": 3,
+                "adjusted_key_labels": {
+                  "open": "10d",
+                  "camelot": "10B",
+                  "straight": "D major"
+                }
+              },
+              {
+                "artist": "RONDO",
+                "title": "Journey through the Decade",
+                "album": "D4DJ - Cover",
+                "bpm": 174.0,
+                "musical_key": 4,
+                "key_labels": {
+                  "open": "5d",
+                  "camelot": "5B",
+                  "straight": "Eb major"
+                },
+                "bpm_offset_pct": -2.8735632183908066,
+                "adjusted_bpm": 169.0,
+                "adjusted_key_int": 3,
+                "adjusted_key_labels": {
+                  "open": "10d",
+                  "camelot": "10B",
+                  "straight": "D major"
+                }
+              },
+              {
+                "artist": "Liella!",
+                "title": "WE WILL!!",
+                "album": "Love Live! Superstar!!",
+                "bpm": 175.0,
+                "musical_key": 4,
+                "key_labels": {
+                  "open": "5d",
+                  "camelot": "5B",
+                  "straight": "Eb major"
+                },
+                "bpm_offset_pct": -3.4285714285714253,
+                "adjusted_bpm": 169.0,
+                "adjusted_key_int": 3,
+                "adjusted_key_labels": {
+                  "open": "10d",
+                  "camelot": "10B",
+                  "straight": "D major"
+                }
+              },
+              {
+                "artist": "Setsuna Yuki",
+                "title": "CHASE!",
+                "album": "Love Live! Nijigasaki High School Idol Club",
+                "bpm": 170.0,
+                "musical_key": 4,
+                "key_labels": {
+                  "open": "5d",
+                  "camelot": "5B",
+                  "straight": "Eb major"
+                },
+                "bpm_offset_pct": -0.588235294117645,
+                "adjusted_bpm": 169.0,
+                "adjusted_key_int": 4,
+                "adjusted_key_labels": {
+                  "open": "5d",
+                  "camelot": "5B",
+                  "straight": "Eb major"
+                }
+              },
+              {
+                "artist": "Chihaya Kisaragi, Yayoi Takatsuki, Iori Minase",
+                "title": "GO MY WAY!! (ESTi Remix)",
+                "album": "The iDOLM@STER",
+                "bpm": 175.0,
+                "musical_key": 4,
+                "key_labels": {
+                  "open": "5d",
+                  "camelot": "5B",
+                  "straight": "Eb major"
+                },
+                "bpm_offset_pct": -3.4285714285714253,
+                "adjusted_bpm": 169.0,
+                "adjusted_key_int": 3,
+                "adjusted_key_labels": {
+                  "open": "10d",
+                  "camelot": "10B",
+                  "straight": "D major"
+                }
+              },
+              {
+                "artist": "Hasunosora Girls' High School Idol Club",
+                "title": "Tsubasa・La・Liberte",
+                "album": "Link! Like! Love Live! - Hasunosora",
+                "bpm": 176.0,
+                "musical_key": 4,
+                "key_labels": {
+                  "open": "5d",
+                  "camelot": "5B",
+                  "straight": "Eb major"
+                },
+                "bpm_offset_pct": -3.9772727272727293,
+                "adjusted_bpm": 169.0,
+                "adjusted_key_int": 3,
+                "adjusted_key_labels": {
+                  "open": "10d",
+                  "camelot": "10B",
+                  "straight": "D major"
+                }
+              },
+              {
+                "artist": "Bruce Springsteen",
+                "title": "I'm On Fire",
+                "album": "",
+                "bpm": 177.0,
+                "musical_key": 4,
+                "key_labels": {
+                  "open": "5d",
+                  "camelot": "5B",
+                  "straight": "Eb major"
+                },
+                "bpm_offset_pct": -4.519774011299438,
+                "adjusted_bpm": 169.0,
+                "adjusted_key_int": 3,
+                "adjusted_key_labels": {
+                  "open": "10d",
+                  "camelot": "10B",
+                  "straight": "D major"
+                }
+              },
+              {
+                "artist": "Dire Straits",
+                "title": "Walk Of Life",
+                "album": "",
+                "bpm": 172.0,
+                "musical_key": 4,
+                "key_labels": {
+                  "open": "5d",
+                  "camelot": "5B",
+                  "straight": "Eb major"
+                },
+                "bpm_offset_pct": -1.744186046511631,
+                "adjusted_bpm": 169.0,
+                "adjusted_key_int": 4,
+                "adjusted_key_labels": {
+                  "open": "5d",
+                  "camelot": "5B",
+                  "straight": "Eb major"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "anchor_bpm": 169.0,
+    "mode": "bpm"
+  }
+]
