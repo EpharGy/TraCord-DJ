@@ -390,7 +390,19 @@ class QtController(QtCore.QObject):
                 logger.warning("Traktor path not configured. Check settings.json.")
                 return
             count = refresh_collection_json(traktor_path, collection_json, excluded, debug)
-            logger.info(f"Collection refreshed: {count} songs processed")
+            # Extract trimmed collection path (e.g., "Traktor 4.4.1\collection.nml")
+            try:
+                path_parts = Path(traktor_path).parts
+                # Find the "Traktor X.X.X" folder and take it with the filename
+                traktor_idx = next((i for i, part in enumerate(path_parts) if part.startswith("Traktor ")), -1)
+                if traktor_idx >= 0 and traktor_idx < len(path_parts) - 1:
+                    trimmed_path = str(Path(*path_parts[traktor_idx:]))
+                else:
+                    # Fallback: just show the filename
+                    trimmed_path = Path(traktor_path).name
+            except Exception:
+                trimmed_path = Path(traktor_path).name
+            logger.info(f"Collection refreshed: {count} songs processed ({trimmed_path})")
             # Update Bot Info panel after refresh
             try:
                 self._update_collection_info()
